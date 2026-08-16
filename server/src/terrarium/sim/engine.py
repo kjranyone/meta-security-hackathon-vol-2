@@ -25,6 +25,7 @@ from ..world.models import (
     WorldSpec,
     RESOURCE_TO_COMMODITY,
 )
+from ..world.tech import CATALOG, tech_catalog_index
 from .events import EventLog
 from .interventions import Intervention, Scenario
 
@@ -101,6 +102,12 @@ class Engine:
         self._pending_reopen: dict[str, int] = {}
         self._cp_cause: dict[str, str] = {}   # chokepoint name -> closure event id
         self._tick_throttled: list[str] = []  # this tick's trade_throttled event ids
+        # emerging techs: unlocked flag + per-nation adoption
+        self.tech_index = tech_catalog_index()
+        self.tech_unlocked: dict[str, bool] = {t.id: t.unlock_tick <= 0 for t in CATALOG}
+        self.tech_adopted: dict[str, set[str]] = {t.id: set() for t in CATALOG}
+        self.banned_techs: set[str] = set()
+        self._tech_cause: dict[str, str] = {}  # tech id -> emergence event id
 
     # ------------------------------------------------------------------ setup
     def open_replay(self) -> None:
@@ -129,6 +136,7 @@ class Engine:
                      "commodity": r.commodity.value, "chokepoints": r.chokepoints}
                     for r in self.spec.routes
                 ],
+                "techs": [t.model_dump(mode="json") for t in CATALOG],
             },
         }
         self._replay.write(json.dumps(meta, ensure_ascii=False) + "\n")
@@ -252,6 +260,25 @@ class Engine:
                 f"神が {self.nations[nid].name} に新たな {res.value} 資源を創り出した（×{qty}）",
                 actor="GOD", targets=[nid], data={"nation": nid, "resource": res.value, "quantity": qty},
             )
+        elif iv.type == "grant_tech":
+            nid = self._nation_by_ref(p["nation"])
+            tid = p["tech"]
+            if nid is None or tid not in self.tech_index or tid in self.banned_techs:
+                return
+            self.tech_unlocked[tid] = True
+            if nid not in self.tech_adopted[tid]:
+                self._adopt_tech(nid, tid, forced=True)
+        elif iv.type == "ban_tech":
+            tid = p["tech"]
+            if tid not in self.tech_index:
+                return
+            self.banned_techs.add(tid)
+            self.tech_adopted[tid].clear()
+            self.event_log.emit(
+                self.tick_no, "god_intervention",
+                f"神が「{self.tech_index[tid].name}」の研究を全世界で禁じた",
+                actor="GOD", data={"tech": tid},
+            )
         elif iv.type == "set_param":
             nid = self._nation_by_ref(p["nation"])
             if nid is None:
@@ -284,6 +311,7 @@ class Engine:
         # expire temp effects
         self.temp_effects = [e for e in self.temp_effects if e.until > t]
         self._tick_throttled = []
+        self._tech_step()
 
         supply = self._production()
         flows, unmet = self._trade(supply)
@@ -294,6 +322,86 @@ class Engine:
         self._conflict()
         self._macro_update()
         self._snapshot()
+
+    # ------------------------------------------------------------- tech layer
+    def _tech_step(self) -> None:
+        """Paper-level innovations mature into prototypes, then diffuse to
+        nations according to their absorptive (research) capacity."""
+        t = self.tick_no
+        for tech in CATALOG:
+            if not self.tech_unlocked[tech.id] and t >= tech.unlock_tick:
+                self.tech_unlocked[tech.id] = True
+                ev = self.event_log.emit(
+                    t, "tech_emergence",
+                    f"研究フロンティア突破: 「{tech.name}」が論文から原型へ（{tech.desc}）",
+                    data={"tech": tech.id, "category": tech.category},
+                )
+                self._tech_cause[tech.id] = ev.id
+            if not self.tech_unlocked[tech.id] or tech.id in self.banned_techs:
+                continue
+            for nid in sorted(self.nations):
+                if nid in self.tech_adopted[tech.id]:
+                    continue
+                if self.rng.random() < 0.08 * self._research_capacity(nid):
+                    self._adopt_tech(nid, tech.id)
+
+    def _research_capacity(self, nid: str) -> float:
+        nat = self.nations[nid]
+        finance_units = sum(1 for r in self.nation_resources[nid] if r is ResourceKind.FINANCE)
+        cap = 0.4 + min(1.2, nat.gdp / 8.0) + 0.25 * finance_units
+        if nat.stocks.get("chips", 0) >= 2.0:
+            cap += 0.3
+        return max(0.2, min(2.0, cap))
+
+    def _adopt_tech(self, nid: str, tech_id: str, forced: bool = False) -> None:
+        tech = self.tech_index[tech_id]
+        nat = self.nations[nid]
+        self.tech_adopted[tech_id].add(nid)
+        nat.aggression = min(1.0, nat.aggression + tech.aggression_shot)
+        nat.paranoia = min(1.0, nat.paranoia + tech.paranoia_shot)
+        if tech.trust_hit:
+            for other, onat in self.nations.items():
+                if other != nid:
+                    onat.trust[nid] = max(-100.0, onat.trust[nid] - tech.trust_hit)
+        parents = [self._tech_cause[tech_id]] if tech_id in self._tech_cause else []
+        verb = "神が授けた" if forced else "導入に成功"
+        self.event_log.emit(
+            self.tick_no, "tech_adopted",
+            f"{nat.name} が「{tech.name}」を{verb}",
+            actor=nid, targets=[nid], parents=parents,
+            data={"tech": tech_id, "category": tech.category, "forced": forced},
+        )
+
+    def _tech_factors(self, nid: str) -> tuple[dict[str, float], dict[str, float]]:
+        mult = {c.value: 1.0 for c in Commodity}
+        flat = {c.value: 0.0 for c in Commodity}
+        for tech in CATALOG:
+            if nid not in self.tech_adopted[tech.id]:
+                continue
+            for c, m in tech.mult.items():
+                mult[c] *= m
+            for c, f in tech.flat.items():
+                flat[c] += f
+        return mult, flat
+
+    def _tech_military_mult(self, nid: str) -> float:
+        m = 1.0
+        for tech in CATALOG:
+            if nid in self.tech_adopted[tech.id]:
+                m *= tech.military_mult
+        return m
+
+    def _tech_socio_drifts(self, nid: str) -> tuple[float, float]:
+        """(stability, approval) per-tick drifts from adopted socio/weapon techs."""
+        s = a = 0.0
+        for tech in CATALOG:
+            if nid in self.tech_adopted[tech.id]:
+                s += tech.stability_drift
+                a += tech.approval_drift
+        return s, a
+
+    def _techs_of(self, nid: str) -> list[str]:
+        return sorted(tid for tid, owners in self.tech_adopted.items() if nid in owners)
 
     # ------------------------------------------------------------- production
     FAB_BLACKOUT_MULT = 0.4    # fabs without power run at 40%
@@ -323,6 +431,10 @@ class Engine:
                         mult *= self.FAB_STARVED_MULT
                 slider = getattr(self.god, COMMODITY_YIELD_SLIDER[Commodity(commodity)])
                 dom[commodity] += YIELD_PER_UNIT * slider * mult
+            # emerging techs: unconditional flat supply then multipliers
+            t_mult, t_flat = self._tech_factors(nid)
+            for c in dom:
+                dom[c] = dom[c] * t_mult[c] + t_flat[c]
             supply[nid] = dom
         return supply
 
@@ -481,9 +593,11 @@ class Engine:
         for nid in sorted(self.nations):
             nat = self.nations[nid]
             policy = self.policies.get(nid) or self.policies.get("*")
+            me_view = dict(nat.view())
+            me_view["techs"] = self._techs_of(nid)
             view = NationView(
                 tick=self.tick_no,
-                me=nat.view(),
+                me=me_view,
                 prices=dict(self.prices),
                 god_params=self.god.model_dump(),
                 relations={
@@ -658,13 +772,15 @@ class Engine:
                 # 軌道資産を失うと偵察・通信能力が落ち、軍事力が漸減する
                 nat.military = max(0.0, nat.military - 1.5)
             bud = nat.budget
-            nat.military = min(150.0, nat.military + 2.0 * bud.get("military", 0.2) - (0.5 if nid in [x for w in self.wars for x in w] else 0.0))
+            mil_mult = self._tech_military_mult(nid)
+            nat.military = min(150.0, nat.military + (2.0 * bud.get("military", 0.2)) * mil_mult - (0.5 if nid in [x for w in self.wars for x in w] else 0.0))
             nat.gdp *= 1.0 + growth
             # stability & approval
+            t_stab, t_appr = self._tech_socio_drifts(nid)
             drift = 0.25 * (55.0 - nat.stability)
             welfare = 3.0 * bud.get("welfare", 0.3)
-            nat.stability = max(0.0, min(100.0, nat.stability + drift + welfare - nat.inflation * 25.0 - nat.war_exhaustion * 0.05))
-            nat.approval = max(0.0, min(100.0, nat.approval + 0.2 * (50.0 - nat.approval) + (1.0 if bud.get("welfare", 0) > 0.35 else -0.5)))
+            nat.stability = max(0.0, min(100.0, nat.stability + drift + welfare - nat.inflation * 25.0 - nat.war_exhaustion * 0.05 + t_stab))
+            nat.approval = max(0.0, min(100.0, nat.approval + 0.2 * (50.0 - nat.approval) + (1.0 if bud.get("welfare", 0) > 0.35 else -0.5) + t_appr))
             nat.war_exhaustion = max(0.0, nat.war_exhaustion - 0.5)
             # collapse check
             if nat.stability < 12.0:
@@ -710,6 +826,7 @@ class Engine:
                 "aggression": round(nat.aggression, 3), "paranoia": round(nat.paranoia, 3),
                 "at_war_with": nat.at_war_with, "alliances": nat.alliances,
                 "collapsed": nat.collapsed, "rationing": nat.rationing, "propaganda": nat.propaganda,
+                "techs": self._techs_of(nid),
             }
         metrics = {
             "world_gdp": round(sum(n.gdp for n in self.nations.values()), 4),

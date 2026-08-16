@@ -1,0 +1,18 @@
+name: earth_ban_fusion
+description: "神は核融合を禁じる: 自然創発の前に全世界で研究を封じ、代わりにサイバー攻撃基盤をばら撒く。エネルギー転換が止まった世界で、海峡の価値は永続するか。"
+interventions:
+  - tick: 3
+    type: ban_tech
+    params: {tech: fusion}
+  - tick: 6
+    type: grant_tech
+    params: {nation: RUS, tech: cyber_arsenal}
+  - tick: 8
+    type: grant_tech
+    params: {nation: USA, tech: cyber_arsenal}
+  - tick: 10
+    type: grant_tech
+    params: {nation: CHN, tech: cyber_arsenal}
+  - tick: 16
+    type: close_chokepoint
+    params: {chokepoint: "Strait of Hormuz", duration: 20}

@@ -38,6 +38,8 @@
   .ev-alliance { border-left: 3px solid #3fb950; }
   .ev-price, .ev-trade { border-left: 3px solid #e3b341; }
   .ev-disinfo { border-left: 3px solid #f778ba; }
+  .ev-tech { border-left: 3px solid #3fdeff; background: rgba(63,222,255,.07); }
+  .ev-tech2 { border-left: 3px solid #2f9c99; }
   table { width: 100%; border-collapse: collapse; font-size: 12px; }
   th { color: var(--dim); font-weight: 500; text-align: left; }
   td, th { padding: 2px 6px 2px 0; }
@@ -67,7 +69,7 @@
     <div class="drophint" id="hint">replay.jsonl をドラッグ＆ドロップ または URL/ファイルで読み込み<br><small>例: <code>cd server && uv run python -m terrarium.runner.headless --preset earth --scenario scenarios/earth_hormuz.yaml</code></small></div>
     <canvas id="map" width="960" height="540" style="display:none"></canvas>
     <div id="hover"></div>
-    <div class="legend" id="legend" style="display:none">色付き国=国家 ・ ⚓/⛔ 海峡 ・ 実線=航路（琥珀=エネルギー 緑=食料 青=チップ 紫=地下資源 水色=宇宙）・ ⚔️ 戦争 ・ 💀 崩壊</div>
+    <div class="legend" id="legend" style="display:none">色付き国=国家 ・ ⚓/⛔ 海峡 ・ 実線=航路（琥珀=エネルギー 緑=食料 青=チップ 紫=地下資源 水色=宇宙）・ ⚔️ 戦争 ・ 💀 崩壊 ・ 水色枠=未来技術の創発</div>
   </div>
   <div id="side">
     <div class="pane" id="stats"><h3>Nations</h3><div id="statbody">—</div></div>
@@ -358,7 +360,8 @@ function renderChart(i) {
 // ---------------------------------------------------------------- feed
 const EV_CLASS = { war_start: "ev-war", war_end: "ev-war", collapse: "ev-collapse", god_intervention: "ev-god",
   shortage: "ev-shortage", sanction: "ev-sanction", threat: "ev-sanction", alliance_formed: "ev-alliance",
-  price_spike: "ev-price", disinfo: "ev-disinfo", trade_throttled: "ev-trade" };
+  price_spike: "ev-price", disinfo: "ev-disinfo", trade_throttled: "ev-trade",
+  tech_emergence: "ev-tech", tech_adopted: "ev-tech2" };
 function renderFeed(tick) {
   const el = document.getElementById("feedbody");
   const evs = (tick.events || []).slice().reverse();
@@ -370,7 +373,7 @@ function renderFeed(tick) {
   el.innerHTML = html || '<div style="color:var(--dim)">（このtickのイベントなし）</div>';
   const counts = {};
   for (const t of TICKS) for (const e of t.events || []) counts[e.type] = (counts[e.type] || 0) + 1;
-  const casc = Object.entries(counts).filter(([k]) => ["war_start", "collapse", "shortage", "sanction", "alliance_formed", "price_spike", "trade_throttled", "disinfo"].includes(k))
+  const casc = Object.entries(counts).filter(([k]) => ["war_start", "collapse", "shortage", "sanction", "alliance_formed", "price_spike", "trade_throttled", "disinfo", "tech_emergence", "tech_adopted"].includes(k))
     .map(([k, v]) => `${k}:${v}`).join(" ");
   document.getElementById("cascadeinfo").textContent = casc ? "— " + casc : "";
 }
@@ -395,7 +398,7 @@ document.getElementById("map").addEventListener("mousemove", ev => {
     }
     if (best) {
       const n = TICKS[cur].nations[best];
-      content = `<b style="color:${n.color}">${n.name}</b><br>GDP ${n.gdp.toFixed(1)}兆$ / インフレ ${(n.inflation * 100).toFixed(1)}%<br>安定 ${n.stability.toFixed(0)} / 軍事 ${n.military.toFixed(0)} / 世論 ${n.approval.toFixed(0)}<br>備蓄 E${n.stocks.energy.toFixed(1)} F${n.stocks.food.toFixed(1)} C${n.stocks.chips.toFixed(1)}ヶ月`;
+      content = `<b style="color:${n.color}">${n.name}</b><br>GDP ${n.gdp.toFixed(1)}兆$ / インフレ ${(n.inflation * 100).toFixed(1)}%<br>安定 ${n.stability.toFixed(0)} / 軍事 ${n.military.toFixed(0)} / 世論 ${n.approval.toFixed(0)}<br>備蓄 E${n.stocks.energy.toFixed(1)} F${n.stocks.food.toFixed(1)} C${n.stocks.chips.toFixed(1)}ヶ月<br>技術: ${(n.techs && n.techs.length) ? n.techs.join(', ') : 'なし'}`;
     } else {
       for (const cp of META.geo.chokepoints) {
         const [x, y] = project(cp.lon, cp.lat);

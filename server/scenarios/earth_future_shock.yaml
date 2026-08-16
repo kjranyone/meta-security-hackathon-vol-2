@@ -1,0 +1,18 @@
+name: earth_future_shock
+description: "未来技術の非対称普及: 神が日本に核融合を、米国に小惑星採掘を、イランに自律ドローン群を授け、ホルムズを封鎖。技術の贈与は海峡ショックへの耐性を生むか、新たな緊張を生むか。"
+interventions:
+  - tick: 4
+    type: grant_tech
+    params: {nation: JPN, tech: fusion}
+  - tick: 6
+    type: grant_tech
+    params: {nation: USA, tech: asteroid_mining}
+  - tick: 8
+    type: grant_tech
+    params: {nation: IRN, tech: drone_swarm}
+  - tick: 10
+    type: grant_tech
+    params: {nation: IND, tech: ai_religion}
+  - tick: 12
+    type: close_chokepoint
+    params: {chokepoint: "Strait of Hormuz", duration: 24}
