@@ -35,6 +35,8 @@ export default function ViewerApp() {
   const playTimer = useRef(null);
   const clockTimer = useRef(null);
   const lastBeep = useRef(-1);
+  const statDrag = useRef(null);
+  const chartDrag = useRef(null);
 
   useEffect(() => { loadGeojson().then(setGeo).catch(console.error); }, []);
 
@@ -162,24 +164,26 @@ export default function ViewerApp() {
             <StatsTable tick={tick} selected={selected} onSelect={setSelected} showStocks />
           </div>
           <HSplit
+            onStart={ev => { statDrag.current = { y: ev.clientY, h: statsH }; }}
             onMove={ev => {
-              const el = document.getElementById("statspane");
-              const top = el.getBoundingClientRect().top;
+              if (!statDrag.current) return;
               const maxH = document.querySelector(".side").getBoundingClientRect().height - 180;
-              setStatsH(Math.min(Math.max(ev.clientY - top, 70), Math.max(maxH, 70)));
+              setStatsH(Math.min(Math.max(statDrag.current.h + ev.clientY - statDrag.current.y, 70), Math.max(maxH, 70)));
             }}
+            onEnd={() => { statDrag.current = null; }}
             onReset={() => setStatsH(200)} />
           <div id="chartspane" style={{ height: chartsH, overflow: "auto", flex: "none", borderBottom: "1px solid var(--border)", padding: "8px 10px" }}>
             <h3 style={{ fontSize: 11, color: "var(--dim)", textTransform: "uppercase", marginBottom: 6 }}>Prices &amp; Stability</h3>
             <PriceChart ticks={ticks} />
           </div>
           <HSplit
+            onStart={ev => { chartDrag.current = { y: ev.clientY, h: chartsH }; }}
             onMove={ev => {
-              const el = document.getElementById("chartspane");
-              const top = el.getBoundingClientRect().top;
+              if (!chartDrag.current) return;
               const maxH = document.querySelector(".side").getBoundingClientRect().height - 180;
-              setChartsH(Math.min(Math.max(ev.clientY - top, 70), Math.max(maxH, 70)));
+              setChartsH(Math.min(Math.max(chartDrag.current.h + ev.clientY - chartDrag.current.y, 70), Math.max(maxH, 70)));
             }}
+            onEnd={() => { chartDrag.current = null; }}
             onReset={() => setChartsH(170)} />
           <EventFeed events={tick?.events || []} />
         </div>

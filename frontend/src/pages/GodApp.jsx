@@ -26,6 +26,7 @@ export default function GodApp() {
   const [sideW, setSideW] = useState(480);
   const [statsH, setStatsH] = useState(200);
   const statsH0 = useRef(200);
+  const hDrag = useRef(null);
   const [preset, setPreset] = useState("earth");
   const [policy, setPolicy] = useState("mock_llm");
   const [seed, setSeed] = useState(42);
@@ -157,16 +158,17 @@ export default function GodApp() {
           onMove={ev => setSideW(Math.min(Math.max(window.innerWidth - ev.clientX, 320), window.innerWidth - 420))}
           onReset={() => setSideW(480)} />
         <div className="side" style={{ width: sideW }}>
-          <div className="pane" style={{ flex: "none" }}>
+          <div className="pane" style={{ flex: "1 1 auto", minHeight: 130, overflow: "auto" }}>
             <GodCards sel={sel} meta={meta} tick={tick} intervene={intervene} />
           </div>
           <HSplit
+            onStart={ev => { hDrag.current = { y: ev.clientY, h: statsH }; }}
             onMove={ev => {
-              const el = document.querySelector(".side #statspane");
-              const top = el.getBoundingClientRect().top;
-              const maxH = document.querySelector(".side").getBoundingClientRect().height - 160;
-              setStatsH(Math.min(Math.max(ev.clientY - top, 70), Math.max(maxH, 70)));
+              if (!hDrag.current) return;
+              const maxH = document.querySelector(".side").getBoundingClientRect().height - 330;
+              setStatsH(Math.min(Math.max(hDrag.current.h + ev.clientY - hDrag.current.y, 70), Math.max(maxH, 70)));
             }}
+            onEnd={() => { hDrag.current = null; }}
             onReset={() => setStatsH(statsH0.current)} />
           <div id="statspane" style={{ height: statsH, overflow: "auto", flex: "none", borderBottom: "1px solid var(--border)" }}>
             <StatsTable tick={tick} selected={sel.kind === "nation" ? sel.id : null}

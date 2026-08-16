@@ -1,10 +1,11 @@
 import { useRef } from "react";
 
 // ドラッグで境界を動かすハンドル。onMove に画面座標(ev.clientX/Y)を渡す。
-export function VSplit({ onMove, onReset, onEnd }) {
+export function VSplit({ onStart, onMove, onReset, onEnd }) {
   const el = useRef(null);
   const down = e => {
     e.preventDefault();
+    onStart?.(e);
     el.current.classList.add("drag");
     document.body.style.cursor = "col-resize";
     const move = ev => { ev.preventDefault(); onMove(ev); };
@@ -22,10 +23,11 @@ export function VSplit({ onMove, onReset, onEnd }) {
               title="ドラッグで幅変更・ダブルクリックで戻す" />;
 }
 
-export function HSplit({ onMove, onReset, onEnd }) {
+export function HSplit({ onStart, onMove, onReset, onEnd }) {
   const el = useRef(null);
   const down = e => {
     e.preventDefault();
+    onStart?.(e);
     el.current.classList.add("drag");
     document.body.style.cursor = "row-resize";
     const move = ev => { ev.preventDefault(); onMove(ev); };
