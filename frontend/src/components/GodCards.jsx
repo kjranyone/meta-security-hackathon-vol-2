@@ -20,7 +20,7 @@ export default function GodCards({ sel, meta, tick, intervene }) {
   if (!sel.kind) {
     return (
       <>
-        <h3>⚡ 神の介入 <span style={{ color: "var(--god)" }}>— 世界パラメータ</span></h3>
+        <div className="target-banner" style={{ borderColor: "var(--god)", color: "var(--god)" }}>⚡ 🌍 世界</div>
         <div className="cardrow">
           <div className="card"><b>💥 世界金利</b>
             <div className="cardrow">
@@ -59,7 +59,7 @@ export default function GodCards({ sel, meta, tick, intervene }) {
   if (sel.kind === "cp") {
     return (
       <>
-        <h3>⚡ 神の介入 <span style={{ color: "var(--god)" }}>— {sel.id}</span></h3>
+        <div className="target-banner" style={{ borderColor: "#ffffff" }}>⚡ ⚓ {sel.id}</div>
         <div className="cardrow">
           <div className="card"><b>⛔ 海峡封鎖: {sel.id}</b>
             <div className="cardrow">
@@ -82,7 +82,10 @@ export default function GodCards({ sel, meta, tick, intervene }) {
   const name = meta?.geo?.nations?.[nid]?.name || nid;
   return (
     <>
-      <h3>⚡ 神の介入 <span style={{ color: "var(--god)" }}>— {name}</span></h3>
+      <div className="target-banner" style={{ borderColor: tick?.nations?.[nid]?.color || "#e6edf3" }}>
+        <span className="tdot" style={{ background: tick?.nations?.[nid]?.color || "#e6edf3" }} />
+        ⚡ {name}
+      </div>
       <div className="cardrow">
         <div className="card"><b>📰 偽情報</b>
           <div className="cardrow">
