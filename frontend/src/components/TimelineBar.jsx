@@ -1,9 +1,10 @@
 import { useEffect, useRef } from "react";
+import DateBar from "./DateBar";
 
 // 再生/scrub/マーカー/速度/ミュート。viewer向け（全TICKSが既知）。
 // flashCount が増えるたび発光アニメを再生する
 export default function TimelineBar({ playing, onTogglePlay, cur, ticks, major,
-                                      onScrub, speed, onSpeed, muted, onMute, flashCount }) {
+                                      onScrub, speed, onSpeed, muted, onMute, flashCount, clockFrac = 0 }) {
   const tlRef = useRef(null);
   useEffect(() => {
     if (!flashCount) return;
@@ -31,7 +32,7 @@ export default function TimelineBar({ playing, onTogglePlay, cur, ticks, major,
         <input type="range" min="0" max={Math.max(0, ticks.length - 1)} value={cur}
                onChange={e => onScrub(+e.target.value)} />
       </div>
-      <span className="ticklabel">tick {ticks[cur]?.tick ?? 0} / {last}</span>
+      <DateBar tick={ticks[cur]?.tick} frac={playing ? clockFrac : 0} suffix={` / ${last}`} />
       <label className="speedlabel">速度
         <input type="range" min="1" max="10" value={speed} onChange={e => onSpeed(+e.target.value)} />
       </label>

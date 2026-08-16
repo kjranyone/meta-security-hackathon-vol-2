@@ -3,7 +3,6 @@ import MapCanvas from "../components/MapCanvas";
 import StatsTable from "../components/StatsTable";
 import EventFeed from "../components/EventFeed";
 import PriceChart from "../components/PriceChart";
-import DateBar from "../components/DateBar";
 import TimelineBar from "../components/TimelineBar";
 import IfPanel from "../components/IfPanel";
 import Toasts, { useToasts } from "../components/Toasts";
@@ -148,8 +147,6 @@ export default function ViewerApp() {
           <>
             <MapCanvas tick={tick} geo={geo} meta={meta}
                        selectedNation={selected} showRoutes={showRoutes} />
-            <DateBar tick={tick.tick} maxTick={ticks[ticks.length - 1].tick}
-                     frac={playing ? clockFrac : 0} visible />
           </>
         ) : (
           <div className="mapwrap">
@@ -194,7 +191,7 @@ export default function ViewerApp() {
         cur={cur} ticks={ticks} major={major} onScrub={scrub}
         speed={speed} onSpeed={setSpeed}
         muted={muted} onMute={() => { initAudio(); setMuted(m => !m); }}
-        flashCount={flash}
+        flashCount={flash} clockFrac={clockFrac}
       />
 
       <IfPanel

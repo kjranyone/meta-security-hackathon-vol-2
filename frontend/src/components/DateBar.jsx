@@ -1,11 +1,11 @@
 import { simDate } from "../lib/calendar";
 
-export default function DateBar({ tick, maxTick, frac = 0.5, visible }) {
-  if (!visible || tick == null) return null;
+// 世界時計チップ（タイムライン内の固定スロット。地図には重ならない）
+export default function DateBar({ tick, frac = 0, suffix = "" }) {
+  if (tick == null) return null;
   return (
-    <div className="datebar">
-      {simDate(tick, frac)}
-      <small>tick {tick} / {maxTick ?? "?"}（1tick=1時間・分は演出）</small>
-    </div>
+    <span className="datechip">
+      {simDate(tick, frac)}<small> · t{tick}{suffix}</small>
+    </span>
   );
 }

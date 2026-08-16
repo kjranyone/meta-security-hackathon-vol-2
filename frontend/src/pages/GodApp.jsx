@@ -2,11 +2,11 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import MapCanvas from "../components/MapCanvas";
 import StatsTable from "../components/StatsTable";
 import EventFeed from "../components/EventFeed";
-import DateBar from "../components/DateBar";
 import GodBar from "../components/GodBar";
 import GodCards from "../components/GodCards";
 import { VSplit, HSplit } from "../components/Splitter";
 import CreateWorldDialog from "../components/CreateWorldDialog";
+import DateBar from "../components/DateBar";
 import Toasts, { useToasts } from "../components/Toasts";
 import LegendModal from "../components/LegendModal";
 import { loadGeojson } from "../lib/geo";
@@ -151,7 +151,6 @@ export default function GodApp() {
                    selectedNation={sel.kind === "nation" ? sel.id : null}
                    selectedChokepoint={sel.kind === "cp" ? sel.id : null}
                    onMapClick={onMapClick} />
-        <DateBar tick={tick?.tick} maxTick={status.max_ticks} visible={!!tick} />
         <GodBar sel={sel} meta={meta} intervene={intervene} />
 
         <VSplit
@@ -182,9 +181,7 @@ export default function GodApp() {
           {status.running ? "⏸ 停止" : "▶ 再生"}
         </button>
         <button className="tlbtn" onClick={() => send({ cmd: "step" })}>⏭ 1tick</button>
-        <span className="ticklabel">
-          tick {status.tick}/{status.max_ticks} {status.running ? "▶" : "⏸"}
-        </span>
+        <DateBar tick={status.tick} suffix={` / ${status.max_ticks} ${status.running ? "▶" : "⏸"}`} />
         <label className="speedlabel" style={{ flex: 1 }}><span>速度</span>
           <input type="range" min="200" max="3000" defaultValue="1200"
                  onChange={e => send({ cmd: "speed", ms: +e.target.value })} />
