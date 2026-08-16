@@ -11,18 +11,6 @@ import { loadGeojson } from "../lib/geo";
 import { pickAt } from "../lib/renderMap";
 import { initAudio, beep, toneForTypes, MAJOR_TONES } from "../lib/audio";
 
-const PRESETS = [
-  { id: "earth", label: "earth（実世界16国）" },
-  { id: "default", label: "default（架空8国）" },
-  { id: "gen", label: "gen（自動生成 seed=7）" },
-];
-const POLICIES = [
-  { id: "mock_llm", label: "mock_llm（オフライン）" },
-  { id: "heuristic", label: "heuristic" },
-  { id: "llm", label: "llm（z.ai / 要APIキー）" },
-  { id: "rl", label: "rl（要rl-nation）" },
-];
-
 export default function GodApp() {
   const [geo, setGeo] = useState(null);
   const [meta, setMeta] = useState(null);
@@ -138,17 +126,6 @@ export default function GodApp() {
         <h1>👑 Geopolitics Terrarium — 神の玉座</h1>
         <span id="conn" className={conn ? "ok" : "bad"}>{conn ? "接続中" : "切断"}</span>
         <span className="spacer" />
-        <select value={preset} onChange={e => setPreset(e.target.value)}>
-          {PRESETS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
-        </select>
-        <select value={policy} onChange={e => setPolicy(e.target.value)}>
-          {POLICIES.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
-        </select>
-        <input type="number" value={seed} onChange={e => setSeed(e.target.value)} />
-        {policy === "rl" && (
-          <input type="text" value={rlNation} onChange={e => setRlNation(e.target.value)}
-                 placeholder="RL国(JPN,EGY等)" style={{ width: 110 }} />
-        )}
         <button onClick={() => setCreateOpen(true)}>🌍 世界を創る</button>
       </header>
 
