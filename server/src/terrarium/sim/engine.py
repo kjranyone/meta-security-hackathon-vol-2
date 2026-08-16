@@ -135,10 +135,26 @@ class Engine:
             self._replay = None
 
     # -------------------------------------------------------------- god cards
+    def _chokepoint_by_ref(self, ref: str):
+        """Resolve a chokepoint by name or by '#N' index (sorted names) so
+        scenarios written for hand-made presets also work on generated worlds."""
+        if ref.startswith("#"):
+            names = sorted(self.chokepoints)
+            idx = int(ref[1:])
+            return self.chokepoints.get(names[idx]) if 0 <= idx < len(names) else None
+        return self.chokepoints.get(ref)
+
+    def _nation_by_ref(self, ref: str) -> Optional[str]:
+        if ref.startswith("#"):
+            ids = sorted(self.nations)
+            idx = int(ref[1:])
+            return ids[idx] if 0 <= idx < len(ids) else None
+        return ref if ref in self.nations else None
+
     def apply_intervention(self, iv: Intervention) -> None:
         p = iv.params
         if iv.type == "close_chokepoint":
-            cp = self.chokepoints.get(p["chokepoint"])
+            cp = self._chokepoint_by_ref(p["chokepoint"])
             if cp and not cp.closed:
                 cp.closed, cp.closed_since = True, self.tick_no
                 dur = p.get("duration")
@@ -150,7 +166,7 @@ class Engine:
                 )
                 self._cp_cause[cp.name] = ev.id
         elif iv.type == "open_chokepoint":
-            cp = self.chokepoints.get(p["chokepoint"])
+            cp = self._chokepoint_by_ref(p["chokepoint"])
             if cp and cp.closed:
                 cp.closed, cp.closed_since = False, None
                 self._cp_cause.pop(cp.name, None)
@@ -159,7 +175,10 @@ class Engine:
                     actor="GOD", data={"chokepoint": cp.name},
                 )
         elif iv.type == "destroy_resource":
-            nid, res = p["nation"], ResourceKind(p["resource"])
+            nid = self._nation_by_ref(p["nation"])
+            res = ResourceKind(p["resource"])
+            if nid is None:
+                return
             for tile in nation_hexes(self.tiles, nid):
                 if tile.resource is res and not tile.destroyed:
                     tile.destroyed = True
@@ -170,7 +189,10 @@ class Engine:
                     )
                     break
         elif iv.type == "disaster":
-            nid, kind = p["nation"], p.get("kind", "drought")
+            nid = self._nation_by_ref(p["nation"])
+            if nid is None:
+                return
+            kind = p.get("kind", "drought")
             nat = self.nations[nid]
             if kind == "drought":
                 self.temp_effects.append(TempEffect(self.tick_no + 6, nid, "food", 0.4))
@@ -185,7 +207,9 @@ class Engine:
                 actor="GOD", targets=[nid], data={"nation": nid, "kind": kind},
             )
         elif iv.type == "disinfo":
-            target = p["target"]
+            target = self._nation_by_ref(p["target"])
+            if target is None:
+                return
             intensity = float(p.get("intensity", 1.0)) * self.god.disinfo_intensity
             for nid, nat in self.nations.items():
                 if nid != target:
@@ -197,7 +221,10 @@ class Engine:
                 actor="GOD", targets=[target], data={"target": target, "intensity": intensity},
             )
         elif iv.type == "set_param":
-            nid, param, value = p["nation"], p["param"], float(p["value"])
+            nid = self._nation_by_ref(p["nation"])
+            if nid is None:
+                return
+            param, value = p["param"], float(p["value"])
             setattr(self.nations[nid], param, value)
             self.event_log.emit(
                 self.tick_no, "god_intervention",

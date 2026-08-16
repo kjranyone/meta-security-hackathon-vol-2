@@ -1,5 +1,5 @@
 {
-  "run_name": "disinfo_drop",
+  "run_name": "default_disinfo_drop",
   "seed": 42,
   "ticks": 36,
   "final_metrics": {

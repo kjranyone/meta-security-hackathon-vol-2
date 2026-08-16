@@ -1,0 +1,15 @@
+name: gen_chaos
+description: "生成世界用マルチ介入。最大の輸出国'#0'の主要資源を消し、別国'#4'の好戦性を書き換え、偽情報'#2'を投下。複合カスケードを観測する。"
+interventions:
+  - tick: 4
+    type: destroy_resource
+    params: {nation: "#0", resource: oil}
+  - tick: 8
+    type: set_param
+    params: {nation: "#4", param: aggression, value: 0.9}
+  - tick: 10
+    type: disinfo
+    params: {target: "#2", intensity: 1.5}
+  - tick: 14
+    type: global_slider
+    params: {param: trade_efficiency, value: 0.7}

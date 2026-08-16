@@ -1,5 +1,5 @@
 {
-  "run_name": "chokepoint_closure",
+  "run_name": "default_chokepoint_closure",
   "seed": 42,
   "ticks": 36,
   "final_metrics": {

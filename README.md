@@ -42,13 +42,35 @@ uv run python -m terrarium.runner.ab \
     --scenario scenarios/chokepoint_closure.yaml
 ```
 
+### 世界の自動生成（プロシージャル生成）
+
+手書きプリセット（`presets/default.yaml`）ではなく、シードから**需給バランスの取れた世界を自動生成**できます。
+
+```bash
+# YAMLファイルとして書き出す（国家・資源・海峡・航路・ペルソナを自動構成）
+uv run python -m terrarium.runner.genworld --seed 7 --nations 8
+
+# 生成世界でそのままシミュレーション（A/Bも --gen-seed を揃えれば同一世界で比較可能）
+uv run python -m terrarium.runner.headless --gen-seed 7 --seed 42 --ticks 36 \
+    --policy mock_llm --scenario scenarios/gen_chokepoint.yaml
+uv run python -m terrarium.runner.ab --gen-seed 7 --seed 42 --ticks 36 \
+    --policy mock_llm --scenario scenarios/gen_chaos.yaml
+```
+
+生成器の性質（`src/terrarium/world/worldgen.py`）:
+- **決定論**: 同じ `(seed, nations, cols, rows, chokepoints)` → 同じ世界（テスト担保）
+- **需給バランス**: 全商品で世界供給 ≥ 需要×1.15になるよう資源ヘックスを自動割当。神が介入しない限り経済は自然崩壊しない
+- **8アーキタイプ**（資源専制国・穀物大国・半導体島国・金融ハブ・製造大国・新興国・資源小国・覇権国）から persona・色・領土を生成。`--nations 10` のように増やすとアーキタイプを再利用しマップも自動拡張
+- **海峡**は複数国家に接する海洋ヘックス（戦略的縫隙）に自動配置し、**航路**は輸入不足を補う形で張られるため、海峡封鎖が即座に意味を持つ
+- シナリオでは国家・海峡を `#0`（ソート順インデックス）でも参照可能。生成世界でも汎用シナリオ（`scenarios/gen_*.yaml`）が動く
+
 ### リプレイビューア
 
 ```bash
 # リポジトリルートから静的サーバを起動
 python3 -m http.server 8787
 # ブラウザで http://localhost:8787/web/viewer.html を開き、
-# URL欄に http://localhost:8787/server/logs/chokepoint_closure/replay.jsonl を入力
+# URL欄に http://localhost:8787/server/logs/default_chokepoint_closure/replay.jsonl を入力
 ```
 
 ヘックスマップ・国家統計・価格/安定チャート・イベントカスケードをタイムライン scrub / 再生できます。replay.jsonl のドラッグ＆ドロップにも対応。
@@ -58,15 +80,15 @@ python3 -m http.server 8787
 ```
 server/
   src/terrarium/
-    world/     # ヘックスグリッド、地図生成、世界モデル（Pydantic）
+    world/     # ヘックスグリッド、地図生成、世界モデル（Pydantic）、シードからの世界自動生成
     sim/       # エンジン（生産→貿易→市場→消費→意思決定→外交→紛争→マクロ）
                # イベントソーシング（因果parentリンク付きJSONL）、神介入
     agents/    # policy層: heuristic / mock_llm / llm(z.ai OpenAI互換)
-    runner/    # headless CLI / A/B反実仮想ランナー
-  presets/     # 世界定義（架空8カ国、航路、海峡）
-  scenarios/   # 神の介入シナリオ（YAML）
+    runner/    # headless CLI / A/B反実仮想ランナー / 世界生成CLI
+  presets/     # 世界定義（手書き: default / 自動生成: gen_<seed>.yaml）
+  scenarios/   # 神の介入シナリオ（YAML、生成世界対応の #index 参照つき）
   logs/        # 実行結果（replay.jsonl / events.jsonl / series.csv / run.json）
-  tests/       # 決定論・カオス伝播のテスト
+  tests/       # 決定論・需給バランス・カオス伝播のテスト
 web/
   viewer.html  # リプレイビューア（単一HTML、ビルド不要）
 ```

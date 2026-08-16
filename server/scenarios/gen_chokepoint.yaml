@@ -1,0 +1,6 @@
+name: gen_chokepoint
+description: "生成世界でも動く汎用シナリオ。'#0' は海峡名ソート順0番（=最初の海峡）を指す。長期封鎖の連鎖を観測する。"
+interventions:
+  - tick: 6
+    type: close_chokepoint
+    params: {chokepoint: "#0", duration: 30}

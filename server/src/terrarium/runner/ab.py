@@ -22,8 +22,7 @@ from ..world.presets import load_preset
 SERVER_ROOT = Path(__file__).resolve().parents[3]
 
 
-def run_once(preset: str, seed: int, ticks: int, policy: str, scenario: Scenario, name: str, out: Path) -> Engine:
-    spec = load_preset(preset)
+def run_once(spec, seed: int, ticks: int, policy: str, scenario: Scenario, name: str, out: Path) -> Engine:
     factory = make_policy_factory(policy, seed=seed)
     policies = {ns.id: factory(ns) for ns in spec.nations}
     eng = Engine(spec, policies, seed=seed, out_dir=out, run_name=name)
@@ -36,6 +35,9 @@ def main(argv: list[str] | None = None) -> int:
     load_env(SERVER_ROOT / ".env")
     ap = argparse.ArgumentParser()
     ap.add_argument("--preset", default="default")
+    ap.add_argument("--gen-seed", type=int, default=None,
+                    help="generate the world from this seed instead of loading --preset")
+    ap.add_argument("--gen-nations", type=int, default=8)
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--ticks", type=int, default=36)
     ap.add_argument("--policy", default="mock_llm")
@@ -43,12 +45,20 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out", default=None)
     args = ap.parse_args(argv)
 
+    if args.gen_seed is not None:
+        from ..world.worldgen import GenParams, generate_world
+
+        world_spec = generate_world(GenParams(seed=args.gen_seed, n_nations=args.gen_nations))
+    else:
+        world_spec = load_preset(args.preset)
+
     scenario = load_scenario(args.scenario)
-    out = Path(args.out) if args.out else SERVER_ROOT / "logs" / f"ab_{scenario.name}"
+    base_name = f"gen{args.gen_seed}" if args.gen_seed is not None else args.preset
+    out = Path(args.out) if args.out else SERVER_ROOT / "logs" / f"ab_{scenario.name}_{base_name}"
     out.mkdir(parents=True, exist_ok=True)
 
-    base = run_once(args.preset, args.seed, args.ticks, args.policy, Scenario(name="baseline"), "baseline", out / "baseline")
-    treat = run_once(args.preset, args.seed, args.ticks, args.policy, scenario, scenario.name, out / "treatment")
+    base = run_once(world_spec, args.seed, args.ticks, args.policy, Scenario(name="baseline"), "baseline", out / "baseline")
+    treat = run_once(world_spec, args.seed, args.ticks, args.policy, scenario, scenario.name, out / "treatment")
 
     # metric diff csv
     fields = ["tick"] + [f"base_{k}" for k in base.series[0] if k != "tick"] + [f"treat_{k}" for k in treat.series[0] if k != "tick"]
