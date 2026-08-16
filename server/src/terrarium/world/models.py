@@ -18,6 +18,8 @@ class Commodity(str, Enum):
     ENERGY = "energy"
     FOOD = "food"
     CHIPS = "chips"
+    MINERALS = "minerals"   # 地下資源: レアアース・レアメタル・リチウム
+    SPACE = "space"         # 宇宙資源: 軌道スロット・衛星インフラ
 
 
 class ResourceKind(str, Enum):
@@ -26,6 +28,8 @@ class ResourceKind(str, Enum):
     GRAIN = "grain"
     FAB = "fab"          # semiconductor fabrication
     FINANCE = "finance"  # capital hub (gdp growth bonus, no commodity)
+    MINERAL = "mineral"  # 地下鉱物 (rare earths / lithium / rare metals)
+    ORBIT = "orbit"      # 宇宙インフラ (orbital slots / satellite capacity)
 
 
 RESOURCE_TO_COMMODITY: dict[ResourceKind, Commodity] = {
@@ -33,6 +37,8 @@ RESOURCE_TO_COMMODITY: dict[ResourceKind, Commodity] = {
     ResourceKind.GAS: Commodity.ENERGY,
     ResourceKind.GRAIN: Commodity.FOOD,
     ResourceKind.FAB: Commodity.CHIPS,
+    ResourceKind.MINERAL: Commodity.MINERALS,
+    ResourceKind.ORBIT: Commodity.SPACE,
 }
 
 
@@ -107,6 +113,8 @@ class GodParams(BaseModel):
     food_yield: float = 1.0
     energy_yield: float = 1.0
     chips_yield: float = 1.0
+    minerals_yield: float = 1.0
+    space_yield: float = 1.0
     ai_aggression: float = 1.0
     disinfo_intensity: float = 1.0
 

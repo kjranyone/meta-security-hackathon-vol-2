@@ -28,13 +28,16 @@ from ..world.models import (
 from .events import EventLog
 from .interventions import Intervention, Scenario
 
-CONSUMPTION = {"energy": 1.0, "food": 1.0, "chips": 0.5}
+CONSUMPTION = {"energy": 1.0, "food": 1.0, "chips": 0.5, "minerals": 0.5, "space": 0.25}
+DEFAULT_STOCKS = {"energy": 3.0, "food": 4.0, "chips": 2.0, "minerals": 2.0, "space": 1.0}
 YIELD_PER_UNIT = 1.5
-SHORTAGE_STABILITY_HIT = {"energy": 4.0, "food": 6.0, "chips": 2.0}
+SHORTAGE_STABILITY_HIT = {"energy": 4.0, "food": 6.0, "chips": 2.0, "minerals": 3.0, "space": 0.5}
 COMMODITY_YIELD_SLIDER = {
     Commodity.ENERGY: "energy_yield",
     Commodity.FOOD: "food_yield",
     Commodity.CHIPS: "chips_yield",
+    Commodity.MINERALS: "minerals_yield",
+    Commodity.SPACE: "space_yield",
 }
 
 
@@ -76,7 +79,7 @@ class Engine:
                 approval=ns.approval,
                 aggression=ns.aggression,
                 paranoia=ns.paranoia,
-                stocks=dict(ns.stockpile_months),
+                stocks={**DEFAULT_STOCKS, **ns.stockpile_months},
                 base_aggression=ns.aggression,
                 base_paranoia=ns.paranoia,
                 trust={o.id: 20.0 for o in spec.nations if o.id != ns.id},
@@ -233,6 +236,22 @@ class Engine:
                 f"偽情報が流通し始めた: {self.nations[target].name} への疑念が急騰",
                 actor="GOD", targets=[target], data={"target": target, "intensity": intensity},
             )
+        elif iv.type == "create_resource":
+            nid = self._nation_by_ref(p["nation"])
+            if nid is None:
+                return
+            try:
+                res = ResourceKind(p["resource"])
+            except ValueError:
+                return
+            qty = max(1, int(p.get("quantity", 1)))
+            for _ in range(qty):
+                self.nation_resources[nid].append(res)
+            self.event_log.emit(
+                self.tick_no, "god_intervention",
+                f"神が {self.nations[nid].name} に新たな {res.value} 資源を創り出した（×{qty}）",
+                actor="GOD", targets=[nid], data={"nation": nid, "resource": res.value, "quantity": qty},
+            )
         elif iv.type == "set_param":
             nid = self._nation_by_ref(p["nation"])
             if nid is None:
@@ -277,15 +296,18 @@ class Engine:
         self._snapshot()
 
     # ------------------------------------------------------------- production
-    FAB_BLACKOUT_MULT = 0.4   # fabs without power run at 40%
+    FAB_BLACKOUT_MULT = 0.4    # fabs without power run at 40%
+    FAB_STARVED_MULT = 0.7     # fabs without minerals run at 70%
 
     def _production(self) -> dict[str, dict[str, float]]:
         """Domestic supply per nation, in months-of-own-demand units.
-        Fabs need electricity: an energy-starved nation loses most chip output."""
+        Fabs need electricity and minerals; orbit units are chokepoint-free."""
         supply: dict[str, dict[str, float]] = {}
         for nid in sorted(self.nations):
             dom = {c.value: 0.0 for c in Commodity}
-            blackout = self.nations[nid].stocks["energy"] < 0.5
+            nat = self.nations[nid]
+            blackout = nat.stocks["energy"] < 0.5
+            starved = nat.stocks["minerals"] < 0.3
             for res in self.nation_resources[nid]:
                 if res is ResourceKind.FINANCE:
                     continue
@@ -294,8 +316,11 @@ class Engine:
                 for eff in self.temp_effects:
                     if eff.nation == nid:
                         mult *= eff.mult
-                if blackout and res is ResourceKind.FAB:
-                    mult *= self.FAB_BLACKOUT_MULT
+                if res is ResourceKind.FAB:
+                    if blackout:
+                        mult *= self.FAB_BLACKOUT_MULT
+                    if starved:
+                        mult *= self.FAB_STARVED_MULT
                 slider = getattr(self.god, COMMODITY_YIELD_SLIDER[Commodity(commodity)])
                 dom[commodity] += YIELD_PER_UNIT * slider * mult
             supply[nid] = dom
@@ -629,6 +654,9 @@ class Engine:
             if nat.stocks["chips"] <= 0.05:
                 growth -= 0.01
                 nat.military = max(0.0, nat.military - 1.0)
+            if nat.stocks["space"] <= 0.05:
+                # 軌道資産を失うと偵察・通信能力が落ち、軍事力が漸減する
+                nat.military = max(0.0, nat.military - 1.5)
             bud = nat.budget
             nat.military = min(150.0, nat.military + 2.0 * bud.get("military", 0.2) - (0.5 if nid in [x for w in self.wars for x in w] else 0.0))
             nat.gdp *= 1.0 + growth

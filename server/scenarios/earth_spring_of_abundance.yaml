@@ -1,0 +1,21 @@
+name: earth_spring_of_abundance
+description: "資源の湧泉: 全ての国に地下資源と宇宙インフラを与え、同時にホルムズを封鎖する。資源の民主化は海峡ショックへの耐性を生むか？"
+interventions:
+  - tick: 4
+    type: global_slider
+    params: {param: minerals_yield, value: 1.5}
+  - tick: 4
+    type: global_slider
+    params: {param: space_yield, value: 1.5}
+  - tick: 6
+    type: create_resource
+    params: {nation: EGY, resource: mineral, quantity: 2}
+  - tick: 6
+    type: create_resource
+    params: {nation: TUR, resource: mineral, quantity: 2}
+  - tick: 6
+    type: create_resource
+    params: {nation: IDN, resource: orbit, quantity: 1}
+  - tick: 8
+    type: close_chokepoint
+    params: {chokepoint: "Strait of Hormuz", duration: 28}

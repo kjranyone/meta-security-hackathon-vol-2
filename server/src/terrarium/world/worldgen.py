@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field
 from .models import Chokepoint, Commodity, NationSpec, ResourceKind, TradeRoute, WorldSpec
 
 # consumption per nation per month, mirrors engine.CONSUMPTION
-CONSUMPTION = {"energy": 1.0, "food": 1.0, "chips": 0.5}
+CONSUMPTION = {"energy": 1.0, "food": 1.0, "chips": 0.5, "minerals": 0.5, "space": 0.25}
 YIELD_PER_UNIT = 1.5         # mirrors engine production factor
 SUPPLY_MARGIN = 1.15
 
@@ -62,7 +62,7 @@ class Archetype(BaseModel):
 
 ARCHETYPES: list[Archetype] = [
     Archetype(key="oil_empire", persona="資源専制国家。石油とガスの輸出で立ち、好戦的で疑い深い指導部。",
-              resources=[ResourceKind.OIL, ResourceKind.OIL, ResourceKind.GAS],
+              resources=[ResourceKind.OIL, ResourceKind.OIL, ResourceKind.GAS, ResourceKind.MINERAL],
               population_m=90, gdp_t=2.1, military=55, stability=50, approval=45, aggression=0.6, paranoia=0.5,
               stockpile={"energy": 8.0, "food": 2.0, "chips": 1.5}),
     Archetype(key="breadbasket", persona="穀物超大国。食料の輸出杠杆を外交の武器にする穏健な農業大国。",
@@ -70,7 +70,7 @@ ARCHETYPES: list[Archetype] = [
               population_m=200, gdp_t=3.4, military=45, stability=65, approval=60, aggression=0.25, paranoia=0.25,
               stockpile={"energy": 3.0, "food": 8.0, "chips": 2.0}),
     Archetype(key="chip_island", persona="技術立島国。半導体ファブを握るがエネルギーは海外依存。冷静な技術官僚主導。",
-              resources=[ResourceKind.FAB, ResourceKind.FAB],
+              resources=[ResourceKind.FAB, ResourceKind.FAB, ResourceKind.ORBIT],
               population_m=120, gdp_t=5.2, military=40, stability=72, approval=55, aggression=0.2, paranoia=0.35,
               stockpile={"energy": 2.0, "food": 3.0, "chips": 6.0}),
     Archetype(key="finance_hub", persona="金融ハブ都市国家。資本と情報が集まり、軍事力は小さいが経済杠杆は大きい。",
@@ -82,7 +82,7 @@ ARCHETYPES: list[Archetype] = [
               population_m=150, gdp_t=4.8, military=50, stability=60, approval=50, aggression=0.4, paranoia=0.45,
               stockpile={"energy": 2.0, "food": 3.0, "chips": 3.0}),
     Archetype(key="emerging", persona="新興発展途上国。食料もエネルギーも輸入依存で、人口は若く大きい。不安定だが伸びる。",
-              resources=[],
+              resources=[ResourceKind.MINERAL],
               population_m=180, gdp_t=0.8, military=20, stability=45, approval=40, aggression=0.3, paranoia=0.4,
               stockpile={"energy": 1.5, "food": 1.5, "chips": 1.0}),
     Archetype(key="green_small", persona="高福祉の資源小国。再エネでほぼ自給。平和主義だが戦略的にも冷静。",
@@ -90,7 +90,7 @@ ARCHETYPES: list[Archetype] = [
               population_m=30, gdp_t=1.6, military=30, stability=80, approval=65, aggression=0.1, paranoia=0.2,
               stockpile={"energy": 6.0, "food": 2.0, "chips": 2.0}),
     Archetype(key="hegemon", persona="巨大な複合経済の覇権国。軍事力は最大級。穀物と石油を一部自給するが輸入も多い。",
-              resources=[ResourceKind.OIL, ResourceKind.OIL, ResourceKind.GRAIN],
+              resources=[ResourceKind.OIL, ResourceKind.OIL, ResourceKind.GRAIN, ResourceKind.MINERAL, ResourceKind.ORBIT],
               population_m=300, gdp_t=6.5, military=80, stability=55, approval=50, aggression=0.5, paranoia=0.55,
               stockpile={"energy": 4.0, "food": 4.0, "chips": 2.0}),
 ]
@@ -99,7 +99,11 @@ TOPUP_HOSTS = {
     "energy": {"oil_empire", "hegemon", "green_small"},
     "food": {"breadbasket", "hegemon", "green_small"},
     "chips": {"chip_island", "industrial"},
+    "minerals": {"oil_empire", "hegemon", "emerging", "industrial"},
+    "space": {"hegemon", "chip_island", "finance_hub"},
 }
+TOPUP_RESOURCE = {"energy": ResourceKind.OIL, "food": ResourceKind.GRAIN, "chips": ResourceKind.FAB,
+                  "minerals": ResourceKind.MINERAL, "space": ResourceKind.ORBIT}
 
 NAME_PREFIX = ["Vol", "Pet", "Gra", "Mer", "Kes", "Sah", "Nor", "Aur", "Zan", "Kar",
                "Lum", "Tar", "Bel", "Dor", "Vin", "Ost", "Umb", "Rav", "Cal", "Erm"]
@@ -219,20 +223,21 @@ def _sample_land_points(rng: random.Random, n: int, min_sep_deg: float = 22.0) -
 
 
 def _supply(resources: list[ResourceKind]) -> dict[str, float]:
-    s = {"energy": 0.0, "food": 0.0, "chips": 0.0}
+    s = {"energy": 0.0, "food": 0.0, "chips": 0.0, "minerals": 0.0, "space": 0.0}
     for res in resources:
         if res is ResourceKind.FINANCE:
             continue
-        s[RESOURCE_COMMO[res]] += YIELD_PER_UNIT
+        s[RESOURCE_COMMO[res.value]] += YIELD_PER_UNIT
     return s
 
 
-RESOURCE_COMMO = {"oil": "energy", "gas": "energy", "grain": "food", "fab": "chips"}
+RESOURCE_COMMO = {"oil": "energy", "gas": "energy", "grain": "food", "fab": "chips",
+                  "mineral": "minerals", "orbit": "space"}
 
 
 def _topup(rng: random.Random, p: GenParams, specs: list[NationSpec], arch: list[Archetype]) -> None:
     for _ in range(64):
-        supply = {"energy": 0.0, "food": 0.0, "chips": 0.0}
+        supply = {"energy": 0.0, "food": 0.0, "chips": 0.0, "minerals": 0.0, "space": 0.0}
         for sp in specs:
             for c, v in _supply(sp.resources).items():
                 supply[c] += v
@@ -241,7 +246,7 @@ def _topup(rng: random.Random, p: GenParams, specs: list[NationSpec], arch: list
         worst = max(deficits, key=lambda c: deficits[c])
         if deficits[worst] <= 0:
             return
-        res = {"energy": ResourceKind.OIL, "food": ResourceKind.GRAIN, "chips": ResourceKind.FAB}[worst]
+        res = TOPUP_RESOURCE[worst]
         hosts = [i for i, a in enumerate(arch) if a.key in TOPUP_HOSTS[worst] and len(specs[i].resources) < 8]
         if not hosts:
             hosts = [i for i, sp in enumerate(specs) if len(sp.resources) < 8]
@@ -281,8 +286,9 @@ def _routes(rng: random.Random, p: GenParams, specs: list[NationSpec], cps: list
                 remaining -= cover
                 spare[exp.id] -= cover
                 cp_names: list[str] = []
-                if cps and rng.random() < 0.75:
+                if c != "space" and cps and rng.random() < 0.75:
                     # chokepoint near the corridor between the two countries
+                    # (space/orbit lanes bypass all straits)
                     mid_lon = (sp.centroid[0] + exp.centroid[0]) / 2
                     mid_lat = (sp.centroid[1] + exp.centroid[1]) / 2
                     nearest = min(

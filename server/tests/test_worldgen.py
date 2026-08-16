@@ -2,7 +2,8 @@ import json
 
 from terrarium.agents.heuristic import HeuristicPolicy
 from terrarium.sim.engine import Engine
-from terrarium.sim.interventions import Scenario
+from terrarium.sim.interventions import Intervention, Scenario
+from terrarium.world.models import ResourceKind
 from terrarium.world.worldgen import CONSUMPTION, YIELD_PER_UNIT, GenParams, generate_world
 
 REAL_CP_NAMES = {"Strait of Hormuz", "Strait of Malacca", "Taiwan Strait", "Bab el-Mandeb",
@@ -19,12 +20,12 @@ def test_generation_deterministic():
 def test_supply_demand_balance_many_seeds():
     for seed in range(1, 9):
         spec = generate_world(GenParams(seed=seed))
-        supply = {"energy": 0.0, "food": 0.0, "chips": 0.0}
+        supply = {"energy": 0.0, "food": 0.0, "chips": 0.0, "minerals": 0.0, "space": 0.0}
         for n in spec.nations:
             for res in n.resources:
                 if res.value == "finance":
                     continue
-                c = {"oil": "energy", "gas": "energy", "grain": "food", "fab": "chips"}[res.value]
+                c = {"oil": "energy", "gas": "energy", "grain": "food", "fab": "chips", "mineral": "minerals", "orbit": "space"}[res.value]
                 supply[c] += YIELD_PER_UNIT
         demand = {k: v * len(spec.nations) for k, v in CONSUMPTION.items()}
         for c in demand:
@@ -69,11 +70,11 @@ def test_every_deficit_is_covered_by_routes():
             routes_by.setdefault((r.importer, r.commodity.value), 0.0)
             routes_by[(r.importer, r.commodity.value)] += r.share
         for n in spec.nations:
-            dom = {"energy": 0.0, "food": 0.0, "chips": 0.0}
+            dom = {"energy": 0.0, "food": 0.0, "chips": 0.0, "minerals": 0.0, "space": 0.0}
             for res in n.resources:
                 if res.value == "finance":
                     continue
-                c = {"oil": "energy", "gas": "energy", "grain": "food", "fab": "chips"}[res.value]
+                c = {"oil": "energy", "gas": "energy", "grain": "food", "fab": "chips", "mineral": "minerals", "orbit": "space"}[res.value]
                 dom[c] += YIELD_PER_UNIT
             for c, cons in CONSUMPTION.items():
                 deficit = cons - dom[c]
@@ -81,3 +82,42 @@ def test_every_deficit_is_covered_by_routes():
                 if deficit > 0.15:
                     assert covered >= deficit * 0.7, (
                         f"seed={seed} {n.id} {c}: deficit {deficit:.2f} covered {covered:.2f}")
+
+
+def test_god_creates_and_destroys_resources():
+    """神が新たな資源を創り出せる（地下・宇宙含む）、そして消せる。"""
+    spec = generate_world(GenParams(seed=21))
+    eng = Engine(spec, {n.id: HeuristicPolicy() for n in spec.nations}, seed=1, out_dir=None)
+    before = len(eng.nation_resources["N00"])
+    eng.apply_intervention(Intervention(tick=0, type="create_resource",
+                                        params={"nation": "N00", "resource": "mineral", "quantity": 2}))
+    assert len(eng.nation_resources["N00"]) == before + 2
+    eng.apply_intervention(Intervention(tick=0, type="create_resource",
+                                        params={"nation": "N00", "resource": "orbit", "quantity": 1}))
+    assert ResourceKind.ORBIT in eng.nation_resources["N00"]
+    # production actually increases for the new minerals
+    s0 = eng._production()["N00"]["minerals"]
+    assert s0 >= 1.5 * 2
+    eng.apply_intervention(Intervention(tick=0, type="destroy_resource",
+                                        params={"nation": "N00", "resource": "mineral"}))
+    assert len(eng.nation_resources["N00"]) == before + 2  # one mineral removed
+    types = [r.type for r in eng.event_log.records]
+    assert types.count("god_intervention") >= 3
+
+
+def test_earth_preset_mineral_space_balance():
+    """実世界プリセット: 地下・宇宙を含む全商品で供給が需要を上回る。"""
+    from terrarium.world.presets import load_preset
+    from terrarium.world.worldgen import CONSUMPTION as WCON, YIELD_PER_UNIT as Y
+    spec = load_preset("earth")
+    supply = {}
+    for n in spec.nations:
+        for res in n.resources:
+            if res.value == "finance":
+                continue
+            c = {"oil": "energy", "gas": "energy", "grain": "food", "fab": "chips",
+                 "mineral": "minerals", "orbit": "space"}[res.value]
+            supply[c] = supply.get(c, 0.0) + Y
+    for c, v in WCON.items():
+        demand = v * len(spec.nations)
+        assert supply.get(c, 0.0) >= demand * 1.1, f"{c}: {supply.get(c, 0)} < {demand * 1.1}"

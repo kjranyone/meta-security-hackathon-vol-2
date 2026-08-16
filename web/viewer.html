@@ -67,7 +67,7 @@
     <div class="drophint" id="hint">replay.jsonl をドラッグ＆ドロップ または URL/ファイルで読み込み<br><small>例: <code>cd server && uv run python -m terrarium.runner.headless --preset earth --scenario scenarios/earth_hormuz.yaml</code></small></div>
     <canvas id="map" width="960" height="540" style="display:none"></canvas>
     <div id="hover"></div>
-    <div class="legend" id="legend" style="display:none">色付き国=国家 ・ ⚓/⛔ 海峡 ・ 実線=航路（琥珀=エネルギー 緑=食料 青=チップ）・ ⚔️ 戦争 ・ 💀 崩壊</div>
+    <div class="legend" id="legend" style="display:none">色付き国=国家 ・ ⚓/⛔ 海峡 ・ 実線=航路（琥珀=エネルギー 緑=食料 青=チップ 紫=地下資源 水色=宇宙）・ ⚔️ 戦争 ・ 💀 崩壊</div>
   </div>
   <div id="side">
     <div class="pane" id="stats"><h3>Nations</h3><div id="statbody">—</div></div>
@@ -155,7 +155,8 @@ async function ingest(text) {
 }
 
 // ---------------------------------------------------------------- map render
-const COMMO_COLOR = { energy: "rgba(227,179,65,0.5)", food: "rgba(124,179,66,0.5)", chips: "rgba(88,166,255,0.5)" };
+const COMMO_COLOR = { energy: "rgba(227,179,65,0.5)", food: "rgba(124,179,66,0.5)", chips: "rgba(88,166,255,0.5)",
+                      minerals: "rgba(210,168,255,0.5)", space: "rgba(63,222,255,0.5)" };
 const COMMO_CLOSED = "rgba(248,81,73,0.65)";
 
 function render(i) {
@@ -291,7 +292,7 @@ function renderMap(tick) {
 // ---------------------------------------------------------------- stats
 function renderStats(tick) {
   const el = document.getElementById("statbody");
-  let rows = `<table><tr><th></th><th>GDP</th><th>物価↑</th><th>安定</th><th>軍事</th><th>備蓄 E/F/C</th></tr>`;
+  let rows = `<table><tr><th></th><th>GDP</th><th>物価↑</th><th>安定</th><th>軍事</th><th>備蓄 E/F/C/M/S</th></tr>`;
   for (const [nid, n] of Object.entries(tick.nations)) {
     const cls = selected === nid ? "sel" : "";
     const st = n.stocks;
@@ -301,7 +302,7 @@ function renderStats(tick) {
       <td class="num">${(n.inflation * 100).toFixed(1)}%</td>
       <td class="num">${n.stability.toFixed(0)}</td>
       <td class="num">${n.military.toFixed(0)}</td>
-      <td class="num">${st.energy?.toFixed(1)}/${st.food?.toFixed(1)}/${st.chips?.toFixed(1)}</td></tr>`;
+      <td class="num">${st.energy?.toFixed(1)}/${st.food?.toFixed(1)}/${st.chips?.toFixed(1)}/${st.minerals?.toFixed(1)}/${st.space?.toFixed(1)}</td></tr>`;
   }
   rows += "</table>";
   const m = tick.metrics;

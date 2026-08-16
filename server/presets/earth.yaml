@@ -18,7 +18,7 @@ nations:
     approval: 50
     aggression: 0.40
     paranoia: 0.40
-    resources: [oil, gas, grain, grain, grain, fab, finance, finance]
+    resources: [oil, gas, grain, grain, grain, fab, finance, finance, orbit, orbit, mineral]
     stockpile_months: {energy: 6.0, food: 6.0, chips: 3.0}
 
   - id: EUR
@@ -34,7 +34,7 @@ nations:
     approval: 55
     aggression: 0.20
     paranoia: 0.35
-    resources: [grain, grain, fab, finance, finance]
+    resources: [grain, grain, fab, finance, finance, orbit]
     stockpile_months: {energy: 3.0, food: 3.5, chips: 3.0}
 
   - id: CHN
@@ -50,7 +50,7 @@ nations:
     approval: 60
     aggression: 0.50
     paranoia: 0.45
-    resources: [oil, grain, fab]
+    resources: [oil, grain, fab, mineral, mineral, mineral, mineral, orbit]
     stockpile_months: {energy: 3.0, food: 3.0, chips: 3.0}
 
   - id: JPN
@@ -130,7 +130,7 @@ nations:
     approval: 50
     aggression: 0.60
     paranoia: 0.55
-    resources: [oil, oil, oil, gas, gas, grain, grain]
+    resources: [oil, oil, oil, gas, gas, grain, grain, mineral]
     stockpile_months: {energy: 8.0, food: 4.0, chips: 1.5}
 
   - id: SAU
@@ -178,7 +178,7 @@ nations:
     approval: 45
     aggression: 0.20
     paranoia: 0.25
-    resources: [grain, grain, grain, oil]
+    resources: [grain, grain, grain, oil, mineral]
     stockpile_months: {energy: 4.5, food: 8.0, chips: 1.5}
 
   - id: AUS
@@ -194,7 +194,7 @@ nations:
     approval: 55
     aggression: 0.15
     paranoia: 0.25
-    resources: [gas, gas, grain, grain]
+    resources: [gas, gas, grain, grain, mineral, mineral]
     stockpile_months: {energy: 5.0, food: 8.0, chips: 2.0}
 
   - id: CAN
@@ -313,3 +313,35 @@ routes:
   - {importer: RUS, exporter: CHN, commodity: chips, share: 0.5, chokepoints: []}
   - {importer: EUR, exporter: KOR, commodity: chips, share: 0.3, chokepoints: ["Suez Canal"]}
   - {importer: EGY, exporter: TWN, commodity: chips, share: 0.4, chokepoints: ["Strait of Malacca", "Bab el-Mandeb"]}
+  # minerals (地下資源: レアアース・リチウム・レアメタル)
+  - {importer: JPN, exporter: CHN, commodity: minerals, share: 0.6, chokepoints: ["Taiwan Strait"]}
+  - {importer: KOR, exporter: CHN, commodity: minerals, share: 0.6, chokepoints: []}
+  - {importer: TWN, exporter: CHN, commodity: minerals, share: 0.8, chokepoints: ["Taiwan Strait"]}
+  - {importer: USA, exporter: CHN, commodity: minerals, share: 0.4, chokepoints: []}
+  - {importer: EUR, exporter: CHN, commodity: minerals, share: 0.4, chokepoints: ["Strait of Malacca", "Suez Canal"]}
+  - {importer: JPN, exporter: AUS, commodity: minerals, share: 0.3, chokepoints: []}
+  - {importer: KOR, exporter: AUS, commodity: minerals, share: 0.3, chokepoints: []}
+  - {importer: EUR, exporter: RUS, commodity: minerals, share: 0.3, chokepoints: []}
+  - {importer: USA, exporter: BRA, commodity: minerals, share: 0.2, chokepoints: ["Panama Canal"]}
+  - {importer: SAU, exporter: CHN, commodity: minerals, share: 0.5, chokepoints: ["Strait of Hormuz", "Strait of Malacca"]}
+  - {importer: IND, exporter: CHN, commodity: minerals, share: 0.5, chokepoints: ["Strait of Malacca"]}
+  - {importer: IDN, exporter: AUS, commodity: minerals, share: 0.5, chokepoints: []}
+  - {importer: TUR, exporter: CHN, commodity: minerals, share: 0.4, chokepoints: ["Strait of Malacca", "Suez Canal"]}
+  - {importer: EGY, exporter: CHN, commodity: minerals, share: 0.4, chokepoints: ["Strait of Malacca", "Bab el-Mandeb"]}
+  - {importer: CAN, exporter: USA, commodity: minerals, share: 0.5, chokepoints: []}
+  - {importer: IRN, exporter: CHN, commodity: minerals, share: 0.5, chokepoints: ["Strait of Hormuz"]}
+  # space (宇宙資源: 軌道スロット・衛星インフラ — 海峡を経由しない)
+  - {importer: EUR, exporter: USA, commodity: space, share: 0.2, chokepoints: []}
+  - {importer: JPN, exporter: USA, commodity: space, share: 0.2, chokepoints: []}
+  - {importer: KOR, exporter: USA, commodity: space, share: 0.2, chokepoints: []}
+  - {importer: TWN, exporter: USA, commodity: space, share: 0.2, chokepoints: []}
+  - {importer: IND, exporter: USA, commodity: space, share: 0.2, chokepoints: []}
+  - {importer: SAU, exporter: USA, commodity: space, share: 0.2, chokepoints: []}
+  - {importer: BRA, exporter: USA, commodity: space, share: 0.2, chokepoints: []}
+  - {importer: CAN, exporter: USA, commodity: space, share: 0.2, chokepoints: []}
+  - {importer: AUS, exporter: USA, commodity: space, share: 0.2, chokepoints: []}
+  - {importer: IDN, exporter: USA, commodity: space, share: 0.2, chokepoints: []}
+  - {importer: TUR, exporter: USA, commodity: space, share: 0.2, chokepoints: []}
+  - {importer: EGY, exporter: USA, commodity: space, share: 0.2, chokepoints: []}
+  - {importer: RUS, exporter: CHN, commodity: space, share: 0.2, chokepoints: []}
+  - {importer: IRN, exporter: CHN, commodity: space, share: 0.2, chokepoints: []}

@@ -16,7 +16,7 @@ nations:
     approval: 55
     aggression: 0.2
     paranoia: 0.35
-    resources: [fab, fab]
+    resources: [fab, fab, orbit]
     stockpile_months: {energy: 2.0, food: 3.0, chips: 6.0}
 
   - id: PTR
@@ -31,7 +31,7 @@ nations:
     approval: 45
     aggression: 0.6
     paranoia: 0.5
-    resources: [oil, oil, gas]
+    resources: [oil, oil, gas, mineral]
     stockpile_months: {energy: 8.0, food: 2.0, chips: 1.5}
 
   - id: GRN
@@ -121,7 +121,7 @@ nations:
     approval: 50
     aggression: 0.5
     paranoia: 0.55
-    resources: [oil, oil, grain]
+    resources: [oil, oil, grain, mineral, mineral, orbit]
     stockpile_months: {energy: 4.0, food: 4.0, chips: 2.0}
 
 chokepoints:
@@ -152,3 +152,12 @@ routes:
   - {importer: GRN, exporter: VLT, commodity: chips, share: 0.3, chokepoints: []}
   - {importer: MER, exporter: VLT, commodity: chips, share: 0.3, chokepoints: []}
   - {importer: SAH, exporter: VLT, commodity: chips, share: 0.2, chokepoints: ["Southern Gate"]}
+  # minerals (地下資源)
+  - {importer: VLT, exporter: PTR, commodity: minerals, share: 0.5, chokepoints: ["Strait of Ormuz"]}
+  - {importer: KES, exporter: PTR, commodity: minerals, share: 0.5, chokepoints: ["Strait of Ormuz"]}
+  - {importer: VLT, exporter: ARX, commodity: minerals, share: 0.5, chokepoints: []}
+  - {importer: MER, exporter: ARX, commodity: minerals, share: 0.5, chokepoints: []}
+  # space (宇宙資源 — 海峡を経由しない)
+  - {importer: MER, exporter: VLT, commodity: space, share: 0.2, chokepoints: []}
+  - {importer: KES, exporter: VLT, commodity: space, share: 0.2, chokepoints: []}
+  - {importer: ARX, exporter: VLT, commodity: space, share: 0.2, chokepoints: []}

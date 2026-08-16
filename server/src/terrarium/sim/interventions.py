@@ -24,6 +24,7 @@ GOD_CARD_TYPES = {
     "close_chokepoint",   # {chokepoint: str, duration: int|None}
     "open_chokepoint",    # {chokepoint: str}
     "destroy_resource",   # {nation: str, resource: str}
+    "create_resource",    # {nation: str, resource: str, quantity: int}  神が新たな資源を創る
     "disaster",           # {nation: str, kind: drought|earthquake|epidemic}
     "disinfo",            # {target: str, origin: str|None, intensity: float}
     "set_param",          # {nation: str, param: aggression|paranoia, value: float}

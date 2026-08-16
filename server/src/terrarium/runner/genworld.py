@@ -25,11 +25,12 @@ def world_summary(spec) -> str:
         for res in n.resources:
             if res.value == "finance":
                 continue
-            c = {"oil": "energy", "gas": "energy", "grain": "food", "fab": "chips"}[res.value]
+            c = {"oil": "energy", "gas": "energy", "grain": "food", "fab": "chips",
+                 "mineral": "minerals", "orbit": "space"}[res.value]
             supply[c] += YIELD_PER_UNIT
     demand = {k: v * len(spec.nations) for k, v in CONSUMPTION.items()}
     lines.append(f"nations={len(spec.nations)} chokepoints={len(spec.chokepoints)} routes={len(spec.routes)}")
-    for c in ("energy", "food", "chips"):
+    for c in ("energy", "food", "chips", "minerals", "space"):
         ratio = supply[c] / demand[c] if demand[c] else 0
         lines.append(f"  {c:7s} supply={supply[c]:5.1f} demand={demand[c]:5.1f} ratio={ratio:.2f}")
     for n in spec.nations:

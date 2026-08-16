@@ -1,0 +1,12 @@
+name: earth_gift
+description: "神の贈り物: エジプトに地下資源（レアメタル）を、インドに宇宙インフラ（軌道）を創り出す。新資源が覇権構造と連鎖をどう変えるかを観測する。"
+interventions:
+  - tick: 4
+    type: create_resource
+    params: {nation: EGY, resource: mineral, quantity: 3}
+  - tick: 6
+    type: create_resource
+    params: {nation: IND, resource: orbit, quantity: 2}
+  - tick: 10
+    type: create_resource
+    params: {nation: EGY, resource: fab, quantity: 1}
