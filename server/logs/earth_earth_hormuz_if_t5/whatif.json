@@ -1,0 +1,47 @@
+{
+  "base_run": "earth_earth_hormuz",
+  "fork_run": "earth_earth_hormuz_if_t5",
+  "fork_tick": 5,
+  "interventions": [
+    {
+      "tick": 5,
+      "type": "grant_tech",
+      "params": {
+        "nation": "JPN",
+        "tech": "fusion"
+      }
+    }
+  ],
+  "first_divergence_tick": 5,
+  "final_metric_deltas": {
+    "world_gdp": 0.6034,
+    "mean_stability": 0.7,
+    "wars": 0.0,
+    "mean_debt_gdp": 5.2,
+    "defaults": -1.0
+  },
+  "only_in_fork": [
+    {
+      "type": "sovereign_default",
+      "tick": 9,
+      "actor": "JPN"
+    }
+  ],
+  "only_in_base": [
+    {
+      "type": "sovereign_default",
+      "tick": 7,
+      "actor": "JPN"
+    },
+    {
+      "type": "sovereign_default",
+      "tick": 30,
+      "actor": "JPN"
+    },
+    {
+      "type": "tech_emergence",
+      "tick": 20,
+      "actor": null
+    }
+  ]
+}
