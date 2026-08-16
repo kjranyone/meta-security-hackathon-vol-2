@@ -57,19 +57,21 @@
   .card { border:1px solid var(--border); border-radius:8px; padding:6px 8px; background:#161b22; }
   .card b { font-size:12px; color:var(--god); }
   .hint { color:var(--dim); font-size:11px; }
-  .legend { position:absolute; left:10px; bottom:10px; font-size:11px; color:var(--dim); background:rgba(13,17,23,.75); padding:6px 8px; border-radius:6px; }
+  .legend { top:10px; max-width:44%;  position:absolute; left:10px; bottom:10px; font-size:11px; color:var(--dim); background:rgba(13,17,23,.75); padding:6px 8px; border-radius:6px; }
   label.sl { display:flex; align-items:center; gap:6px; font-size:11px; margin:2px 0; }
   label.sl span { width:120px; color:var(--dim); }
   label.sl input[type=range] { flex:1; }
   label.sl output { width:44px; text-align:right; }
-  #datebar { position:absolute; top:10px; left:50%; transform:translateX(-50%); z-index:4;
-             background:rgba(13,17,23,.82); border:1px solid var(--border); border-radius:8px;
-             padding:4px 14px; font-size:15px; letter-spacing:.06em; font-variant-numeric:tabular-nums; }
+  #datebar { position:absolute; top:10px; left:50%; transform:translateX(-50%); z-index:5;
+             background:rgba(13,17,23,.85); border:1px solid var(--border); border-radius:8px;
+             padding:4px 14px; font-size:15px; letter-spacing:.06em; font-variant-numeric:tabular-nums;
+             max-width:50%; text-align:center; }
+  @media (max-width: 1100px) { #datebar { font-size:12.5px; padding:3px 10px; } .legend { font-size:10px; max-width:40%; } }
   #datebar small { color:var(--dim); font-size:11px; display:block; text-align:center; letter-spacing:0; }
   #godbar { position:absolute; left:50%; bottom:12px; transform:translateX(-50%); z-index:4;
             display:flex; align-items:center; gap:6px; flex-wrap:wrap; justify-content:center;
             background:rgba(13,17,23,.88); border:1px solid var(--border); border-radius:12px;
-            padding:7px 10px; max-width:92%; box-shadow:0 6px 24px rgba(0,0,0,.45); }
+            padding:7px 10px; max-width:calc(100% - 24px); box-shadow:0 6px 24px rgba(0,0,0,.45); }
   #godbar .tgt { font-size:11.5px; color:var(--dim); border-right:1px solid var(--border); padding-right:8px; margin-right:2px; }
   #godbar .tgt b { color:var(--god); }
   #godbar button { background:#21262d; border:1px solid var(--border); color:var(--text); border-radius:8px;
@@ -78,8 +80,6 @@
   #godbar button:disabled { opacity:.38; cursor:not-allowed; }
   #godbar select { background:var(--bg); border:1px solid var(--border); color:var(--text);
                    border-radius:6px; font-size:12px; padding:3px 4px; }
-  #trustlegend { position:absolute; right:10px; bottom:64px; font-size:11px; color:var(--dim);
-                 background:rgba(13,17,23,.75); padding:6px 8px; border-radius:6px; }
   #timeline.flash { animation: tlgrow .9s ease-out 2; }
   @keyframes tlgrow { 0% { box-shadow: inset 0 3px 8px rgba(163,113,247,0); } 30% { box-shadow: inset 0 3px 10px rgba(163,113,247,.6); } 100% { box-shadow: inset 0 3px 8px rgba(163,113,247,0); } }
   #mutebtn { width:40px; }
@@ -108,10 +108,9 @@
 <div id="main">
   <div id="mapwrap">
     <canvas id="map" width="960" height="540"></canvas>
-    <div class="legend">クリック: 海峡⚓=封鎖カード / 国家=介入カード。紫=航路(エネルギー) 緑=食料 青=チップ 紫=地下 水色=宇宙・ ⚔️戦争 💀崩壊 橙枠=破綻</div>
+    <div class="legend" style="top:10px; bottom:auto;">クリック: 海峡⚓=封鎖 / 国家=介入カード。紫=航路(エネルギー) 緑=食料 青=チップ 紫=地下 水色=宇宙・ ⚔️戦争 💀崩壊 橙枠=破綻<br><span style="color:#3fb950">緑=高信頼</span> / 灰=中立 / <span style="color:#f85149">赤=敵対</span> = 友好度線</div>
     <div id="datebar" style="display:none">—</div>
     <div id="godbar"></div>
-    <div id="trustlegend" style="display:none">友好度線: <span style="color:#3fb950">緑=高信頼</span> / 灰=中立 / <span style="color:#f85149">赤=敵対</span>（国家クリック=その国の関係、未選択=主要関係）</div>
   </div>
   <div id="vsplit" title="ドラッグで幅変更・ダブルクリックで戻す"></div>
   <div id="side">
@@ -189,7 +188,6 @@ async function loadGeo() {
   }
   GEO={features, byName};
   fitMapCanvas();
-  document.getElementById("trustlegend").style.display = "block";
 }
 
 // ---------------------------------------------------------------- render
