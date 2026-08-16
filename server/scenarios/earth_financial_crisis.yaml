@@ -1,0 +1,9 @@
+name: earth_financial_crisis
+description: "金融安全保障の複合危機: ホルムズ封鎖でエネルギー価格が急騰した矢先に神が世界金利を +8% 引き上げる。高債務国（日本・米・エジプト・トルコ）への金利ショックとデフォルト感染の連鎖を観測する。"
+interventions:
+  - tick: 6
+    type: close_chokepoint
+    params: {chokepoint: "Strait of Hormuz", duration: 30}
+  - tick: 10
+    type: rate_hike
+    params: {value: 0.08}

@@ -73,6 +73,7 @@ class NationSpec(BaseModel):
     aggression: float = 0.3
     paranoia: float = 0.3
     resources: list[ResourceKind] = []
+    debt_gdp: float = 60.0            # sovereign debt as % of GDP at t0
     stockpile_months: dict[str, float] = Field(default_factory=lambda: {"energy": 3.0, "food": 4.0, "chips": 2.0})
 
 
@@ -103,6 +104,10 @@ class NationState(BaseModel):
     at_war_with: list[str] = []
     collapsed: bool = False
     collapse_ticks: int = 0
+    debt_gdp: float = 60.0            # sovereign debt as % of GDP
+    credibility: float = 80.0         # sovereign credit 0-100 (drives risk premium)
+    defaults: int = 0                 # lifetime default count
+    default_cooldown: int = 0         # post-default restructuring moratorium
 
     def view(self) -> dict[str, Any]:
         return self.model_dump()
@@ -117,6 +122,7 @@ class GodParams(BaseModel):
     space_yield: float = 1.0
     ai_aggression: float = 1.0
     disinfo_intensity: float = 1.0
+    world_rate_hike: float = 0.0      # god's rate hike added to every nation's rate
 
 
 class WorldSpec(BaseModel):

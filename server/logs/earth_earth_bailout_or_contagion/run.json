@@ -1,0 +1,29 @@
+{
+  "run_name": "earth_earth_bailout_or_contagion",
+  "seed": 42,
+  "ticks": 36,
+  "final_metrics": {
+    "tick": 35,
+    "world_gdp": 130.6617,
+    "mean_stability": 50.88,
+    "wars": 0,
+    "collapsed": 0,
+    "price_energy": 1.263,
+    "price_food": 1.0,
+    "price_chips": 1.0828,
+    "mean_inflation": 0.01762,
+    "mean_debt_gdp": 88.4,
+    "defaults": 3
+  },
+  "event_counts": {
+    "policy_shift": 576,
+    "shortage": 464,
+    "tech_emergence": 13,
+    "tech_adopted": 140,
+    "god_intervention": 4,
+    "trade_throttled": 234,
+    "sovereign_default": 3,
+    "credibility_hit": 7
+  },
+  "wars": 0
+}

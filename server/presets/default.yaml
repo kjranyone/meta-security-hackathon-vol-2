@@ -17,6 +17,7 @@ nations:
     aggression: 0.2
     paranoia: 0.35
     resources: [fab, fab, orbit]
+    debt_gdp: 180
     stockpile_months: {energy: 2.0, food: 3.0, chips: 6.0}
 
   - id: PTR
@@ -32,6 +33,7 @@ nations:
     aggression: 0.6
     paranoia: 0.5
     resources: [oil, oil, gas, mineral]
+    debt_gdp: 30
     stockpile_months: {energy: 8.0, food: 2.0, chips: 1.5}
 
   - id: GRN
@@ -47,6 +49,7 @@ nations:
     aggression: 0.25
     paranoia: 0.25
     resources: [grain, grain, grain, grain]
+    debt_gdp: 55
     stockpile_months: {energy: 3.0, food: 8.0, chips: 2.0}
 
   - id: MER
@@ -62,6 +65,7 @@ nations:
     aggression: 0.15
     paranoia: 0.3
     resources: [finance, finance]
+    debt_gdp: 140
     stockpile_months: {energy: 2.5, food: 2.5, chips: 3.0}
 
   - id: KES
@@ -77,6 +81,7 @@ nations:
     aggression: 0.4
     paranoia: 0.45
     resources: [fab]
+    debt_gdp: 210
     stockpile_months: {energy: 2.0, food: 3.0, chips: 3.0}
 
   - id: SAH
@@ -92,6 +97,7 @@ nations:
     aggression: 0.3
     paranoia: 0.4
     resources: []
+    debt_gdp: 85
     stockpile_months: {energy: 1.5, food: 1.5, chips: 1.0}
 
   - id: NRD
@@ -107,6 +113,7 @@ nations:
     aggression: 0.1
     paranoia: 0.2
     resources: [gas, grain]
+    debt_gdp: 45
     stockpile_months: {energy: 6.0, food: 2.0, chips: 2.0}
 
   - id: ARX
@@ -122,6 +129,7 @@ nations:
     aggression: 0.5
     paranoia: 0.55
     resources: [oil, oil, grain, mineral, mineral, orbit]
+    debt_gdp: 120
     stockpile_months: {energy: 4.0, food: 4.0, chips: 2.0}
 
 chokepoints:

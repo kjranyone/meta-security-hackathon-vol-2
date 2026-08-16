@@ -81,6 +81,8 @@ class Engine:
                 aggression=ns.aggression,
                 paranoia=ns.paranoia,
                 stocks={**DEFAULT_STOCKS, **ns.stockpile_months},
+                debt_gdp=ns.debt_gdp,
+                credibility=min(ns.stability, 90.0),
                 base_aggression=ns.aggression,
                 base_paranoia=ns.paranoia,
                 trust={o.id: 20.0 for o in spec.nations if o.id != ns.id},
@@ -278,6 +280,26 @@ class Engine:
                 self.tick_no, "god_intervention",
                 f"神が「{self.tech_index[tid].name}」の研究を全世界で禁じた",
                 actor="GOD", data={"tech": tid},
+            )
+        elif iv.type == "bailout":
+            nid = self._nation_by_ref(p["nation"])
+            if nid is None:
+                return
+            nat = self.nations[nid]
+            nat.debt_gdp *= 0.6
+            nat.credibility = max(nat.credibility, 60.0)
+            nat.stability = min(100.0, nat.stability + 5.0)
+            self.event_log.emit(
+                self.tick_no, "god_intervention",
+                f"神が {nat.name} に救済（ベイルアウト）を与えた。債務は削減され信用が部分的に回復",
+                actor="GOD", targets=[nid], data={"nation": nid},
+            )
+        elif iv.type == "rate_hike":
+            self.god.world_rate_hike = float(p.get("value", 0.02))
+            self.event_log.emit(
+                self.tick_no, "god_intervention",
+                f"神が世界金利を +{self.god.world_rate_hike*100:.0f}% 引き上げた。全ての債務国の利払いが急増する",
+                actor="GOD", data={"value": self.god.world_rate_hike},
             )
         elif iv.type == "set_param":
             nid = self._nation_by_ref(p["nation"])
@@ -753,6 +775,86 @@ class Engine:
                 return True
         return False
 
+    # ------------------------------------------------------------------ finance
+    TAX_RATE = 0.30             # annual govt revenue as share of GDP
+    BASE_SPEND = 0.24           # annual non-discretionary spending share
+    DEFAULT_SAFE = 0.015        # monthly interest below 1.5% of GDP: serviceable
+    DEFAULT_FORCE = 0.03        # above 3%: mathematically insolvent
+
+    def _bond_rate(self, nat) -> float:
+        """Annual sovereign rate: base + credibility risk premium + inflation
+        pass-through + god's world rate hike."""
+        premium = (100.0 - nat.credibility) / 100.0 * 0.10
+        infl_pass = min(0.15, max(0.0, nat.inflation - 0.05) * 2.0)
+        return float(min(0.60, max(0.02, 0.02 + premium + infl_pass + self.god.world_rate_hike)))
+
+    def _fiscal_step(self, nid: str, nat) -> None:
+        t = self.tick_no
+        at_war = bool(nat.at_war_with)
+        mil = nat.budget.get("military", 0.2)
+        wel = nat.budget.get("welfare", 0.3)
+        # monthly flows (fraction of GDP)
+        revenue = self.TAX_RATE / 12.0
+        spending = (self.BASE_SPEND + 0.30 * mil * (2.0 if at_war else 1.0) + 0.10 * wel) / 12.0
+        rate = self._bond_rate(nat)
+        interest = (nat.debt_gdp / 100.0) * rate / 12.0
+        deficit = spending + interest - revenue
+        nat.debt_gdp = max(0.0, nat.debt_gdp + deficit * 100.0)
+
+        # credibility dynamics (high debt alone erodes credit only slowly:
+        # credible high-debt states like Japan must stay serviceable)
+        nat.credibility = min(100.0, nat.credibility + 1.5)
+        if nat.debt_gdp > 160.0:
+            nat.credibility -= 2.5
+        if nat.inflation > 0.10:
+            nat.credibility -= 2.0
+        nat.credibility = max(0.0, nat.credibility)
+        if nat.default_cooldown > 0:
+            nat.default_cooldown -= 1
+            return
+
+        # sovereign default check
+        if interest > self.DEFAULT_SAFE:
+            forced = interest > self.DEFAULT_FORCE
+            p = 1.0 if forced else 0.10 + (interest - self.DEFAULT_SAFE) * 20.0
+            if self.rng.random() < p:
+                self._sovereign_default(nid, nat, rate)
+
+    def _sovereign_default(self, nid: str, nat, rate: float) -> None:
+        t = self.tick_no
+        nat.defaults += 1
+        nat.default_cooldown = 12                        # restructuring moratorium
+        nat.inflation = min(1.0, nat.inflation + 0.15)   # currency crash
+        nat.stability = max(0.0, nat.stability - 8.0)
+        nat.credibility = 5.0
+        nat.debt_gdp *= 0.50                              # restructuring haircut
+        # austerity: creditor-imposed budget shift
+        nat.budget = {"military": 0.10, "welfare": 0.30, "stockpile": 0.15, "subsidy": 0.45}
+        parents = [r.id for r in self.event_log.records[-12:]
+                   if r.type in ("war_start", "price_spike", "disaster", "god_intervention",
+                                 "sovereign_default", "sanction", "shortage")
+                   and (r.actor == nid or nid in r.targets or r.actor == "GOD")]
+        ev = self.event_log.emit(
+            t, "sovereign_default",
+            f"{nat.name} が債務不履行（デフォルト）。通貨暴落と緊縮が始まる（利払い利率 {rate*100:.0f}%）",
+            actor=nid, targets=[nid], parents=parents[-4:],
+            data={"rate": round(rate, 3), "debt_gdp": round(nat.debt_gdp, 1)},
+        )
+        # contagion: creditor nations (finance hubs) take losses
+        for other, onat in sorted(self.nations.items()):
+            if other == nid:
+                continue
+            finance_units = sum(1 for r in self.nation_resources[other] if r is ResourceKind.FINANCE)
+            if finance_units > 0:
+                onat.gdp *= 1.0 - 0.005 * finance_units
+                onat.credibility = max(0.0, onat.credibility - 8.0)
+                self.event_log.emit(
+                    t, "credibility_hit",
+                    f"{onat.name} の金融機関が {nat.name} の債務で損失。信用が毀損し感染の火種に",
+                    actor=other, targets=[other], parents=[ev.id],
+                    data={"exposure": finance_units},
+                )
+
     # ------------------------------------------------------------- macro/cycle
     def _macro_update(self) -> None:
         t = self.tick_no
@@ -786,6 +888,8 @@ class Engine:
             nat.stability = max(0.0, min(100.0, nat.stability + drift + welfare - nat.inflation * 25.0 - nat.war_exhaustion * 0.05 + t_stab))
             nat.approval = max(0.0, min(100.0, nat.approval + 0.2 * (50.0 - nat.approval) + (1.0 if bud.get("welfare", 0) > 0.35 else -0.5) + t_appr))
             nat.war_exhaustion = max(0.0, nat.war_exhaustion - 0.5)
+            # ---------------------------------------------------- fiscal block
+            self._fiscal_step(nid, nat)
             # collapse check
             if nat.stability < 12.0:
                 nat.collapse_ticks += 1
@@ -831,6 +935,8 @@ class Engine:
                 "at_war_with": nat.at_war_with, "alliances": nat.alliances,
                 "collapsed": nat.collapsed, "rationing": nat.rationing, "propaganda": nat.propaganda,
                 "techs": self._techs_of(nid),
+                "debt_gdp": round(nat.debt_gdp, 1), "credibility": round(nat.credibility, 1),
+                "defaults": nat.defaults,
             }
         metrics = {
             "world_gdp": round(sum(n.gdp for n in self.nations.values()), 4),
@@ -841,6 +947,8 @@ class Engine:
             "price_food": round(self.prices["food"], 4),
             "price_chips": round(self.prices["chips"], 4),
             "mean_inflation": round(sum(n.inflation for n in self.nations.values()) / len(self.nations), 5),
+            "mean_debt_gdp": round(sum(n.debt_gdp for n in self.nations.values()) / len(self.nations), 1),
+            "defaults": sum(n.defaults for n in self.nations.values()),
         }
         snap = {
             "type": "tick", "tick": t, "nations": nations_out,

@@ -1,0 +1,15 @@
+name: earth_bailout_or_contagion
+description: "神の選択: 金利+8%ショックの後、日本（t16）とエジプト（t18）を救済するが、救済しなかった高債務国はどうなるか。ベースライン（earth_financial_crisis）とのA/B比較で「最後の貸し手」の効果を測る。"
+interventions:
+  - tick: 6
+    type: close_chokepoint
+    params: {chokepoint: "Strait of Hormuz", duration: 30}
+  - tick: 10
+    type: rate_hike
+    params: {value: 0.08}
+  - tick: 16
+    type: bailout
+    params: {nation: JPN}
+  - tick: 18
+    type: bailout
+    params: {nation: EGY}

@@ -1,5 +1,5 @@
 {
-  "run_name": "earth_baseline",
+  "run_name": "baseline",
   "seed": 42,
   "ticks": 36,
   "final_metrics": {

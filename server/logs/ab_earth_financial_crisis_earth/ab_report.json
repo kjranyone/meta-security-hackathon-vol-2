@@ -1,0 +1,36 @@
+{
+  "scenario": "earth_financial_crisis",
+  "description": "金融安全保障の複合危機: ホルムズ封鎖でエネルギー価格が急騰した矢先に神が世界金利を +8% 引き上げる。高債務国（日本・米・エジプト・トルコ）への金利ショックとデフォルト感染の連鎖を観測する。",
+  "seed": 42,
+  "ticks": 36,
+  "event_counts_baseline": {
+    "policy_shift": 576,
+    "shortage": 312,
+    "tech_emergence": 13,
+    "tech_adopted": 146,
+    "sovereign_default": 1,
+    "credibility_hit": 3
+  },
+  "event_counts_treatment": {
+    "policy_shift": 576,
+    "shortage": 463,
+    "tech_emergence": 13,
+    "tech_adopted": 141,
+    "god_intervention": 2,
+    "trade_throttled": 233,
+    "sovereign_default": 4,
+    "credibility_hit": 10
+  },
+  "series_divergence_mean_abs": {
+    "world_gdp": 30.4923,
+    "mean_stability": 2.475,
+    "wars": 0.0,
+    "price_energy": 0.2932,
+    "price_food": 0.0,
+    "collapsed": 0.0
+  },
+  "god_intervention_cascade_sizes": {
+    "e000127": 755,
+    "e000284": 0
+  }
+}

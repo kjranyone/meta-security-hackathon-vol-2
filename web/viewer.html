@@ -32,6 +32,8 @@
   #feed .ev .t { color: var(--dim); font-size: 11px; margin-right: 6px; }
   .ev-war { border-left: 3px solid #f85149; }
   .ev-collapse { border-left: 3px solid #d29922; }
+  .ev-default { border-left: 3px solid #ff6b35; background: rgba(255,107,53,.08); }
+  .ev-credhit { border-left: 3px solid #ffa657; }
   .ev-god { border-left: 3px solid #a371f7; background: rgba(163,113,247,.08); }
   .ev-shortage { border-left: 3px solid #db6d28; }
   .ev-sanction, .ev-threat { border-left: 3px solid #d29922; }
@@ -69,7 +71,7 @@
     <div class="drophint" id="hint">replay.jsonl をドラッグ＆ドロップ または URL/ファイルで読み込み<br><small>例: <code>cd server && uv run python -m terrarium.runner.headless --preset earth --scenario scenarios/earth_hormuz.yaml</code></small></div>
     <canvas id="map" width="960" height="540" style="display:none"></canvas>
     <div id="hover"></div>
-    <div class="legend" id="legend" style="display:none">色付き国=国家 ・ ⚓/⛔ 海峡 ・ 実線=航路（琥珀=エネルギー 緑=食料 青=チップ 紫=地下資源 水色=宇宙）・ ⚔️ 戦争 ・ 💀 崩壊 ・ 水色枠=未来技術の創発</div>
+    <div class="legend" id="legend" style="display:none">色付き国=国家 ・ ⚓/⛔ 海峡 ・ 実線=航路（琥珀=エネルギー 緑=食料 青=チップ 紫=地下資源 水色=宇宙）・ ⚔️ 戦争 ・ 💀 崩壊 ・ 橙枠=債務不履行 ・ 水色枠=未来技術の創発</div>
   </div>
   <div id="side">
     <div class="pane" id="stats"><h3>Nations</h3><div id="statbody">—</div></div>
@@ -294,7 +296,7 @@ function renderMap(tick) {
 // ---------------------------------------------------------------- stats
 function renderStats(tick) {
   const el = document.getElementById("statbody");
-  let rows = `<table><tr><th></th><th>GDP</th><th>物価↑</th><th>安定</th><th>軍事</th><th>備蓄 E/F/C/M/S</th></tr>`;
+  let rows = `<table><tr><th></th><th>GDP</th><th>物価↑</th><th>安定</th><th>債務</th><th>備蓄 E/F/C/M/S</th></tr>`;
   for (const [nid, n] of Object.entries(tick.nations)) {
     const cls = selected === nid ? "sel" : "";
     const st = n.stocks;
@@ -303,6 +305,7 @@ function renderStats(tick) {
       <td class="num">${n.gdp.toFixed(1)}</td>
       <td class="num">${(n.inflation * 100).toFixed(1)}%</td>
       <td class="num">${n.stability.toFixed(0)}</td>
+      <td class="num" style="color:${n.debt_gdp > 130 ? '#f85149' : (n.debt_gdp > 100 ? '#e3b341' : 'inherit')}">${n.debt_gdp.toFixed(0)}%${n.defaults ? '⚠' + n.defaults : ''}</td>
       <td class="num">${n.military.toFixed(0)}</td>
       <td class="num">${st.energy?.toFixed(1)}/${st.food?.toFixed(1)}/${st.chips?.toFixed(1)}/${st.minerals?.toFixed(1)}/${st.space?.toFixed(1)}</td></tr>`;
   }
@@ -312,7 +315,7 @@ function renderStats(tick) {
     ・平均安定 <b style="color:var(--text)">${m.mean_stability.toFixed(1)}</b>
     ・戦争 <b style="color:var(--text)">${m.wars}</b>
     ・崩壊 <b style="color:var(--text)">${m.collapsed}</b>
-    ・平均インフレ <b style="color:var(--text)">${(m.mean_inflation * 100).toFixed(1)}%</b></div>`;
+    ・平均インフレ <b style="color:var(--text)">${(m.mean_inflation * 100).toFixed(1)}%</b>・平均債務 <b style="color:var(--text)">${(m.mean_debt_gdp || 0).toFixed(0)}%</b>・破綻 <b style="color:${m.defaults > 0 ? '#ff6b35' : 'var(--text)'}">${m.defaults || 0}</b></div>`;
   el.innerHTML = rows;
 }
 function selectNation(nid) { selected = selected === nid ? null : nid; render(cur); }
@@ -361,7 +364,8 @@ function renderChart(i) {
 const EV_CLASS = { war_start: "ev-war", war_end: "ev-war", collapse: "ev-collapse", god_intervention: "ev-god",
   shortage: "ev-shortage", sanction: "ev-sanction", threat: "ev-sanction", alliance_formed: "ev-alliance",
   price_spike: "ev-price", disinfo: "ev-disinfo", trade_throttled: "ev-trade",
-  tech_emergence: "ev-tech", tech_adopted: "ev-tech2" };
+  tech_emergence: "ev-tech", tech_adopted: "ev-tech2",
+  sovereign_default: "ev-default", credibility_hit: "ev-credhit" };
 function renderFeed(tick) {
   const el = document.getElementById("feedbody");
   const evs = (tick.events || []).slice().reverse();
@@ -373,7 +377,7 @@ function renderFeed(tick) {
   el.innerHTML = html || '<div style="color:var(--dim)">（このtickのイベントなし）</div>';
   const counts = {};
   for (const t of TICKS) for (const e of t.events || []) counts[e.type] = (counts[e.type] || 0) + 1;
-  const casc = Object.entries(counts).filter(([k]) => ["war_start", "collapse", "shortage", "sanction", "alliance_formed", "price_spike", "trade_throttled", "disinfo", "tech_emergence", "tech_adopted"].includes(k))
+  const casc = Object.entries(counts).filter(([k]) => ["war_start", "collapse", "shortage", "sanction", "alliance_formed", "price_spike", "trade_throttled", "disinfo", "tech_emergence", "tech_adopted", "sovereign_default", "credibility_hit"].includes(k))
     .map(([k, v]) => `${k}:${v}`).join(" ");
   document.getElementById("cascadeinfo").textContent = casc ? "— " + casc : "";
 }
@@ -398,7 +402,7 @@ document.getElementById("map").addEventListener("mousemove", ev => {
     }
     if (best) {
       const n = TICKS[cur].nations[best];
-      content = `<b style="color:${n.color}">${n.name}</b><br>GDP ${n.gdp.toFixed(1)}兆$ / インフレ ${(n.inflation * 100).toFixed(1)}%<br>安定 ${n.stability.toFixed(0)} / 軍事 ${n.military.toFixed(0)} / 世論 ${n.approval.toFixed(0)}<br>備蓄 E${n.stocks.energy.toFixed(1)} F${n.stocks.food.toFixed(1)} C${n.stocks.chips.toFixed(1)}ヶ月<br>技術: ${(n.techs && n.techs.length) ? n.techs.join(', ') : 'なし'}`;
+      content = `<b style="color:${n.color}">${n.name}</b><br>GDP ${n.gdp.toFixed(1)}兆$ / インフレ ${(n.inflation * 100).toFixed(1)}%<br>債務 ${n.debt_gdp.toFixed(0)}%GDP / 信用 ${n.credibility.toFixed(0)} / 破綻 ${n.defaults}回<br>安定 ${n.stability.toFixed(0)} / 軍事 ${n.military.toFixed(0)} / 世論 ${n.approval.toFixed(0)}<br>備蓄 E${n.stocks.energy.toFixed(1)} F${n.stocks.food.toFixed(1)} C${n.stocks.chips.toFixed(1)}ヶ月<br>技術: ${(n.techs && n.techs.length) ? n.techs.join(', ') : 'なし'}`;
     } else {
       for (const cp of META.geo.chokepoints) {
         const [x, y] = project(cp.lon, cp.lat);

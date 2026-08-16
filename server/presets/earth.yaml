@@ -19,6 +19,7 @@ nations:
     aggression: 0.40
     paranoia: 0.40
     resources: [oil, gas, grain, grain, grain, fab, finance, finance, orbit, orbit, mineral]
+    debt_gdp: 122
     stockpile_months: {energy: 6.0, food: 6.0, chips: 3.0}
 
   - id: EUR
@@ -35,6 +36,7 @@ nations:
     aggression: 0.20
     paranoia: 0.35
     resources: [grain, grain, fab, finance, finance, orbit]
+    debt_gdp: 88
     stockpile_months: {energy: 3.0, food: 3.5, chips: 3.0}
 
   - id: CHN
@@ -51,6 +53,7 @@ nations:
     aggression: 0.50
     paranoia: 0.45
     resources: [oil, grain, fab, mineral, mineral, mineral, mineral, orbit]
+    debt_gdp: 83
     stockpile_months: {energy: 3.0, food: 3.0, chips: 3.0}
 
   - id: JPN
@@ -67,6 +70,7 @@ nations:
     aggression: 0.15
     paranoia: 0.35
     resources: []
+    debt_gdp: 252
     stockpile_months: {energy: 2.0, food: 2.5, chips: 3.0}
 
   - id: KOR
@@ -83,6 +87,7 @@ nations:
     aggression: 0.20
     paranoia: 0.55
     resources: [fab, fab]
+    debt_gdp: 48
     stockpile_months: {energy: 2.0, food: 2.5, chips: 5.0}
 
   - id: TWN
@@ -99,6 +104,7 @@ nations:
     aggression: 0.15
     paranoia: 0.60
     resources: [fab, fab, fab]
+    debt_gdp: 31
     stockpile_months: {energy: 2.0, food: 2.0, chips: 6.0}
 
   - id: IND
@@ -115,6 +121,7 @@ nations:
     aggression: 0.35
     paranoia: 0.35
     resources: [grain]
+    debt_gdp: 82
     stockpile_months: {energy: 2.0, food: 3.0, chips: 2.0}
 
   - id: RUS
@@ -131,6 +138,7 @@ nations:
     aggression: 0.60
     paranoia: 0.55
     resources: [oil, oil, oil, gas, gas, grain, grain, mineral]
+    debt_gdp: 21
     stockpile_months: {energy: 8.0, food: 4.0, chips: 1.5}
 
   - id: SAU
@@ -147,6 +155,7 @@ nations:
     aggression: 0.35
     paranoia: 0.40
     resources: [oil, oil, oil, oil, oil, finance]
+    debt_gdp: 26
     stockpile_months: {energy: 8.0, food: 2.5, chips: 1.5}
 
   - id: IRN
@@ -163,6 +172,7 @@ nations:
     aggression: 0.50
     paranoia: 0.60
     resources: [oil, oil, gas]
+    debt_gdp: 44
     stockpile_months: {energy: 7.0, food: 2.0, chips: 1.0}
 
   - id: BRA
@@ -179,6 +189,7 @@ nations:
     aggression: 0.20
     paranoia: 0.25
     resources: [grain, grain, grain, oil, mineral]
+    debt_gdp: 87
     stockpile_months: {energy: 4.5, food: 8.0, chips: 1.5}
 
   - id: AUS
@@ -195,6 +206,7 @@ nations:
     aggression: 0.15
     paranoia: 0.25
     resources: [gas, gas, grain, grain, mineral, mineral]
+    debt_gdp: 49
     stockpile_months: {energy: 5.0, food: 8.0, chips: 2.0}
 
   - id: CAN
@@ -211,6 +223,7 @@ nations:
     aggression: 0.10
     paranoia: 0.20
     resources: [oil, gas, grain, grain]
+    debt_gdp: 107
     stockpile_months: {energy: 6.0, food: 8.0, chips: 2.0}
 
   - id: IDN
@@ -227,6 +240,7 @@ nations:
     aggression: 0.20
     paranoia: 0.30
     resources: [gas, grain]
+    debt_gdp: 39
     stockpile_months: {energy: 4.0, food: 4.0, chips: 1.0}
 
   - id: TUR
@@ -243,6 +257,7 @@ nations:
     aggression: 0.40
     paranoia: 0.45
     resources: [grain]
+    debt_gdp: 71
     stockpile_months: {energy: 2.0, food: 2.5, chips: 1.5}
 
   - id: EGY
@@ -259,6 +274,7 @@ nations:
     aggression: 0.25
     paranoia: 0.40
     resources: []
+    debt_gdp: 93
     stockpile_months: {energy: 2.0, food: 2.0, chips: 1.0}
 
 chokepoints:
