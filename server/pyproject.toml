@@ -18,6 +18,9 @@ api = [
 dev = [
     "matplotlib>=3.10.9",
     "pytest>=8.0",
+    "pandas>=2.2",
+    "jupyter>=1.0",
+    "ipykernel>=6.29",
 ]
 
 [build-system]
