@@ -127,15 +127,31 @@ server/
     sim/       # エンジン（生産→貿易→市場→消費→意思決定→外交→紛争→マクロ）
                # イベントソーシング（因果parentリンク付きJSONL）、神介入
     agents/    # policy層: heuristic / mock_llm / llm(z.ai OpenAI互換)
-    runner/    # headless CLI / A/B反実仮想ランナー / 世界生成CLI
+    runner/    # headless CLI / A/B反実仮想 / IF史 / 世界生成CLI
   presets/     # earth.yaml（実在16主体・実海峡・シーレーン）default.yaml（架空8国）gen_<seed>.yaml（自動生成）
   scenarios/   # 神の介入シナリオ（YAML、生成世界対応の #index 参照つき）
   logs/        # 実行結果（replay.jsonl / events.jsonl / series.csv / run.json）
   tests/       # 決定論・需給バランス・カオス伝播のテスト
-web/
-  viewer.html    # 実世界地図リプレイビューア（単一HTML、ビルド不要）
+frontend/      # UIソース（Vite + React）。コンポーネント/ロジックはここで共有
+web/           # ビルド済み成果物（コミット済み → 利用者は npm 不要）
+  god.html / viewer.html / assets/
   world.geojson  # Natural Earth 110m admin-0（パブリックドメイン）
 ```
+
+### UIはReact（ビルド済み成果物コミット）
+
+両UI（神の玉座・リプレイビューア）は `frontend/` の React + Vite ソースから
+**`web/` へビルドした成果物をコミット**しています。利用者・審査員は
+`npm install` なしでそのまま動かせます（従来の単一HTMLと同じURL）。
+
+```bash
+cd frontend
+npm install && npm run build   # web/god.html + web/viewer.html + web/assets/ を再生成
+npm run dev                    # 開発時ホットリロード（プロキシなし: 8788のAPIを直叩き時はCORS設定を）
+```
+
+共有コンポーネント/ロジック（両UIで再利用）: 地図レンダラ（領土・航路・海峡・友好度グラフ）、
+投影法、シミュレーション暦、価格チャート、効果音、スプリッター、日付バー、IF史パネル。
 
 ### 再現性の設計
 

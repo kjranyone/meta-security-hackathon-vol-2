@@ -278,3 +278,4 @@ async def ws_endpoint(ws: WebSocket) -> None:
 
 
 app.mount("/static", StaticFiles(directory=REPO_ROOT), name="repo")
+app.mount("/assets", StaticFiles(directory=REPO_ROOT / "web" / "assets"), name="assets")

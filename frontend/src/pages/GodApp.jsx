@@ -1,0 +1,204 @@
+import { useEffect, useRef, useState, useCallback } from "react";
+import MapCanvas from "../components/MapCanvas";
+import StatsTable from "../components/StatsTable";
+import EventFeed from "../components/EventFeed";
+import DateBar from "../components/DateBar";
+import GodBar from "../components/GodBar";
+import GodCards from "../components/GodCards";
+import { VSplit, HSplit } from "../components/Splitter";
+import { loadGeojson } from "../lib/geo";
+import { pickAt } from "../lib/renderMap";
+import { initAudio, beep, toneForTypes, MAJOR_TONES } from "../lib/audio";
+
+const PRESETS = [
+  { id: "earth", label: "earth（実世界16国）" },
+  { id: "default", label: "default（架空8国）" },
+  { id: "gen", label: "gen（自動生成 seed=7）" },
+];
+const POLICIES = [
+  { id: "mock_llm", label: "mock_llm（オフライン）" },
+  { id: "heuristic", label: "heuristic" },
+  { id: "llm", label: "llm（z.ai / 要APIキー）" },
+  { id: "rl", label: "rl（要rl-nation）" },
+];
+
+export default function GodApp() {
+  const [geo, setGeo] = useState(null);
+  const [meta, setMeta] = useState(null);
+  const [ticks, setTicks] = useState([]);
+  const [godEvents, setGodEvents] = useState([]);
+  const [cur, setCur] = useState(0);
+  const [sel, setSel] = useState({ kind: null, id: null });
+  const [status, setStatus] = useState({ running: false, tick: 0, max_ticks: 60 });
+  const [muted, setMuted] = useState(false);
+  const [flash, setFlash] = useState(0);
+  const [sideW, setSideW] = useState(480);
+  const [statsH, setStatsH] = useState(200);
+  const statsH0 = useRef(200);
+  const [preset, setPreset] = useState("earth");
+  const [policy, setPolicy] = useState("mock_llm");
+  const [seed, setSeed] = useState(42);
+  const [rlNation, setRlNation] = useState("");
+  const [conn, setConn] = useState(false);
+  const wsRef = useRef(null);
+  const tlRef = useRef(null);
+
+  useEffect(() => {
+    if (!flash) return;
+    const el = tlRef.current;
+    if (!el) return;
+    el.classList.remove("flashgod");
+    void el.offsetWidth;
+    el.classList.add("flashgod");
+  }, [flash]);
+
+  useEffect(() => { loadGeojson().then(setGeo).catch(console.error); }, []);
+
+  const send = useCallback(obj => {
+    if (wsRef.current && wsRef.current.readyState === 1)
+      wsRef.current.send(JSON.stringify(obj));
+  }, []);
+
+  const intervene = useCallback((type, params) =>
+    send({ cmd: "intervene", type, params: params || {} }), [send]);
+
+  const feedback = useCallback(types => {
+    setFlash(f => f + 1);
+    if (!muted) beep(toneForTypes(types));
+  }, [muted]);
+
+  useEffect(() => {
+    let ws;
+    let closed = false;
+    const connect = () => {
+      ws = new WebSocket(`ws://${location.host}/ws`);
+      wsRef.current = ws;
+      ws.onopen = () => setConn(true);
+      ws.onmessage = ev => {
+        const m = JSON.parse(ev.data);
+        if (m.type === "meta") {
+          setMeta(m); setTicks([]); setGodEvents([]); setCur(0);
+        } else if (m.type === "tick") {
+          setTicks(t => [...t, m]);
+          const types = (m.events || []).map(e => e.type).filter(t => MAJOR_TONES[t]);
+          if (types.length) feedback(types);
+        } else if (m.type === "god") {
+          if (m.event) {
+            setGodEvents(g => [...g, m.event]);
+            feedback(["god_intervention"]);
+          }
+        } else if (m.type === "status") {
+          setStatus({ running: m.running, tick: m.tick, max_ticks: m.max_ticks });
+        }
+      };
+      ws.onclose = () => { setConn(false); if (!closed) setTimeout(connect, 1500); };
+    };
+    connect();
+    return () => { closed = true; ws?.close(); };
+  }, [feedback]);
+
+  useEffect(() => {
+    const once = () => initAudio();
+    document.addEventListener("click", once, { once: true });
+    return () => document.removeEventListener("click", once);
+  }, []);
+
+  // ライブシミュレーション: 常に最新tickを表示
+  useEffect(() => { setCur(ticks.length - 1); }, [ticks.length]);
+
+  async function resetWorld() {
+    const body = {
+      preset: preset === "gen" ? "default" : preset, policy,
+      seed: +seed || 42, ticks: 60,
+    };
+    if (preset === "gen") body.gen_seed = 7;
+    if (rlNation.trim()) body.rl_nation = rlNation.trim();
+    await fetch("/api/reset", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  }
+
+  function onMapClick(mx, my) {
+    if (!geo || !meta) return;
+    setSel(pickAt(mx, my, geo, meta));
+  }
+
+  const tick = ticks[Math.min(cur, ticks.length - 1)] || null;
+  const counts = {};
+  for (const t of ticks) for (const e of t.events || []) counts[e.type] = (counts[e.type] || 0) + 1;
+  const countsStr = Object.entries(counts).map(([k, v]) => `${k}:${v}`).join(" ");
+
+  return (
+    <div className="app">
+      <header>
+        <h1>👑 Geopolitics Terrarium — 神の玉座</h1>
+        <span id="conn" className={conn ? "ok" : "bad"}>{conn ? "接続中" : "切断"}</span>
+        <span className="spacer" />
+        <select value={preset} onChange={e => setPreset(e.target.value)}>
+          {PRESETS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+        </select>
+        <select value={policy} onChange={e => setPolicy(e.target.value)}>
+          {POLICIES.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+        </select>
+        <input type="number" value={seed} onChange={e => setSeed(e.target.value)} title="seed" />
+        <input type="text" value={rlNation} onChange={e => setRlNation(e.target.value)}
+               placeholder="RL国(VLT等)" style={{ width: 110 }} title="rl-nation（policy=rl/hybrid時）" />
+        <button onClick={resetWorld}>🌍 世界を創る</button>
+      </header>
+
+      <div className="main">
+        <MapCanvas tick={tick} geo={geo} meta={meta} god
+                   selectedNation={sel.kind === "nation" ? sel.id : null}
+                   selectedChokepoint={sel.kind === "cp" ? sel.id : null}
+                   onMapClick={onMapClick} />
+        <DateBar tick={tick?.tick} maxTick={status.max_ticks} visible={!!tick} />
+        <div className="legend top">
+          クリック: 海峡⚓=封鎖 / 国家=介入カード。紫=航路(エネルギー) 緑=食料 青=チップ 紫=地下 水色=宇宙・ ⚔️戦争 💀崩壊 橙枠=破綻
+          <br /><span style={{ color: "#3fb950" }}>緑=高信頼</span> / 灰=中立 / <span style={{ color: "#f85149" }}>赤=敵対</span> = 友好度線
+        </div>
+        <GodBar sel={sel} meta={meta} intervene={intervene} />
+
+        <VSplit
+          onMove={ev => setSideW(Math.min(Math.max(window.innerWidth - ev.clientX, 320), window.innerWidth - 420))}
+          onReset={() => setSideW(480)} />
+        <div className="side" style={{ width: sideW }}>
+          <div className="pane" style={{ flex: "none" }}>
+            <GodCards sel={sel} meta={meta} tick={tick} intervene={intervene} />
+          </div>
+          <HSplit
+            onMove={ev => {
+              const el = document.querySelector(".side #statspane");
+              const top = el.getBoundingClientRect().top;
+              const maxH = document.querySelector(".side").getBoundingClientRect().height - 160;
+              setStatsH(Math.min(Math.max(ev.clientY - top, 70), Math.max(maxH, 70)));
+            }}
+            onReset={() => setStatsH(statsH0.current)} />
+          <div id="statspane" style={{ height: statsH, overflow: "auto", flex: "none", borderBottom: "1px solid var(--border)" }}>
+            <StatsTable tick={tick} selected={sel.kind === "nation" ? sel.id : null}
+                        onSelect={nid => setSel(s => (s.kind === "nation" && s.id === nid) ? { kind: null, id: null } : { kind: "nation", id: nid })} />
+          </div>
+          <EventFeed events={tick?.events || []} godEvents={godEvents} counts={countsStr} />
+        </div>
+      </div>
+
+      <div className="timeline" ref={tlRef}>
+        <button className="tlbtn" onClick={() => send({ cmd: status.running ? "pause" : "play" })}>
+          {status.running ? "⏸ 停止" : "▶ 再生"}
+        </button>
+        <button className="tlbtn" onClick={() => send({ cmd: "step" })}>⏭ 1tick</button>
+        <span className="ticklabel">
+          tick {status.tick}/{status.max_ticks} {status.running ? "▶" : "⏸"}
+        </span>
+        <label className="speedlabel" style={{ flex: 1 }}><span>速度</span>
+          <input type="range" min="200" max="3000" defaultValue="1200"
+                 onChange={e => send({ cmd: "speed", ms: +e.target.value })} />
+          <output>ms</output>
+        </label>
+        <button className="tlbtn mutebtn" onClick={() => { initAudio(); setMuted(m => !m); }}>
+          {muted ? "🔇" : "🔊"}
+        </button>
+      </div>
+    </div>
+  );
+}

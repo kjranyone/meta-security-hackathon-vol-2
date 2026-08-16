@@ -1,0 +1,56 @@
+{
+  "base_run": "earth_earth_financial_crisis",
+  "fork_run": "earth_earth_financial_crisis_if_t6_2",
+  "fork_tick": 6,
+  "interventions": [
+    {
+      "tick": 6,
+      "type": "bailout",
+      "params": {
+        "nation": "JPN"
+      }
+    }
+  ],
+  "first_divergence_tick": 6,
+  "final_metric_deltas": {
+    "world_gdp": 26.3111,
+    "mean_stability": 0.35,
+    "wars": 0.0,
+    "mean_debt_gdp": 3.9,
+    "defaults": -2.0
+  },
+  "only_in_fork": [
+    {
+      "type": "sovereign_default",
+      "tick": 9,
+      "actor": "JPN"
+    },
+    {
+      "type": "sovereign_default",
+      "tick": 31,
+      "actor": "JPN"
+    }
+  ],
+  "only_in_base": [
+    {
+      "type": "sovereign_default",
+      "tick": 7,
+      "actor": "JPN"
+    },
+    {
+      "type": "sovereign_default",
+      "tick": 12,
+      "actor": "EUR"
+    },
+    {
+      "type": "sovereign_default",
+      "tick": 20,
+      "actor": "JPN"
+    },
+    {
+      "type": "sovereign_default",
+      "tick": 22,
+      "actor": "USA"
+    }
+  ]
+}
