@@ -3,8 +3,11 @@ import json
 from terrarium.agents.heuristic import HeuristicPolicy
 from terrarium.sim.engine import Engine
 from terrarium.sim.interventions import Scenario
-from terrarium.world.hexgrid import hex_distance, offset_to_axial
-from terrarium.world.worldgen import CONSUMPTION, YIELD_PER_HEX, GenParams, generate_world
+from terrarium.world.worldgen import CONSUMPTION, YIELD_PER_UNIT, GenParams, generate_world
+
+REAL_CP_NAMES = {"Strait of Hormuz", "Strait of Malacca", "Taiwan Strait", "Bab el-Mandeb",
+                 "Suez Canal", "Panama Canal", "Turkish Straits", "Strait of Gibraltar",
+                 "Cape of Good Hope", "Denmark Strait"}
 
 
 def test_generation_deterministic():
@@ -22,30 +25,29 @@ def test_supply_demand_balance_many_seeds():
                 if res.value == "finance":
                     continue
                 c = {"oil": "energy", "gas": "energy", "grain": "food", "fab": "chips"}[res.value]
-                supply[c] += YIELD_PER_HEX
+                supply[c] += YIELD_PER_UNIT
         demand = {k: v * len(spec.nations) for k, v in CONSUMPTION.items()}
         for c in demand:
             assert supply[c] >= demand[c] * 1.1, f"seed={seed} {c}: {supply[c]} < {demand[c] * 1.1}"
 
 
-def test_territories_do_not_overlap():
+def test_centroids_on_land_and_spread():
     for seed in (3, 5, 11):
         spec = generate_world(GenParams(seed=seed))
-        for i, a in enumerate(spec.nations):
-            for b in spec.nations[i + 1:]:
-                d = hex_distance(offset_to_axial(*a.center), offset_to_axial(*b.center))
-                assert d >= a.radius + b.radius + 1, f"seed={seed}: {a.id}/{b.id} overlap (d={d})"
+        assert len({n.centroid for n in spec.nations}) == len(spec.nations), "duplicate centroids"
+        for n in spec.nations:
+            lon, lat = n.centroid
+            assert -180 <= lon <= 180 and -60 <= lat <= 80, f"odd centroid {n.id}: {n.centroid}"
 
 
-def test_chokepoints_on_ocean_and_routes_reference_them():
-    spec = generate_world(GenParams(seed=9))
-    eng = Engine(spec, {n.id: HeuristicPolicy() for n in spec.nations}, out_dir=None)
-    for cp in eng.chokepoints.values():
-        assert eng.tiles[(cp.q, cp.r)].terrain.value == "ocean"
-    cp_names = {cp.name for cp in spec.chokepoints}
-    routed = [r for r in spec.routes if r.chokepoints]
-    assert routed, "generated world should have chokepoint-exposed routes"
-    assert all(set(r.chokepoints) <= cp_names for r in routed)
+def test_real_chokepoints_used_and_routes_reference_them():
+    for seed in (9, 12):
+        spec = generate_world(GenParams(seed=seed))
+        assert {cp.name for cp in spec.chokepoints} <= REAL_CP_NAMES
+        cp_names = {cp.name for cp in spec.chokepoints}
+        routed = [r for r in spec.routes if r.chokepoints]
+        assert routed, "generated world should have chokepoint-exposed routes"
+        assert all(set(r.chokepoints) <= cp_names for r in routed)
 
 
 def test_generated_world_baseline_sanity():
@@ -72,7 +74,7 @@ def test_every_deficit_is_covered_by_routes():
                 if res.value == "finance":
                     continue
                 c = {"oil": "energy", "gas": "energy", "grain": "food", "fab": "chips"}[res.value]
-                dom[c] += YIELD_PER_HEX
+                dom[c] += YIELD_PER_UNIT
             for c, cons in CONSUMPTION.items():
                 deficit = cons - dom[c]
                 covered = routes_by.get((n.id, c), 0.0) * cons

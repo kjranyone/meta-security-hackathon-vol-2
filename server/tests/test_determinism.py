@@ -6,8 +6,8 @@ from terrarium.sim.interventions import Scenario
 from terrarium.world.presets import load_preset
 
 
-def _engine(seed: int = 7) -> Engine:
-    spec = load_preset("default")
+def _engine(seed: int = 7, preset: str = "default") -> Engine:
+    spec = load_preset(preset)
     policies = {ns.id: HeuristicPolicy() for ns in spec.nations}
     return Engine(spec, policies, seed=seed, out_dir=None)
 
@@ -20,13 +20,17 @@ def test_same_seed_same_run():
     assert [e.text for e in a.event_log.records] == [e.text for e in b.event_log.records]
 
 
-def test_map_generation_deterministic_and_placed():
-    eng = _engine()
-    owned = [t for t in eng.tiles.values() if t.owner]
-    assert len(owned) > 30  # 8 nations with radius 2-3
-    # all chokepoints end up on ocean
-    for cp in eng.chokepoints.values():
-        assert eng.tiles[(cp.q, cp.r)].terrain.value == "ocean"
+def test_earth_preset_loads_with_real_geography():
+    eng = _engine(1, preset="earth")
+    assert len(eng.nations) >= 14
+    # real chokepoints present with coordinates
+    for name in ("Strait of Hormuz", "Taiwan Strait", "Suez Canal"):
+        assert name in eng.chokepoints
+    spec = eng.spec
+    assert any(spec_map := n.geo_ids for n in spec.nations), "earth nations should claim geo_ids"
+    # every geo route references existing chokepoints
+    cp_names = set(eng.chokepoints)
+    assert all(set(r.chokepoints) <= cp_names for r in spec.routes)
 
 
 def test_chokepoint_closure_shocks_energy_importers():
@@ -59,3 +63,23 @@ def test_disinfo_drops_trust_and_raises_paranoia():
     assert eng.nations["VLT"].paranoia > eng.nations["VLT"].base_paranoia
     types = {r.type for r in eng.event_log.records}
     assert "disinfo" in types
+
+
+def test_earth_hormuz_closure_shocks_asia_energy():
+    """Real-world sanity: closing Hormuz must hurt East Asian importers."""
+    def build():
+        spec = load_preset("earth")
+        return Engine(spec, {ns.id: HeuristicPolicy() for ns in spec.nations}, seed=3, out_dir=None)
+
+    base, treat = build(), build()
+    scenario = Scenario(
+        name="hormuz",
+        interventions=[{"tick": 2, "type": "close_chokepoint", "params": {"chokepoint": "Strait of Hormuz", "duration": 20}}],
+    )
+    base.run(14, Scenario())
+    treat.run(14, scenario)
+    for nid in ("JPN", "KOR", "CHN"):
+        assert treat.nations[nid].stocks["energy"] <= base.nations[nid].stocks["energy"]
+    assert treat.prices["energy"] > base.prices["energy"]
+    types = {r.type for r in treat.event_log.records}
+    assert "trade_throttled" in types

@@ -1,0 +1,15 @@
+name: earth_triple_crisis
+description: "複合危機: ホルムズ封鎖＋台湾海峡封鎖＋スエズ封鎖。エネルギー・食料・半導体が同時に絞られたときの世界経済の連鎖崩落を観測する。"
+interventions:
+  - tick: 6
+    type: close_chokepoint
+    params: {chokepoint: "Strait of Hormuz", duration: 30}
+  - tick: 8
+    type: close_chokepoint
+    params: {chokepoint: "Taiwan Strait", duration: 28}
+  - tick: 10
+    type: close_chokepoint
+    params: {chokepoint: "Suez Canal", duration: 26}
+  - tick: 14
+    type: global_slider
+    params: {param: food_yield, value: 0.8}

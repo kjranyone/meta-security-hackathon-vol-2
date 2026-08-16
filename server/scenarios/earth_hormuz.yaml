@@ -1,0 +1,6 @@
+name: earth_hormuz
+description: "ホルムズ海峡を長期封鎖。東アジア・欧州のエネルギー輸入への連鎖（インフレ→備蓄競争→緊張）を観測する。"
+interventions:
+  - tick: 6
+    type: close_chokepoint
+    params: {chokepoint: "Strait of Hormuz", duration: 30}

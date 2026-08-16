@@ -1,0 +1,315 @@
+# Real-world preset. Figures are simplified public-domain approximations
+# (GDP ~2024 nominal, coarse energy/food/chips roles) for a neutral,
+# analytical simulation -- not precise statistics.
+name: earth
+map_geojson: world.geojson
+
+nations:
+  - id: USA
+    name: United States
+    persona: "世界最大の経済・軍事大国。エネルギーと食料の大部を自給し、金融とハイテクで覇権を維持する。"
+    color: "#4f8ef7"
+    centroid: [-98.0, 39.5]
+    geo_ids: ["United States of America"]
+    population_m: 335
+    gdp_t: 27.0
+    military: 100
+    stability: 60
+    approval: 50
+    aggression: 0.40
+    paranoia: 0.40
+    resources: [oil, gas, grain, grain, grain, fab, finance, finance]
+    stockpile_months: {energy: 6.0, food: 6.0, chips: 3.0}
+
+  - id: EUR
+    name: European Union
+    persona: "高所得の統合経済圏。工業と金融は強いがエネルギーを大きく輸入に頼る。規範重視の外交。"
+    color: "#3fb950"
+    centroid: [12.0, 50.0]
+    geo_ids: ["Austria","Belgium","Bulgaria","Croatia","Cyprus","Czechia","Denmark","Estonia","Finland","France","Germany","Greece","Hungary","Ireland","Italy","Latvia","Lithuania","Luxembourg","Netherlands","Poland","Portugal","Romania","Slovakia","Slovenia","Spain","Sweden"]
+    population_m: 450
+    gdp_t: 18.0
+    military: 60
+    stability: 65
+    approval: 55
+    aggression: 0.20
+    paranoia: 0.35
+    resources: [grain, grain, fab, finance, finance]
+    stockpile_months: {energy: 3.0, food: 3.5, chips: 3.0}
+
+  - id: CHN
+    name: China
+    persona: "世界の工場。製造力と艦隊を拡張する巨大経済。エネルギー・食料・半導体とも輸入依存が大きい。"
+    color: "#e0a13a"
+    centroid: [104.0, 35.0]
+    geo_ids: ["China"]
+    population_m: 1410
+    gdp_t: 18.0
+    military: 85
+    stability: 65
+    approval: 60
+    aggression: 0.50
+    paranoia: 0.45
+    resources: [oil, grain, fab]
+    stockpile_months: {energy: 3.0, food: 3.0, chips: 3.0}
+
+  - id: JPN
+    name: Japan
+    persona: "エネルギー資源をほぼ輸入する技術大国。同盟を基軸に防衛的姿勢を取る。"
+    color: "#f778ba"
+    centroid: [138.0, 37.0]
+    geo_ids: ["Japan"]
+    population_m: 124
+    gdp_t: 4.2
+    military: 40
+    stability: 70
+    approval: 50
+    aggression: 0.15
+    paranoia: 0.35
+    resources: []
+    stockpile_months: {energy: 2.0, food: 2.5, chips: 3.0}
+
+  - id: KOR
+    name: South Korea
+    persona: "半導体と造船の輸出立国。エネルギーは輸入依存で、隣国への警戒が高い。"
+    color: "#26a69a"
+    centroid: [127.8, 36.4]
+    geo_ids: ["South Korea"]
+    population_m: 52
+    gdp_t: 1.7
+    military: 45
+    stability: 65
+    approval: 50
+    aggression: 0.20
+    paranoia: 0.55
+    resources: [fab, fab]
+    stockpile_months: {energy: 2.0, food: 2.5, chips: 5.0}
+
+  - id: TWN
+    name: Taiwan
+    persona: "世界の半導体製造の中心地。先端ファブを握る島嶼経済で、軍事面は小規模。"
+    color: "#9a6fe0"
+    centroid: [121.0, 23.7]
+    geo_ids: ["Taiwan"]
+    population_m: 23
+    gdp_t: 0.75
+    military: 25
+    stability: 60
+    approval: 50
+    aggression: 0.15
+    paranoia: 0.60
+    resources: [fab, fab, fab]
+    stockpile_months: {energy: 2.0, food: 2.0, chips: 6.0}
+
+  - id: IND
+    name: India
+    persona: "巨大な人口の新興大国。成長は速いが一人当たり資源は乏しく、エネルギー輸入に慎重。"
+    color: "#d29922"
+    centroid: [79.0, 22.5]
+    geo_ids: ["India"]
+    population_m: 1430
+    gdp_t: 3.6
+    military: 55
+    stability: 55
+    approval: 55
+    aggression: 0.35
+    paranoia: 0.35
+    resources: [grain]
+    stockpile_months: {energy: 2.0, food: 3.0, chips: 2.0}
+
+  - id: RUS
+    name: Russia
+    persona: "世界有数の石油・ガス・穀物輸出国。資源を外交の杠杆として使う。"
+    color: "#546e7a"
+    centroid: [60.0, 58.0]
+    geo_ids: ["Russia"]
+    population_m: 144
+    gdp_t: 2.0
+    military: 70
+    stability: 50
+    approval: 50
+    aggression: 0.60
+    paranoia: 0.55
+    resources: [oil, oil, oil, gas, gas, grain, grain]
+    stockpile_months: {energy: 8.0, food: 4.0, chips: 1.5}
+
+  - id: SAU
+    name: Saudi Arabia
+    persona: "原油輸出の中心国。エネルギー地政学の要衝を握り、食料はほぼ輸入する。"
+    color: "#7cb342"
+    centroid: [45.0, 24.0]
+    geo_ids: ["Saudi Arabia"]
+    population_m: 36
+    gdp_t: 1.1
+    military: 30
+    stability: 55
+    approval: 55
+    aggression: 0.35
+    paranoia: 0.40
+    resources: [oil, oil, oil, oil, oil, finance]
+    stockpile_months: {energy: 8.0, food: 2.5, chips: 1.5}
+
+  - id: IRN
+    name: Iran
+    persona: "石油・ガス資源国。制裁下で経済は厳しく、周辺への影響力を維持しようとする。"
+    color: "#c0682f"
+    centroid: [54.0, 32.0]
+    geo_ids: ["Iran"]
+    population_m: 89
+    gdp_t: 0.4
+    military: 30
+    stability: 45
+    approval: 45
+    aggression: 0.50
+    paranoia: 0.60
+    resources: [oil, oil, gas]
+    stockpile_months: {energy: 7.0, food: 2.0, chips: 1.0}
+
+  - id: BRA
+    name: Brazil
+    persona: "農業・鉱物資源の大国。食料と燃料の輸出国として中立な外交を保つ。"
+    color: "#8bc34a"
+    centroid: [-52.0, -12.0]
+    geo_ids: ["Brazil"]
+    population_m: 216
+    gdp_t: 2.2
+    military: 25
+    stability: 55
+    approval: 45
+    aggression: 0.20
+    paranoia: 0.25
+    resources: [grain, grain, grain, oil]
+    stockpile_months: {energy: 4.5, food: 8.0, chips: 1.5}
+
+  - id: AUS
+    name: Australia
+    persona: "鉄鉱石・LNG・食料の輸出国。同盟と資源輸出で立つ大陸国家。"
+    color: "#f85149"
+    centroid: [134.0, -25.0]
+    geo_ids: ["Australia"]
+    population_m: 26
+    gdp_t: 1.7
+    military: 20
+    stability: 75
+    approval: 55
+    aggression: 0.15
+    paranoia: 0.25
+    resources: [gas, gas, grain, grain]
+    stockpile_months: {energy: 5.0, food: 8.0, chips: 2.0}
+
+  - id: CAN
+    name: Canada
+    persona: "エネルギーと穀物の安定供給国。同盟重視で穏健な資源大国。"
+    color: "#a371f7"
+    centroid: [-106.0, 56.0]
+    geo_ids: ["Canada"]
+    population_m: 39
+    gdp_t: 2.1
+    military: 15
+    stability: 75
+    approval: 55
+    aggression: 0.10
+    paranoia: 0.20
+    resources: [oil, gas, grain, grain]
+    stockpile_months: {energy: 6.0, food: 8.0, chips: 2.0}
+
+  - id: IDN
+    name: Indonesia
+    persona: "ASEAN最大の経済。石炭・天然ガス・食料を輸出し、海洋交通の要衝を抱える。"
+    color: "#e3b341"
+    centroid: [114.0, -3.0]
+    geo_ids: ["Indonesia"]
+    population_m: 278
+    gdp_t: 1.4
+    military: 20
+    stability: 60
+    approval: 55
+    aggression: 0.20
+    paranoia: 0.30
+    resources: [gas, grain]
+    stockpile_months: {energy: 4.0, food: 4.0, chips: 1.0}
+
+  - id: TUR
+    name: Turkey
+    persona: "黒海と地中海を結ぶ位置にある産業国。海峡を掌握し多方向外交を取る。"
+    color: "#db6d28"
+    centroid: [35.0, 39.0]
+    geo_ids: ["Turkey"]
+    population_m: 85
+    gdp_t: 1.1
+    military: 30
+    stability: 50
+    approval: 45
+    aggression: 0.40
+    paranoia: 0.45
+    resources: [grain]
+    stockpile_months: {energy: 2.0, food: 2.5, chips: 1.5}
+
+  - id: EGY
+    name: Egypt
+    persona: "スエズ運河を持つ人口大国。食料とエネルギーを輸入し、運河収入が外貨の柱。"
+    color: "#58a6ff"
+    centroid: [30.0, 27.0]
+    geo_ids: ["Egypt"]
+    population_m: 112
+    gdp_t: 0.4
+    military: 25
+    stability: 45
+    approval: 40
+    aggression: 0.25
+    paranoia: 0.40
+    resources: []
+    stockpile_months: {energy: 2.0, food: 2.0, chips: 1.0}
+
+chokepoints:
+  - {name: "Strait of Hormuz",       lon: 56.4,  lat: 26.6}
+  - {name: "Strait of Malacca",      lon: 101.5, lat: 2.5}
+  - {name: "Taiwan Strait",          lon: 119.5, lat: 24.5}
+  - {name: "Bab el-Mandeb",          lon: 43.4,  lat: 12.6}
+  - {name: "Suez Canal",             lon: 32.3,  lat: 30.2}
+  - {name: "Panama Canal",           lon: -79.7, lat: 9.1}
+  - {name: "Turkish Straits",        lon: 29.1,  lat: 41.1}
+
+routes:
+  # energy (oil & gas flows)
+  - {importer: JPN, exporter: SAU, commodity: energy, share: 0.8, chokepoints: ["Strait of Hormuz", "Strait of Malacca"]}
+  - {importer: JPN, exporter: AUS, commodity: energy, share: 0.4, chokepoints: []}
+  - {importer: KOR, exporter: SAU, commodity: energy, share: 0.7, chokepoints: ["Strait of Hormuz", "Strait of Malacca"]}
+  - {importer: KOR, exporter: AUS, commodity: energy, share: 0.4, chokepoints: []}
+  - {importer: CHN, exporter: SAU, commodity: energy, share: 0.6, chokepoints: ["Strait of Hormuz", "Strait of Malacca"]}
+  - {importer: CHN, exporter: RUS, commodity: energy, share: 0.5, chokepoints: []}
+  - {importer: CHN, exporter: IRN, commodity: energy, share: 0.3, chokepoints: ["Strait of Hormuz", "Strait of Malacca"]}
+  - {importer: EUR, exporter: RUS, commodity: energy, share: 0.4, chokepoints: []}
+  - {importer: EUR, exporter: SAU, commodity: energy, share: 0.3, chokepoints: ["Strait of Hormuz", "Bab el-Mandeb", "Suez Canal"]}
+  - {importer: EUR, exporter: USA, commodity: energy, share: 0.3, chokepoints: []}
+  - {importer: IND, exporter: SAU, commodity: energy, share: 0.6, chokepoints: ["Strait of Hormuz"]}
+  - {importer: IND, exporter: RUS, commodity: energy, share: 0.3, chokepoints: []}
+  - {importer: TUR, exporter: RUS, commodity: energy, share: 0.5, chokepoints: ["Turkish Straits"]}
+  - {importer: EGY, exporter: SAU, commodity: energy, share: 0.5, chokepoints: ["Strait of Hormuz", "Bab el-Mandeb"]}
+  - {importer: TWN, exporter: SAU, commodity: energy, share: 0.7, chokepoints: ["Strait of Hormuz", "Strait of Malacca", "Taiwan Strait"]}
+  - {importer: TWN, exporter: AUS, commodity: energy, share: 0.4, chokepoints: []}
+  # food (grain flows)
+  - {importer: CHN, exporter: BRA, commodity: food, share: 0.4, chokepoints: ["Strait of Malacca"]}
+  - {importer: CHN, exporter: USA, commodity: food, share: 0.4, chokepoints: []}
+  - {importer: CHN, exporter: AUS, commodity: food, share: 0.3, chokepoints: []}
+  - {importer: EGY, exporter: RUS, commodity: food, share: 0.6, chokepoints: ["Turkish Straits", "Suez Canal"]}
+  - {importer: JPN, exporter: USA, commodity: food, share: 0.6, chokepoints: []}
+  - {importer: JPN, exporter: AUS, commodity: food, share: 0.4, chokepoints: []}
+  - {importer: KOR, exporter: USA, commodity: food, share: 0.6, chokepoints: []}
+  - {importer: EUR, exporter: BRA, commodity: food, share: 0.3, chokepoints: []}
+  - {importer: EUR, exporter: RUS, commodity: food, share: 0.3, chokepoints: []}
+  - {importer: SAU, exporter: RUS, commodity: food, share: 0.3, chokepoints: []}
+  - {importer: SAU, exporter: BRA, commodity: food, share: 0.4, chokepoints: ["Suez Canal", "Bab el-Mandeb"]}
+  - {importer: TUR, exporter: RUS, commodity: food, share: 0.4, chokepoints: ["Turkish Straits"]}
+  - {importer: IND, exporter: AUS, commodity: food, share: 0.2, chokepoints: []}
+  # chips (fabs)
+  - {importer: CHN, exporter: TWN, commodity: chips, share: 0.6, chokepoints: ["Taiwan Strait"]}
+  - {importer: JPN, exporter: TWN, commodity: chips, share: 0.5, chokepoints: []}
+  - {importer: JPN, exporter: KOR, commodity: chips, share: 0.4, chokepoints: []}
+  - {importer: USA, exporter: TWN, commodity: chips, share: 0.5, chokepoints: []}
+  - {importer: EUR, exporter: TWN, commodity: chips, share: 0.5, chokepoints: ["Strait of Malacca", "Suez Canal"]}
+  - {importer: SAU, exporter: TWN, commodity: chips, share: 0.6, chokepoints: ["Strait of Hormuz", "Strait of Malacca"]}
+  - {importer: IND, exporter: TWN, commodity: chips, share: 0.5, chokepoints: ["Strait of Malacca"]}
+  - {importer: RUS, exporter: CHN, commodity: chips, share: 0.5, chokepoints: []}
+  - {importer: EUR, exporter: KOR, commodity: chips, share: 0.3, chokepoints: ["Suez Canal"]}
+  - {importer: EGY, exporter: TWN, commodity: chips, share: 0.4, chokepoints: ["Strait of Malacca", "Bab el-Mandeb"]}

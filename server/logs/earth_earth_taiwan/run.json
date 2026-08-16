@@ -1,0 +1,23 @@
+{
+  "run_name": "earth_earth_taiwan",
+  "seed": 42,
+  "ticks": 36,
+  "final_metrics": {
+    "tick": 35,
+    "world_gdp": 165.5768,
+    "mean_stability": 52.12,
+    "wars": 0,
+    "collapsed": 0,
+    "price_energy": 1.0966,
+    "price_food": 1.0,
+    "price_chips": 1.0613,
+    "mean_inflation": 0.02091
+  },
+  "event_counts": {
+    "policy_shift": 576,
+    "shortage": 343,
+    "god_intervention": 1,
+    "trade_throttled": 30
+  },
+  "wars": 0
+}

@@ -17,13 +17,11 @@ from pathlib import Path
 from typing import IO, Optional
 
 from ..agents.base import Decisions, NationView
-from ..world.mapgen import generate_map, nation_hexes
 from ..world.models import (
     Commodity,
     GodParams,
     NationState,
     ResourceKind,
-    Terrain,
     WorldSpec,
     RESOURCE_TO_COMMODITY,
 )
@@ -31,6 +29,7 @@ from .events import EventLog
 from .interventions import Intervention, Scenario
 
 CONSUMPTION = {"energy": 1.0, "food": 1.0, "chips": 0.5}
+YIELD_PER_UNIT = 1.5
 SHORTAGE_STABILITY_HIT = {"energy": 4.0, "food": 6.0, "chips": 2.0}
 COMMODITY_YIELD_SLIDER = {
     Commodity.ENERGY: "energy_yield",
@@ -60,7 +59,6 @@ class Engine:
         self.seed = seed
         self.tick_no = 0
         self.god = GodParams()
-        self.tiles = generate_map(spec)
         self.chokepoints = {cp.name: cp for cp in spec.chokepoints}
         self.prices = {c.value: 1.0 for c in Commodity}
         self.last_prices = dict(self.prices)
@@ -83,6 +81,10 @@ class Engine:
                 base_paranoia=ns.paranoia,
                 trust={o.id: 20.0 for o in spec.nations if o.id != ns.id},
             )
+        # active resource units per nation (destroy_resource removes units)
+        self.nation_resources: dict[str, list[ResourceKind]] = {
+            ns.id: list(ns.resources) for ns in sorted(spec.nations, key=lambda n: n.id)
+        }
         self.initial_gdp = {n.id: n.gdp for n in self.nations.values()}
         self.wars: list[tuple[str, str]] = []
         self.temp_effects: list[TempEffect] = []
@@ -107,12 +109,24 @@ class Engine:
             "type": "meta",
             "run_name": self.run_name,
             "seed": self.seed,
-            "spec": self.spec.model_dump(),
-            "map": [
-                {"q": t.q, "r": t.r, "terrain": t.terrain.value, "owner": t.owner,
-                 "resource": t.resource.value if t.resource else None, "destroyed": t.destroyed}
-                for t in self.tiles.values()
-            ],
+            "spec": self.spec.model_dump(mode="json"),
+            "geo": {
+                "map_geojson": self.spec.map_geojson,
+                "nations": {
+                    ns.id: {"name": ns.name, "color": ns.color,
+                            "centroid": list(ns.centroid), "geo_ids": ns.geo_ids}
+                    for ns in self.spec.nations
+                },
+                "chokepoints": [
+                    {"name": cp.name, "lon": cp.lon, "lat": cp.lat}
+                    for cp in self.spec.chokepoints
+                ],
+                "routes": [
+                    {"importer": r.importer, "exporter": r.exporter,
+                     "commodity": r.commodity.value, "chokepoints": r.chokepoints}
+                    for r in self.spec.routes
+                ],
+            },
         }
         self._replay.write(json.dumps(meta, ensure_ascii=False) + "\n")
 
@@ -179,15 +193,14 @@ class Engine:
             res = ResourceKind(p["resource"])
             if nid is None:
                 return
-            for tile in nation_hexes(self.tiles, nid):
-                if tile.resource is res and not tile.destroyed:
-                    tile.destroyed = True
-                    self.event_log.emit(
-                        self.tick_no, "god_intervention",
-                        f"神が {self.nations[nid].name} の {res.value} 資源ヘックスを消し去った",
-                        actor="GOD", targets=[nid], data={"nation": nid, "resource": res.value},
-                    )
-                    break
+            units = self.nation_resources[nid]
+            if res in units:
+                units.remove(res)
+                self.event_log.emit(
+                    self.tick_no, "god_intervention",
+                    f"神が {self.nations[nid].name} の {res.value} 生産能力を消し去った",
+                    actor="GOD", targets=[nid], data={"nation": nid, "resource": res.value},
+                )
         elif iv.type == "disaster":
             nid = self._nation_by_ref(p["nation"])
             if nid is None:
@@ -264,24 +277,27 @@ class Engine:
         self._snapshot()
 
     # ------------------------------------------------------------- production
+    FAB_BLACKOUT_MULT = 0.4   # fabs without power run at 40%
+
     def _production(self) -> dict[str, dict[str, float]]:
-        """Domestic supply per nation, in months-of-own-demand units."""
+        """Domestic supply per nation, in months-of-own-demand units.
+        Fabs need electricity: an energy-starved nation loses most chip output."""
         supply: dict[str, dict[str, float]] = {}
         for nid in sorted(self.nations):
-            nat = self.nations[nid]
             dom = {c.value: 0.0 for c in Commodity}
-            for tile in nation_hexes(self.tiles, nid):
-                if tile.resource is None or tile.destroyed:
+            blackout = self.nations[nid].stocks["energy"] < 0.5
+            for res in self.nation_resources[nid]:
+                if res is ResourceKind.FINANCE:
                     continue
-                if tile.resource is ResourceKind.FINANCE:
-                    continue
-                commodity = RESOURCE_TO_COMMODITY[tile.resource].value
+                commodity = RESOURCE_TO_COMMODITY[res].value
                 mult = 1.0
                 for eff in self.temp_effects:
                     if eff.nation == nid:
                         mult *= eff.mult
+                if blackout and res is ResourceKind.FAB:
+                    mult *= self.FAB_BLACKOUT_MULT
                 slider = getattr(self.god, COMMODITY_YIELD_SLIDER[Commodity(commodity)])
-                dom[commodity] += 1.5 * tile.yield_mult * slider * mult
+                dom[commodity] += YIELD_PER_UNIT * slider * mult
             supply[nid] = dom
         return supply
 
@@ -299,12 +315,32 @@ class Engine:
                 s = supply[nid][c.value] - CONSUMPTION[c.value]
                 surplus[(nid, c.value)] = max(0.0, s) * (0.8 if nat.budget.get("stockpile", 0) > 0.3 else 1.0)
 
+        # proportional rationing: when an exporter cannot serve all wants,
+        # scale every route by the same factor (no first-come advantage)
+        wants: dict[tuple[str, str, str], float] = {}
+        demand_by: dict[tuple[str, str], float] = {}
         for route in sorted(self.spec.routes, key=lambda r: (r.importer, r.exporter, r.commodity.value)):
             imp, exp = self.nations[route.importer], self.nations[route.exporter]
             if route.exporter in imp.at_war_with or route.exporter in imp.sanctions_on:
                 continue
             if route.importer in exp.sanctions_on:
                 continue
+            need = max(0.0, CONSUMPTION[route.commodity.value] - supply[route.importer][route.commodity.value])
+            want = need * route.share * (1.3 if imp.budget.get("stockpile", 0) > 0.3 else 1.0)
+            if want <= 0:
+                continue
+            wants[(route.importer, route.exporter, route.commodity.value)] = want
+            demand_by[(route.exporter, route.commodity.value)] = (
+                demand_by.get((route.exporter, route.commodity.value), 0.0) + want
+            )
+
+        initial_spare = dict(surplus)
+        for route in sorted(self.spec.routes, key=lambda r: (r.importer, r.exporter, r.commodity.value)):
+            key = (route.importer, route.exporter, route.commodity.value)
+            want = wants.get(key)
+            if want is None:
+                continue
+            imp, exp = self.nations[route.importer], self.nations[route.exporter]
             capacity = self.god.trade_efficiency
             blocked: list[str] = []
             for cpn in route.chokepoints:
@@ -312,14 +348,16 @@ class Engine:
                 if cp and cp.closed:
                     capacity *= 0.15
                     blocked.append(cpn)
-            need = max(0.0, CONSUMPTION[route.commodity.value] - supply[route.importer][route.commodity.value])
-            want = need * route.share * (1.6 if imp.budget.get("stockpile", 0) > 0.3 else 1.0)
             avail = surplus[(route.exporter, route.commodity.value)]
-            flow = max(0.0, min(want, avail) * capacity)
+            total_demand = demand_by[(route.exporter, route.commodity.value)]
+            ration = min(1.0, initial_spare[(route.exporter, route.commodity.value)] / total_demand) if total_demand > 0 else 0.0
+            flow = max(0.0, min(want * ration, avail) * capacity)
             if flow <= 0:
+                if blocked:
+                    self._tick_throttled_note(route, blocked, capacity)
                 continue
             surplus[(route.exporter, route.commodity.value)] -= flow
-            flows[(route.importer, route.exporter, route.commodity.value)] = flow
+            flows[key] = flow
             if blocked:
                 ev = self.event_log.emit(
                     t, "trade_throttled",
@@ -338,6 +376,16 @@ class Engine:
                 unmet[route.commodity.value] += failed
 
         return flows, unmet
+
+    def _tick_throttled_note(self, route, blocked, capacity) -> None:
+        imp, exp = self.nations[route.importer], self.nations[route.exporter]
+        self.event_log.emit(
+            self.tick_no, "trade_throttled",
+            f"{imp.name}←{exp.name} の{route.commodity.value}航路、{','.join(blocked)} 封鎖で輸送力激減",
+            targets=[route.importer, route.exporter],
+            parents=[self._cp_cause[n] for n in blocked if n in self._cp_cause],
+            data={"routes": route.model_dump(), "capacity": capacity},
+        )
 
     # ----------------------------------------------------------------- market
     def _market(self, supply, flows, unmet: dict[str, float]) -> None:
@@ -576,11 +624,8 @@ class Engine:
                 infl_delta += dep * 0.25 * (self.prices[c.value] / max(0.01, self.last_prices[c.value]) - 1.0)
             nat.inflation = max(-0.05, min(1.0, 0.85 * nat.inflation + 0.15 * 0.02 + infl_delta))
             # growth
-            finance_hexes = sum(
-                1 for tile in nation_hexes(self.tiles, nid)
-                if tile.resource is ResourceKind.FINANCE and not tile.destroyed
-            )
-            growth = 0.02 + 0.002 * finance_hexes - nat.inflation * 0.6
+            finance_units = sum(1 for r in self.nation_resources[nid] if r is ResourceKind.FINANCE)
+            growth = 0.02 + 0.002 * finance_units - nat.inflation * 0.6
             if nat.stocks["chips"] <= 0.05:
                 growth -= 0.01
                 nat.military = max(0.0, nat.military - 1.0)

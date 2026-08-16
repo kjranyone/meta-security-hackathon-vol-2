@@ -3,9 +3,9 @@
 
 第2回 AIエージェント社会シミュレーション・ハッカソン「メタ安全保障」（Singulab × AUTOMATA）応募作品。
 
-ヘックスマップ上の自律的国家AIたちに対し、プレイヤーが「神」として海峡封鎖・偽情報投下・資源消滅などの介入を行い、**サプライチェーンの連鎖反応が世界をどう変えるか**を観測する非対称安全保障サンドボックスです。
+**実世界地図上**の国家AIたちに対し、プレイヤーが「神」として海峡封鎖・偽情報投下・資源消滅などの介入を行い、**サプライチェーンの連鎖反応が世界をどう変えるか**を観測する非対称安全保障サンドボックスです。
 
-> ⚠️ 本シミュレーションは架空の国家（アーキタイプ）を用いた分析・研究目的です。特定の実在国・個人の標的化を意図するものではありません。
+> ⚠️ 本シミュレーションは公開されている概算データに基づく中立・分析目的のものです。特定の国・個人の標的化を意図するものではありません。地図データはNatural Earth（パブリックドメイン）を使用しています。
 
 ## コンセプト
 
@@ -13,14 +13,16 @@
 - 国家AI（現在: ルールベース / モックLLM、開発中: LLM+強化学習の複合戦略AI）が生存をかけた対応を行う
 - **介入1件が連鎖（カスケード）を生み、どの介入点が何を変えるかを反実仮想（A/B）で計測できる**
 
-例（Strait of Ormuz 封鎖シナリオ、seed=42, 36ヶ月）:
+例（実世界プリセット、ホルムズ海峡封鎖、seed=42, 36ヶ月）:
 
 | 指標 | baseline | 封鎖シナリオ | 差分 |
 |---|---|---|---|
-| 世界GDP | 73.9 | 67.0 | **-9.4%** |
-| エネルギー価格 | 1.15 | 1.51 | **+31%** |
-| 不足イベント数 | 98 | 184 | **+88%** |
-| 神の介入からの下流イベント数 | — | 439件 | カスケード |
+| 世界GDP | 175.9 | 135.7 | **-22.9%** |
+| エネルギー価格 | 1.00 | 1.50 | **+50%** |
+| 半導体価格（電力不足→ファブ減産の連鎖） | 1.00 | 1.22 | **+22%** |
+| 不足イベント数 | 326 | 434 | **+33%** |
+
+台湾海峡封鎖はより軽微（GDP -5.9%）——ホルムズ（エネルギー動脈）と台湾（半導体）の**戦略的重要度の非対称性**がそのまま現れる。
 
 ## クイックスタート
 
@@ -31,66 +33,68 @@ cd server
 uv sync --all-extras          # 依存インストール（初回のみ）
 uv run pytest                 # 決定論テスト（同一seed=同一結果の検証含む）
 
-# シミュレーション実行（ヘッドレス）
+# 実世界プリセットでシミュレーション（ヘッドレス）
 uv run python -m terrarium.runner.headless \
-    --seed 42 --ticks 36 --policy mock_llm \
-    --scenario scenarios/chokepoint_closure.yaml
+    --preset earth --seed 42 --ticks 36 --policy mock_llm \
+    --scenario scenarios/earth_hormuz.yaml
 
-# 反実仮想A/B実験（baseline vs シナリオ、同seed）
+# 反実仮想A/B実験（baseline vs シナリオ、同seed・同世界）
 uv run python -m terrarium.runner.ab \
-    --seed 42 --ticks 36 --policy mock_llm \
-    --scenario scenarios/chokepoint_closure.yaml
+    --preset earth --seed 42 --ticks 36 --policy mock_llm \
+    --scenario scenarios/earth_hormuz.yaml
 ```
 
-### 世界の自動生成（プロシージャル生成）
-
-手書きプリセット（`presets/default.yaml`）ではなく、シードから**需給バランスの取れた世界を自動生成**できます。
-
-```bash
-# YAMLファイルとして書き出す（国家・資源・海峡・航路・ペルソナを自動構成）
-uv run python -m terrarium.runner.genworld --seed 7 --nations 8
-
-# 生成世界でそのままシミュレーション（A/Bも --gen-seed を揃えれば同一世界で比較可能）
-uv run python -m terrarium.runner.headless --gen-seed 7 --seed 42 --ticks 36 \
-    --policy mock_llm --scenario scenarios/gen_chokepoint.yaml
-uv run python -m terrarium.runner.ab --gen-seed 7 --seed 42 --ticks 36 \
-    --policy mock_llm --scenario scenarios/gen_chaos.yaml
-```
-
-生成器の性質（`src/terrarium/world/worldgen.py`）:
-- **決定論**: 同じ `(seed, nations, cols, rows, chokepoints)` → 同じ世界（テスト担保）
-- **需給バランス**: 全商品で世界供給 ≥ 需要×1.15になるよう資源ヘックスを自動割当。神が介入しない限り経済は自然崩壊しない
-- **8アーキタイプ**（資源専制国・穀物大国・半導体島国・金融ハブ・製造大国・新興国・資源小国・覇権国）から persona・色・領土を生成。`--nations 10` のように増やすとアーキタイプを再利用しマップも自動拡張
-- **海峡**は複数国家に接する海洋ヘックス（戦略的縫隙）に自動配置し、**航路**は輸入不足を補う形で張られるため、海峡封鎖が即座に意味を持つ
-- シナリオでは国家・海峡を `#0`（ソート順インデックス）でも参照可能。生成世界でも汎用シナリオ（`scenarios/gen_*.yaml`）が動く
-
-### リプレイビューア
+### リプレイビューア（実世界地図）
 
 ```bash
 # リポジトリルートから静的サーバを起動
 python3 -m http.server 8787
-# ブラウザで http://localhost:8787/web/viewer.html を開き、
-# URL欄に http://localhost:8787/server/logs/default_chokepoint_closure/replay.jsonl を入力
+# ブラウザで開く（?replay= で自動読み込み）
+open "http://localhost:8787/web/viewer.html?replay=http://localhost:8787/server/logs/earth_earth_hormuz/replay.jsonl"
 ```
 
-ヘックスマップ・国家統計・価格/安定チャート・イベントカスケードをタイムライン scrub / 再生できます。replay.jsonl のドラッグ＆ドロップにも対応。
+Natural EarthのGeoJSONで実世界を描画: 国家の領土塗り（崩壊で暗転）・実在7海峡の⚓/⛔マーカー・
+商品別の航路アーク（封鎖された航路は赤の破線）・戦争線・国家統計・価格チャート・イベントカスケードを
+タイムライン scrub / 再生で確認できます。replay.jsonl のドラッグ＆ドロップにも対応。
+
+### 世界の自動生成（プロシージャル生成）
+
+実世界プリセット（`presets/earth.yaml`: 実在16主体・実在海峡・シーレーン）に加え、
+シードから**需給バランスの取れた架空世界を実地図上に自動生成**できます。
+
+```bash
+# 架空国家を実地図の陸上に自動配置（実在海峡も利用）
+uv run python -m terrarium.runner.genworld --seed 7 --nations 8
+
+# 生成世界でシミュレーション（A/Bも --gen-seed を揃えれば同一世界で比較可能）
+uv run python -m terrarium.runner.headless --gen-seed 7 --seed 42 --ticks 36 \
+    --policy mock_llm --scenario scenarios/gen_chokepoint.yaml
+```
+
+生成器の性質（`src/terrarium/world/worldgen.py`）:
+- **決定論**: 同じ `(seed, nations, chokepoints)` → 同じ世界（テスト担保）
+- **需給バランス**: 全商品で世界供給 ≥ 需要×1.15になるよう資源ユニットを自動割当。神が介入しない限り経済は自然崩壊しない
+- **8アーキタイプ**（資源専制国・穀物大国・半導体島国・金融ハブ・製造大国・新興国・資源小国・覇権国）から persona・色を生成。`--nations 12` のように増やすとアーキタイプを再利用
+- 架空国家の重心は GeoJSON の**陸上ポリゴン内からサンプリング**（南極除外）、航路は実在海峡（ホルムズ・マラッカ・台湾海峡・スエズ等）経由で張られる
+- シナリオでは国家・海峡を `#0`（ソート順インデックス）でも参照可能。生成世界でも汎用シナリオ（`scenarios/gen_*.yaml`）が動く
 
 ## アーキテクチャ
 
 ```
 server/
   src/terrarium/
-    world/     # ヘックスグリッド、地図生成、世界モデル（Pydantic）、シードからの世界自動生成
+    world/     # 世界モデル（Pydantic: 国家・資源ユニット・実海峡の経緯度）、実地図世界生成
     sim/       # エンジン（生産→貿易→市場→消費→意思決定→外交→紛争→マクロ）
                # イベントソーシング（因果parentリンク付きJSONL）、神介入
     agents/    # policy層: heuristic / mock_llm / llm(z.ai OpenAI互換)
     runner/    # headless CLI / A/B反実仮想ランナー / 世界生成CLI
-  presets/     # 世界定義（手書き: default / 自動生成: gen_<seed>.yaml）
+  presets/     # earth.yaml（実在16主体・実海峡・シーレーン）default.yaml（架空8国）gen_<seed>.yaml（自動生成）
   scenarios/   # 神の介入シナリオ（YAML、生成世界対応の #index 参照つき）
   logs/        # 実行結果（replay.jsonl / events.jsonl / series.csv / run.json）
   tests/       # 決定論・需給バランス・カオス伝播のテスト
 web/
-  viewer.html  # リプレイビューア（単一HTML、ビルド不要）
+  viewer.html    # 実世界地図リプレイビューア（単一HTML、ビルド不要）
+  world.geojson  # Natural Earth 110m admin-0（パブリックドメイン）
 ```
 
 ### 再現性の設計
@@ -106,7 +110,7 @@ web/
 |---|---|
 | `close_chokepoint` | 海峡封鎖（期間指定可）。通過航路の輸送力が15%に |
 | `open_chokepoint` | 封鎖解除 |
-| `destroy_resource` | 国家の資源ヘックス消滅 |
+| `destroy_resource` | 国家の資源ユニット（油田/穀倉/ファブ）消滅 |
 | `disaster` | 旱魃/地震/疫病 |
 | `disinfo` | 偽情報投下（他国の信頼度低下・標的国の疑心暗鬼度上昇） |
 | `set_param` | 国家の好戦性/疑心暗鬼度の強制書き換え |

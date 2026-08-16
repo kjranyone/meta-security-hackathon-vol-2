@@ -1,18 +1,17 @@
-"""Core data models for the world, nations, events and god parameters."""
+"""Core data models: nations on a real-world map, resources, events, god params.
+
+Geography model:
+- nations sit at a lon/lat centroid and may "claim" real countries by
+  GeoJSON ADMIN name (geo_ids) for map rendering
+- resources are national production units (no hex tiles)
+- chokepoints are real straits/canals at lon/lat
+"""
 from __future__ import annotations
 
 from enum import Enum
 from typing import Any, Optional
 
 from pydantic import BaseModel, Field
-
-
-class Terrain(str, Enum):
-    OCEAN = "ocean"
-    PLAIN = "plain"
-    MOUNTAIN = "mountain"
-    DESERT = "desert"
-    FOREST = "forest"
 
 
 class Commodity(str, Enum):
@@ -26,7 +25,7 @@ class ResourceKind(str, Enum):
     GAS = "gas"
     GRAIN = "grain"
     FAB = "fab"          # semiconductor fabrication
-    FINANCE = "finance"  # capital hub
+    FINANCE = "finance"  # capital hub (gdp growth bonus, no commodity)
 
 
 RESOURCE_TO_COMMODITY: dict[ResourceKind, Commodity] = {
@@ -34,24 +33,13 @@ RESOURCE_TO_COMMODITY: dict[ResourceKind, Commodity] = {
     ResourceKind.GAS: Commodity.ENERGY,
     ResourceKind.GRAIN: Commodity.FOOD,
     ResourceKind.FAB: Commodity.CHIPS,
-    ResourceKind.FINANCE: Commodity.ENERGY,  # finance hubs contribute capital, modelled as small energy/gdp bonus
 }
-
-
-class HexTile(BaseModel):
-    q: int
-    r: int
-    terrain: Terrain = Terrain.PLAIN
-    owner: Optional[str] = None
-    resource: Optional[ResourceKind] = None
-    yield_mult: float = 1.0
-    destroyed: bool = False
 
 
 class Chokepoint(BaseModel):
     name: str
-    q: int
-    r: int
+    lon: float
+    lat: float
     closed: bool = False
     closed_since: Optional[int] = None
 
@@ -69,8 +57,8 @@ class NationSpec(BaseModel):
     name: str
     persona: str = ""
     color: str = "#888888"
-    center: tuple[int, int]          # offset (col,row)
-    radius: int = 2
+    centroid: tuple[float, float]          # (lon, lat) for map rendering
+    geo_ids: list[str] = []                # GeoJSON ADMIN names this nation claims
     population_m: float = 50.0
     gdp_t: float = 1.0
     military: float = 50.0
@@ -79,7 +67,6 @@ class NationSpec(BaseModel):
     aggression: float = 0.3
     paranoia: float = 0.3
     resources: list[ResourceKind] = []
-    terrain_bias: Terrain = Terrain.PLAIN
     stockpile_months: dict[str, float] = Field(default_factory=lambda: {"energy": 3.0, "food": 4.0, "chips": 2.0})
 
 
@@ -126,11 +113,10 @@ class GodParams(BaseModel):
 
 class WorldSpec(BaseModel):
     name: str = "default"
-    cols: int = 26
-    rows: int = 14
     nations: list[NationSpec]
     chokepoints: list[Chokepoint] = []
     routes: list[TradeRoute] = []
+    map_geojson: str = "world.geojson"   # viewer hint (web/<file>)
 
 
 class EventRecord(BaseModel):

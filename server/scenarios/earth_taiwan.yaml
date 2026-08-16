@@ -1,0 +1,6 @@
+name: earth_taiwan
+description: "台湾海峡を通行不可に。半導体（チップ）とアジアのエネルギー航路への複合ショックを観測する。"
+interventions:
+  - tick: 6
+    type: close_chokepoint
+    params: {chokepoint: "Taiwan Strait", duration: 30}

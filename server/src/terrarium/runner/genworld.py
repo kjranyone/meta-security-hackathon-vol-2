@@ -13,7 +13,7 @@ from pathlib import Path
 import yaml
 
 from ..world.models import Commodity
-from ..world.worldgen import CONSUMPTION, YIELD_PER_HEX, GenParams, generate_world
+from ..world.worldgen import CONSUMPTION, YIELD_PER_UNIT, GenParams, generate_world
 
 SERVER_ROOT = Path(__file__).resolve().parents[3]
 
@@ -26,7 +26,7 @@ def world_summary(spec) -> str:
             if res.value == "finance":
                 continue
             c = {"oil": "energy", "gas": "energy", "grain": "food", "fab": "chips"}[res.value]
-            supply[c] += YIELD_PER_HEX
+            supply[c] += YIELD_PER_UNIT
     demand = {k: v * len(spec.nations) for k, v in CONSUMPTION.items()}
     lines.append(f"nations={len(spec.nations)} chokepoints={len(spec.chokepoints)} routes={len(spec.routes)}")
     for c in ("energy", "food", "chips"):
@@ -35,8 +35,8 @@ def world_summary(spec) -> str:
     for n in spec.nations:
         routes_in = sum(1 for r in spec.routes if r.importer == n.id)
         routes_out = sum(1 for r in spec.routes if r.exporter == n.id)
-        lines.append(f"  {n.id} {n.name:14s} r={n.radius} res={[r.value for r in n.resources]} "
-                     f"import={routes_in} export={routes_out} agg={n.aggression}")
+        lines.append(f"  {n.id} {n.name:14s} ({n.centroid[0]:7.1f},{n.centroid[1]:6.1f}) "
+                     f"res={[r.value for r in n.resources]} import={routes_in} export={routes_out} agg={n.aggression}")
     return "\n".join(lines)
 
 
@@ -44,14 +44,11 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Generate a balanced world from a seed")
     ap.add_argument("--seed", type=int, required=True)
     ap.add_argument("--nations", type=int, default=8)
-    ap.add_argument("--cols", type=int, default=26)
-    ap.add_argument("--rows", type=int, default=14)
-    ap.add_argument("--chokepoints", type=int, default=4)
+    ap.add_argument("--chokepoints", type=int, default=6)
     ap.add_argument("--out", default=None, help="YAML output path (default presets/gen_<seed>.yaml)")
     args = ap.parse_args(argv)
 
-    params = GenParams(seed=args.seed, n_nations=args.nations, cols=args.cols, rows=args.rows,
-                       n_chokepoints=args.chokepoints)
+    params = GenParams(seed=args.seed, n_nations=args.nations, n_chokepoints=args.chokepoints)
     spec = generate_world(params)
     out = Path(args.out) if args.out else SERVER_ROOT / "presets" / f"gen_{args.seed}.yaml"
     out.parent.mkdir(parents=True, exist_ok=True)
