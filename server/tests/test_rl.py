@@ -6,7 +6,7 @@ import pytest
 from terrarium.agents.base import Decisions
 from terrarium.agents.llm import make_policy_factory
 from terrarium.agents.rl_policy import RLPolicy
-from terrarium.rl.env import OBS_DIM, NationEnv, SelfPlayEnv, obs_from_view
+from terrarium.rl.env import OBS_DIM, NationEnv, SelfPlayEnv, obs_from_view, tick_reward
 from terrarium.rl.nets import BUDGET_PRESETS, PolicyNet
 from terrarium.rl.train import evaluate, run_episode, run_selfplay_episode
 from terrarium.sim.interventions import load_scenario
@@ -113,6 +113,31 @@ def test_selfplay_episode_deterministic_and_learns():
     t1, t2 = rollout(), rollout()
     assert t1 == t2
     assert all(np.isfinite(v) for v in t1.values())
+
+
+def test_default_penalty_changes_reward_on_default():
+    """JPN defaults under the financial-crisis scenario; the penalty knob must
+    change the reward stream (growth-only vs debt-discipline objective)."""
+    scenario = load_scenario("scenarios/earth_financial_crisis.yaml")
+
+    def rollout(penalty):
+        env = NationEnv("earth", "JPN", seed=42, horizon=10, scenario=scenario,
+                        default_penalty=penalty)
+        env.reset()
+        total, done = 0.0, False
+        net = PolicyNet(obs_dim=OBS_DIM, seed=1)
+        obs = env.reset()
+        while not done:
+            obs, r, done, _ = env.step(net.act(obs, deterministic=True))
+            total += r
+        defaults = sum(1 for rec in env.eng.event_log.records
+                       if rec.type == "sovereign_default" and rec.actor == "JPN")
+        return total, defaults
+
+    plain, n1 = rollout(0.0)
+    penalized, n2 = rollout(6.0)
+    assert n1 == n2 and n1 >= 1, f"expected JPN default in horizon, got {n1}"
+    assert abs((plain - penalized) - 6.0 * n1) < 1e-9
 
 
 def test_factory_accepts_multi_rl_nations(tmp_path):

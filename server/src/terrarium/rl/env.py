@@ -92,8 +92,12 @@ def reward_snapshot(eng: Engine, nation_id: str) -> dict:
     }
 
 
-def tick_reward(eng: Engine, nation_id: str, prev: dict) -> float:
-    """Per-tick shaping reward for one nation (shared by single- and multi-agent)."""
+def tick_reward(eng: Engine, nation_id: str, prev: dict, default_penalty: float = 0.0) -> float:
+    """Per-tick shaping reward for one nation (shared by single- and multi-agent).
+
+    default_penalty > 0 additionally punishes this nation's sovereign default,
+    letting the god/experimenter trade growth-seeking against debt discipline.
+    """
     cur = reward_snapshot(eng, nation_id)
     r = 0.0
     r += 20.0 * (cur["log_gdp"] - prev["log_gdp"])
@@ -103,8 +107,12 @@ def tick_reward(eng: Engine, nation_id: str, prev: dict) -> float:
     # shortage events hitting this nation this tick (dominant penalty:
     # rationing/hoarding only matter insofar as they prevent these)
     for rec in eng.event_log.records:
-        if rec.tick == eng.tick_no and rec.type == "shortage" and (rec.actor == nation_id or nation_id in rec.targets):
+        if rec.tick != eng.tick_no:
+            continue
+        if rec.type == "shortage" and (rec.actor == nation_id or nation_id in rec.targets):
             r -= 2.0
+        elif rec.type == "sovereign_default" and rec.actor == nation_id:
+            r -= default_penalty
     if cur["collapsed"] and not prev["collapsed"]:
         r -= 8.0
     return float(r)
@@ -114,12 +122,14 @@ class NationEnv:
     """gym-style single-agent env over the engine (1 tick = 1 step)."""
 
     def __init__(self, preset: str, nation_id: str, seed: int = 0,
-                 horizon: int = 24, scenario: Optional[Scenario] = None):
+                 horizon: int = 24, scenario: Optional[Scenario] = None,
+                 default_penalty: float = 0.0):
         self.preset = preset
         self.nation_id = nation_id
         self.seed = seed
         self.horizon = horizon
         self.scenario = scenario or Scenario()
+        self.default_penalty = default_penalty
         self._ep = 0
         self.learner = ExternalPolicy()
         self.eng: Optional[Engine] = None
@@ -149,7 +159,8 @@ class NationEnv:
                 eng.apply_intervention(iv)
         eng.step()
         obs = obs_from_view(eng.nation_view(self.nation_id))
-        reward = tick_reward(eng, self.nation_id, self._prev)
+        reward = tick_reward(eng, self.nation_id, self._prev,
+                             default_penalty=self.default_penalty)
         nat = eng.nations[self.nation_id]
         done = eng.tick_no >= self.horizon - 1 or nat.collapsed
         info = {"tick": eng.tick_no, "collapsed": nat.collapsed}
@@ -167,12 +178,14 @@ class SelfPlayEnv:
     """
 
     def __init__(self, preset: str, nation_ids: list[str], seed: int = 0,
-                 horizon: int = 24, scenario: Optional[Scenario] = None):
+                 horizon: int = 24, scenario: Optional[Scenario] = None,
+                 default_penalty: float = 0.0):
         self.preset = preset
         self.nation_ids = list(nation_ids)
         self.seed = seed
         self.horizon = horizon
         self.scenario = scenario or Scenario()
+        self.default_penalty = default_penalty
         self._ep = 0
         self.learners = {nid: ExternalPolicy() for nid in self.nation_ids}
         self.eng: Optional[Engine] = None
@@ -205,7 +218,8 @@ class SelfPlayEnv:
         obs = {nid: obs_from_view(eng.nation_view(nid)) for nid in self.nation_ids}
         rewards = {}
         for nid in self.nation_ids:
-            rewards[nid] = tick_reward(eng, nid, self._prev[nid])
+            rewards[nid] = tick_reward(eng, nid, self._prev[nid],
+                                       default_penalty=self.default_penalty)
             self._prev[nid] = reward_snapshot(eng, nid)
         alive = [nid for nid in self.nation_ids if not eng.nations[nid].collapsed]
         done = eng.tick_no >= self.horizon - 1 or not alive

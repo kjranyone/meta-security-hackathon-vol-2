@@ -100,7 +100,7 @@ def _train_selfplay(args, nation_ids: list[str], train_scenario) -> int:
     prefix.parent.mkdir(parents=True, exist_ok=True)
 
     env = SelfPlayEnv(args.preset, nation_ids, seed=args.seed, horizon=args.horizon,
-                      scenario=train_scenario)
+                      scenario=train_scenario, default_penalty=args.default_penalty)
     nets = {nid: PolicyNet(obs_dim=OBS_DIM, seed=args.seed + i)
             for i, nid in enumerate(nation_ids)}
 
@@ -163,6 +163,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--entropy", type=float, default=0.005)
     ap.add_argument("--eval-every", type=int, default=250)
     ap.add_argument("--scenario", default=None, help="train under this god-stress scenario")
+    ap.add_argument("--default-penalty", type=float, default=0.0,
+                    help="reward penalty per own sovereign default (0=growth-only objective)")
     ap.add_argument("--out", default=None,
                     help="weights path (single) or prefix (self-play); default models/rl_<nation>[.npz] or models/selfplay_<nation>.npz")
     args = ap.parse_args(argv)
@@ -183,7 +185,7 @@ def main(argv: list[str] | None = None) -> int:
 
     train_scenario = _load_scenario(args.scenario) if args.scenario else None
     env = NationEnv(args.preset, args.nation, seed=args.seed, horizon=args.horizon,
-                    scenario=train_scenario)
+                    scenario=train_scenario, default_penalty=args.default_penalty)
     net = PolicyNet(obs_dim=OBS_DIM, seed=args.seed)
 
     eval_seeds = [101, 202, 303, 404, 505]
