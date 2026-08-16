@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import MapCanvas from "../components/MapCanvas";
 import StatsTable from "../components/StatsTable";
 import EventFeed from "../components/EventFeed";
 import GodBar from "../components/GodBar";
 import GodCards from "../components/GodCards";
-import { VSplit, HSplit } from "../components/Splitter";
+import { VSplit } from "../components/Splitter";
 import CreateWorldDialog from "../components/CreateWorldDialog";
 import DateBar from "../components/DateBar";
 import Toasts, { useToasts } from "../components/Toasts";
@@ -24,9 +24,13 @@ export default function GodApp() {
   const [muted, setMuted] = useState(false);
   const [flash, setFlash] = useState(0);
   const [sideW, setSideW] = useState(480);
-  const [statsH, setStatsH] = useState(200);
-  const statsH0 = useRef(200);
-  const hDrag = useRef(null);
+  const [sideTab, setSideTab] = useState("cards");
+  const [unread, setUnread] = useState(0);
+  const sideTabRef = useRef("cards");
+  useEffect(() => { sideTabRef.current = sideTab; }, [sideTab]);
+
+  const eventLog = useMemo(() => ticks.flatMap(t => t.events || []).slice(-300), [ticks]);
+  const openTab = t => { setSideTab(t); if (t === "event") setUnread(0); };
   const [preset, setPreset] = useState("earth");
   const [policy, setPolicy] = useState("mock_llm");
   const [seed, setSeed] = useState(42);
@@ -75,6 +79,8 @@ export default function GodApp() {
           setMeta(m); setTicks([]); setGodEvents([]); setCur(0);
         } else if (m.type === "tick") {
           setTicks(t => [...t, m]);
+          if ((m.events || []).length && sideTabRef.current !== "event")
+            setUnread(u => Math.min(99, u + m.events.length));
           const majors = (m.events || []).filter(e => MAJOR_TONES[e.type]);
           if (majors.length) {
             feedback(majors.map(e => e.type));
@@ -121,7 +127,9 @@ export default function GodApp() {
 
   function onMapClick(mx, my) {
     if (!geo || !meta) return;
-    setSel(pickAt(mx, my, geo, meta));
+    const picked = pickAt(mx, my, geo, meta);
+    setSel(picked);
+    if (picked.kind) openTab("cards");
   }
 
   const tick = ticks[Math.min(cur, ticks.length - 1)] || null;
@@ -158,23 +166,27 @@ export default function GodApp() {
           onMove={ev => setSideW(Math.min(Math.max(window.innerWidth - ev.clientX, 320), window.innerWidth - 420))}
           onReset={() => setSideW(480)} />
         <div className="side" style={{ width: sideW }}>
-          <div className="pane" style={{ flex: "1 1 auto", minHeight: 130, overflow: "auto" }}>
-            <GodCards sel={sel} meta={meta} tick={tick} intervene={intervene} />
+          <div className="sidetabs">
+            <div className={`sidetab${sideTab === "cards" ? " on" : ""}`} onClick={() => openTab("cards")}>⚡ 介入</div>
+            <div className={`sidetab${sideTab === "nations" ? " on" : ""}`} onClick={() => openTab("nations")}>👥 NATIONS</div>
+            <div className={`sidetab${sideTab === "event" ? " on" : ""}`} onClick={() => openTab("event")}>
+              📜 EVENT{unread > 0 && <span className="badge">{unread}</span>}
+            </div>
           </div>
-          <HSplit
-            onStart={ev => { hDrag.current = { y: ev.clientY, h: statsH }; }}
-            onMove={ev => {
-              if (!hDrag.current) return;
-              const maxH = document.querySelector(".side").getBoundingClientRect().height - 330;
-              setStatsH(Math.min(Math.max(hDrag.current.h + ev.clientY - hDrag.current.y, 70), Math.max(maxH, 70)));
-            }}
-            onEnd={() => { hDrag.current = null; }}
-            onReset={() => setStatsH(statsH0.current)} />
-          <div id="statspane" style={{ height: statsH, overflow: "auto", flex: "none", borderBottom: "1px solid var(--border)" }}>
-            <StatsTable tick={tick} selected={sel.kind === "nation" ? sel.id : null}
-                        onSelect={nid => setSel(s => (s.kind === "nation" && s.id === nid) ? { kind: null, id: null } : { kind: "nation", id: nid })} />
-          </div>
-          <EventFeed events={tick?.events || []} godEvents={godEvents} counts={countsStr} />
+          {sideTab === "cards" && (
+            <div className="pane" style={{ flex: 1, overflow: "auto" }}>
+              <GodCards sel={sel} meta={meta} tick={tick} intervene={intervene} />
+            </div>
+          )}
+          {sideTab === "nations" && (
+            <div className="pane" style={{ flex: 1, overflow: "auto" }}>
+              <StatsTable tick={tick} selected={sel.kind === "nation" ? sel.id : null}
+                          onSelect={nid => setSel(s => (s.kind === "nation" && s.id === nid) ? { kind: null, id: null } : { kind: "nation", id: nid })} />
+            </div>
+          )}
+          {sideTab === "event" && (
+            <EventFeed events={eventLog} godEvents={godEvents} counts={countsStr} />
+          )}
         </div>
       </div>
 

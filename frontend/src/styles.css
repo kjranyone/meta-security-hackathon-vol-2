@@ -33,6 +33,13 @@ canvas.map { cursor: crosshair; max-width: 100%; max-height: 100%; }
 canvas.map.god { cursor: pointer; }
 
 .side { border-left: 1px solid var(--border); display: flex; flex-direction: column; min-height: 0; min-width: 300px; }
+.sidetabs { display: flex; gap: 4px; padding: 6px; border-bottom: 1px solid var(--border); background: var(--panel); }
+.sidetab { flex: 1; text-align: center; padding: 6px 0; border-radius: 8px; cursor: pointer;
+           border: 1px solid transparent; font-size: 12px; letter-spacing: .05em; color: var(--dim); user-select: none; }
+.sidetab:hover { color: var(--text); }
+.sidetab.on { border-color: var(--accent); color: var(--accent); background: rgba(88,166,255,.08); }
+.sidetab .badge { background: var(--bad); color: #fff; border-radius: 999px; font-size: 10px;
+                  padding: 1px 6px; margin-left: 6px; }
 .pane { border-bottom: 1px solid var(--border); padding: 8px 10px; overflow: auto; }
 .pane h3 { font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; }
 .feed { flex: 1; min-height: 0; }
