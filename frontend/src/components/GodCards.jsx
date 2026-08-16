@@ -20,9 +20,9 @@ export default function GodCards({ sel, meta, tick, intervene }) {
   if (!sel.kind) {
     return (
       <>
-        <div className="target-banner" style={{ borderColor: "var(--god)", color: "var(--god)" }}>⚡ 🌍 世界</div>
+        <div className="target-banner" style={{ borderColor: "var(--god)", color: "var(--god)" }}>世界</div>
         <div className="cardrow">
-          <div className="card"><b>💥 世界金利</b>
+          <div className="card"><b>世界金利</b>
             <div className="cardrow">
               <label className="sl"><span>利上げ</span>
                 <input type="range" min="0" max="15" step="0.5" value={rate}
@@ -31,7 +31,7 @@ export default function GodCards({ sel, meta, tick, intervene }) {
               <button className="godbtn" onClick={() => intervene("rate_hike", { value: rate / 100 })}>利上げを宣告</button>
             </div>
           </div>
-          <div className="card"><b>🌍 世界スライダー</b>
+          <div className="card"><b>世界スライダー</b>
             {SLIDERS.map(p => (
               <label className="sl" key={p}><span>{p}</span>
                 <input type="range" min="0.3" max="1.8" step="0.05" value={sliders[p]}
@@ -43,7 +43,7 @@ export default function GodCards({ sel, meta, tick, intervene }) {
               SLIDERS.forEach(p => intervene("global_slider", { param: p, value: sliders[p] }))}>
               全スライダーを適用</button>
           </div>
-          <div className="card"><b>🚫 技術の禁止</b>
+          <div className="card"><b>技術の禁止</b>
             <div className="cardrow">
               <select value={banTech} onChange={e => setBanTech(e.target.value)}>
                 {TECHS.map(t => <option key={t}>{t}</option>)}
@@ -59,9 +59,9 @@ export default function GodCards({ sel, meta, tick, intervene }) {
   if (sel.kind === "cp") {
     return (
       <>
-        <div className="target-banner" style={{ borderColor: "#ffffff" }}>⚡ ⚓ {sel.id}</div>
+        <div className="target-banner" style={{ borderColor: "#ffffff" }}>{sel.id}</div>
         <div className="cardrow">
-          <div className="card"><b>⛔ 海峡封鎖: {sel.id}</b>
+          <div className="card"><b>海峡封鎖: {sel.id}</b>
             <div className="cardrow">
               {[6, 12, 24, 60].map(d => (
                 <button key={d} className="godbtn"
@@ -84,10 +84,10 @@ export default function GodCards({ sel, meta, tick, intervene }) {
     <>
       <div className="target-banner" style={{ borderColor: tick?.nations?.[nid]?.color || "#e6edf3" }}>
         <span className="tdot" style={{ background: tick?.nations?.[nid]?.color || "#e6edf3" }} />
-        ⚡ {name}
+        {name}
       </div>
       <div className="cardrow">
-        <div className="card"><b>📰 偽情報</b>
+        <div className="card"><b>偽情報</b>
           <div className="cardrow">
             <label className="sl"><span>強度</span>
               <input type="range" min="0.5" max="3" step="0.25" value={dis}
@@ -96,14 +96,14 @@ export default function GodCards({ sel, meta, tick, intervene }) {
             <button className="godbtn" onClick={() => intervene("disinfo", { target: nid, intensity: dis })}>投下</button>
           </div>
         </div>
-        <div className="card"><b>🌪 災害</b>
+        <div className="card"><b>災害</b>
           <div className="cardrow">
             {["drought", "earthquake", "epidemic"].map(k => (
               <button key={k} className="godbtn" onClick={() => intervene("disaster", { nation: nid, kind: k })}>{k}</button>
             ))}
           </div>
         </div>
-        <div className="card"><b>🧠 性格書き換え</b>
+        <div className="card"><b>性格書き換え</b>
           <label className="sl"><span>好戦性</span>
             <input type="range" min="0" max="1" step="0.05" value={agg}
                    onChange={e => setAgg(+e.target.value)} /><output>{agg}</output>
@@ -117,7 +117,7 @@ export default function GodCards({ sel, meta, tick, intervene }) {
             intervene("set_param", { nation: nid, param: "paranoia", value: par });
           }}>書き換える</button>
         </div>
-        <div className="card"><b>⛏ 資源を創る</b>
+        <div className="card"><b>資源を創る</b>
           <div className="cardrow">
             <select value={res} onChange={e => setRes(e.target.value)}>
               {RESOURCES.map(r => <option key={r}>{r}</option>)}
@@ -128,7 +128,7 @@ export default function GodCards({ sel, meta, tick, intervene }) {
             <button className="godbtn" onClick={() => intervene("create_resource", { nation: nid, resource: res, quantity: qty })}>創造</button>
           </div>
         </div>
-        <div className="card"><b>💀 資源を消す</b>
+        <div className="card"><b>資源を消す</b>
           <div className="cardrow">
             <select value={dres} onChange={e => setDres(e.target.value)}>
               {RESOURCES.map(r => <option key={r}>{r}</option>)}
@@ -136,12 +136,12 @@ export default function GodCards({ sel, meta, tick, intervene }) {
             <button onClick={() => intervene("destroy_resource", { nation: nid, resource: dres })}>消滅</button>
           </div>
         </div>
-        <div className="card"><b>🏦 救済（ベイルアウト）</b>
+        <div className="card"><b>救済（ベイルアウト）</b>
           <div className="cardrow">
             <button className="godbtn" onClick={() => intervene("bailout", { nation: nid })}>債務を半減し信用回復</button>
           </div>
         </div>
-        <div className="card"><b>🔬 技術を授ける</b>
+        <div className="card"><b>技術を授ける</b>
           <div className="cardrow">
             <select value={tech} onChange={e => setTech(e.target.value)}>
               {TECHS.map(t => <option key={t}>{t}</option>)}

@@ -5,12 +5,12 @@ export default function StatsTable({ tick, selected, onSelect, showStocks = fals
     const st = n.stocks;
     return (
       <tr key={nid} className={`statrow${selected === nid ? " sel" : ""}`} onClick={() => onSelect?.(nid)}>
-        <td><span style={{ color: n.color }}>●</span> {n.name}{n.collapsed ? " 💀" : ""}{n.at_war_with?.length ? " ⚔️" : ""}</td>
+        <td><span style={{ color: n.color }}>●</span> {n.name}</td>
         <td className="num">{n.gdp.toFixed(1)}</td>
         <td className="num">{(n.inflation * 100).toFixed(1)}%</td>
         <td className="num">{n.stability.toFixed(0)}</td>
         <td className="num" style={{ color: n.debt_gdp > 130 ? "#f85149" : n.debt_gdp > 100 ? "#e3b341" : "inherit" }}>
-          {n.debt_gdp.toFixed(0)}%{n.defaults ? "⚠" + n.defaults : ""}
+          {n.debt_gdp.toFixed(0)}%{n.defaults ? <span style={{ color: "#ff6b35", marginLeft: 4 }}>×{n.defaults}</span> : null}
         </td>
         {showStocks && (
           <td className="num">{st.energy?.toFixed(1)}/{st.food?.toFixed(1)}/{st.chips?.toFixed(1)}/{st.minerals?.toFixed(1)}/{st.space?.toFixed(1)}</td>

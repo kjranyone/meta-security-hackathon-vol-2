@@ -1,4 +1,4 @@
-// 大イベント演出音（WebAudio。ユーザー操作後に初期化、🔇でミュート）
+// 大イベント演出音（WebAudio。ユーザー操作後に初期化、ミュート切替可）
 let ac = null;
 
 export function initAudio() {

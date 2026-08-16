@@ -66,7 +66,7 @@ export default function IfPanel({ open, onClose, baseDefault, tickDefault, meta,
 
   return (
     <div className="ifpanel">
-      <h3>⏪ IF史モード — 「過去に△△していたら」</h3>
+      <h3>IF史モード — 「過去に△△していたら」</h3>
       <label>元の歴史（base run）</label>
       <input type="text" value={base} onChange={e => setBase(e.target.value)}
              placeholder="earth_earth_financial_crisis" />
@@ -74,12 +74,12 @@ export default function IfPanel({ open, onClose, baseDefault, tickDefault, meta,
       <input type="number" min="0" value={tick} onChange={e => setTick(e.target.value)} />
       <label>介入カード</label>
       <select value={type} onChange={e => setType(e.target.value)}>
-        <option value="bailout">💸 救済（ベイルアウト） nation</option>
-        <option value="rate_hike">📈 世界金利引き上げ value</option>
-        <option value="close_chokepoint">⚓ 海峡封鎖 chokepoint, duration</option>
-        <option value="create_resource">✨ 資源の創造 nation, resource, quantity</option>
-        <option value="grant_tech">🧪 技術の授与 nation, tech</option>
-        <option value="ban_tech">🚫 技術の全世界禁止 tech</option>
+        <option value="bailout">救済（ベイルアウト） nation</option>
+        <option value="rate_hike">世界金利引き上げ value</option>
+        <option value="close_chokepoint">海峡封鎖 chokepoint, duration</option>
+        <option value="create_resource">資源の創造 nation, resource, quantity</option>
+        <option value="grant_tech">技術の授与 nation, tech</option>
+        <option value="ban_tech">技術の全世界禁止 tech</option>
       </select>
       {type === "bailout" || type === "create_resource" || type === "grant_tech" ? (
         <><label>nation（国家ID）</label>
@@ -113,17 +113,17 @@ export default function IfPanel({ open, onClose, baseDefault, tickDefault, meta,
             {TECHS.map(t => <option key={t}>{t}</option>)}
           </select></>
       ) : null}
-      <button className="go" onClick={run} disabled={busy}>❖ 歴史を分岐させる</button>
+      <button className="go" onClick={run} disabled={busy}>歴史を分岐させる</button>
       <button onClick={onClose}>閉じる</button>
       <div className="ifresult">
-        {result?.busy && <span className="ng">⏳ 分岐実行中…（決定論再実行、数秒）</span>}
+        {result?.busy && <span className="ng">分岐実行中…（決定論再実行、数秒）</span>}
         {result?.error && (<>
           <span className="ng">失敗: {result.error}</span><br />
           <small style={{ color: "var(--dim)" }}>base run 名と神サーバ(8788)経由のアクセスを確認してください</small>
         </>)}
         {r && (<>
-          <span className="ok">✅ 分岐: {result.data.name}</span><br />
-          {(result.data.warnings || []).map((w, i) => <span key={i} className="ng">⚠ {w}</span>)}
+          <span className="ok">分岐: {result.data.name}</span><br />
+          {(result.data.warnings || []).map((w, i) => <span key={i} className="ng">{w}</span>)}
           IF: <b>t{r.fork_tick}</b> で <b>{r.interventions[0].type}</b> {JSON.stringify(r.interventions[0].params)}<br />
           歴史が変わった最初のtick: <b>t{r.first_divergence_tick}</b><br />
           最終差分: GDP {fmt(r.final_metric_deltas.world_gdp)} / デフォルト {fmt(r.final_metric_deltas.defaults)} / 戦争 {fmt(r.final_metric_deltas.wars || 0)}<br />
@@ -135,7 +135,7 @@ export default function IfPanel({ open, onClose, baseDefault, tickDefault, meta,
             <div>IF世界で新たに起きた:
               <ul>{r.only_in_fork.map((e, i) => <li key={i}>t{e.tick} {NATION_JA[e.actor] || e.actor} {e.type}</li>)}</ul>
             </div>)}
-          <button onClick={() => onLoadReplay(location.origin + result.data.replay)}>🗺 IF世界をこの画面で開く</button>
+          <button onClick={() => onLoadReplay(location.origin + result.data.replay)}>IF世界をこの画面で開く</button>
         </>)}
       </div>
     </div>

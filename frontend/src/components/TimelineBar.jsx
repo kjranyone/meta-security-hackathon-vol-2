@@ -36,7 +36,7 @@ export default function TimelineBar({ playing, onTogglePlay, cur, ticks, major,
       <label className="speedlabel">速度
         <input type="range" min="1" max="10" value={speed} onChange={e => onSpeed(+e.target.value)} />
       </label>
-      <button className="tlbtn mutebtn" onClick={onMute} title="イベント音の切替">{muted ? "🔇" : "🔊"}</button>
+      <button className="tlbtn mutebtn" onClick={onMute} title="イベント音の切替">{muted ? "♪" : "♪♪"}</button>
     </div>
   );
 }

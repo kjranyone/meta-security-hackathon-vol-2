@@ -173,10 +173,10 @@ export default function GodApp() {
           onReset={() => setSideW(480)} />
         <div className="side" style={{ width: sideW }}>
           <div className="sidetabs">
-            <div className={`sidetab${sideTab === "cards" ? " on" : ""}`} onClick={() => openTab("cards")}>⚡ 介入</div>
-            <div className={`sidetab${sideTab === "nations" ? " on" : ""}`} onClick={() => openTab("nations")}>👥 NATIONS</div>
+            <div className={`sidetab${sideTab === "cards" ? " on" : ""}`} onClick={() => openTab("cards")}>介入</div>
+            <div className={`sidetab${sideTab === "nations" ? " on" : ""}`} onClick={() => openTab("nations")}>NATIONS</div>
             <div className={`sidetab${sideTab === "event" ? " on" : ""}`} onClick={() => openTab("event")}>
-              📜 EVENT{unread > 0 && <span className="badge">{unread}</span>}
+              EVENT{unread > 0 && <span className="badge">{unread}</span>}
             </div>
           </div>
           {sideTab === "cards" && (
@@ -200,7 +200,7 @@ export default function GodApp() {
         <button className="tlbtn" onClick={() => send({ cmd: status.running ? "pause" : "play" })}>
           {status.running ? "⏸ 停止" : "▶ 再生"}
         </button>
-        <button className="tlbtn" onClick={() => send({ cmd: "step" })}>⏭ 1tick</button>
+        <button className="tlbtn" onClick={() => send({ cmd: "step" })}>1tick</button>
         <DateBar tick={status.tick} suffix={` / ${status.max_ticks} ${status.running ? "▶" : "⏸"}`} />
         <label className="speedlabel" style={{ flex: 1 }}><span>速度</span>
           <input type="range" min="200" max="3000" defaultValue="1200"
@@ -208,7 +208,7 @@ export default function GodApp() {
           <output>ms</output>
         </label>
         <button className="tlbtn mutebtn" onClick={() => { initAudio(); setMuted(m => !m); }}>
-          {muted ? "🔇" : "🔊"}
+          {muted ? "♪" : "♪♪"}
         </button>
       </div>
     </div>

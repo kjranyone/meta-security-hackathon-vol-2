@@ -137,7 +137,7 @@ export default function ViewerApp() {
                  rd.readAsText(f);
                }} />
         <button className={showRoutes ? "on" : ""} onClick={() => setShowRoutes(s2 => !s2)}>航路</button>
-        <button onClick={() => { initAudio(); setIfOpen(o => !o); }}>⏪ IF史</button>
+        <button onClick={() => { initAudio(); setIfOpen(o => !o); }}>IF史</button>
         <button className="helpbtn" onClick={() => setLegendOpen(true)}>?</button>
       </header>
 

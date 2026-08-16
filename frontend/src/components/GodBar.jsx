@@ -10,18 +10,18 @@ export default function GodBar({ sel, meta, intervene }) {
   const name = nation ? (meta?.geo?.nations?.[nation]?.name || nation) : cp;
 
   const B = [
-    { label: "⚓ 封鎖", dis: !cp, act: d => intervene("close_chokepoint", { chokepoint: cp, duration: +d.dur }), title: "海峡選択時に有効" },
-    { label: "⚓ 開放", dis: !cp, act: () => intervene("open_chokepoint", { chokepoint: cp }), title: "海峡選択時に有効" },
-    { label: "💸 救済", dis: !nation, act: () => intervene("bailout", { nation }), title: "国家選択時に有効" },
-    { label: "🌾 旱魃", dis: !nation, act: () => intervene("disaster", { nation, kind: "drought" }), title: "国家選択時に有効" },
-    { label: "📰 偽情報", dis: !nation, act: () => intervene("disinfo", { target: nation, intensity: 0.6 }), title: "国家選択時に有効" },
-    { label: "✨ 資源+2", dis: !nation, act: d => intervene("create_resource", { nation, resource: d.res, quantity: 2 }), title: "国家選択時に有効" },
-    { label: "💥 資源消滅", dis: !nation, act: d => intervene("destroy_resource", { nation, resource: d.res }), title: "国家選択時に有効" },
-    { label: "🧪 技術授与", dis: !nation, act: d => intervene("grant_tech", { nation, tech: d.tech }), title: "国家選択時に有効" },
-    { label: "😠 好戦↑", dis: !nation, act: () => intervene("set_param", { nation, param: "aggression", value: 0.2 }), title: "国家選択時に有効" },
-    { label: "🕊️ 好戦↓", dis: !nation, act: () => intervene("set_param", { nation, param: "aggression", value: -0.2 }), title: "国家選択時に有効" },
-    { label: "📉 利上げ+5%", dis: false, act: () => intervene("rate_hike", { value: 0.05 }), title: "常時有効（全世界）" },
-    { label: "🚫 技術禁止", dis: false, act: d => intervene("ban_tech", { tech: d.tech }), title: "常時有効（全世界）" },
+    { label: "封鎖", dis: !cp, act: d => intervene("close_chokepoint", { chokepoint: cp, duration: +d.dur }), title: "海峡選択時に有効" },
+    { label: "開放", dis: !cp, act: () => intervene("open_chokepoint", { chokepoint: cp }), title: "海峡選択時に有効" },
+    { label: "救済", dis: !nation, act: () => intervene("bailout", { nation }), title: "国家選択時に有効" },
+    { label: "旱魃", dis: !nation, act: () => intervene("disaster", { nation, kind: "drought" }), title: "国家選択時に有効" },
+    { label: "偽情報", dis: !nation, act: () => intervene("disinfo", { target: nation, intensity: 0.6 }), title: "国家選択時に有効" },
+    { label: "資源+2", dis: !nation, act: d => intervene("create_resource", { nation, resource: d.res, quantity: 2 }), title: "国家選択時に有効" },
+    { label: "資源消滅", dis: !nation, act: d => intervene("destroy_resource", { nation, resource: d.res }), title: "国家選択時に有効" },
+    { label: "技術授与", dis: !nation, act: d => intervene("grant_tech", { nation, tech: d.tech }), title: "国家選択時に有効" },
+    { label: "好戦↑", dis: !nation, act: () => intervene("set_param", { nation, param: "aggression", value: 0.2 }), title: "国家選択時に有効" },
+    { label: "好戦↓", dis: !nation, act: () => intervene("set_param", { nation, param: "aggression", value: -0.2 }), title: "国家選択時に有効" },
+    { label: "利上げ+5%", dis: false, act: () => intervene("rate_hike", { value: 0.05 }), title: "常時有効（全世界）" },
+    { label: "技術禁止", dis: false, act: d => intervene("ban_tech", { tech: d.tech }), title: "常時有効（全世界）" },
   ];
 
   if (!nation && !cp) return null;

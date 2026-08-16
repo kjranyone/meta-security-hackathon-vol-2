@@ -82,20 +82,27 @@ export function renderMap(ctx, cv, tick, opts) {
     ctx.setLineDash(e.dash || []); ctx.stroke(); ctx.setLineDash([]);
   }
 
-  // 海峡
+  // 海峡（円輪。封鎖=赤+斜線、選択=白強調）
   for (const cp of meta.geo.chokepoints) {
     const [x, y] = project(cp.lon, cp.lat);
-    ctx.font = "14px serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText(tick.chokepoints?.[cp.name] ? "⛔" : "⚓", x, y);
+    const closed = !!tick.chokepoints?.[cp.name];
+    const selHere = selectedChokepoint === cp.name;
     ctx.beginPath();
-    ctx.arc(x, y, 12, 0, Math.PI * 2);
-    ctx.strokeStyle = selectedChokepoint === cp.name ? "#ffffff"
-      : (tick.chokepoints?.[cp.name] ? "#f85149" : "rgba(255,255,255,.35)");
-    ctx.lineWidth = selectedChokepoint === cp.name ? 2 : 1.2;
-    ctx.stroke(); ctx.lineWidth = 1;
+    ctx.arc(x, y, 8, 0, Math.PI * 2);
+    ctx.strokeStyle = selHere ? "#ffffff" : closed ? "#f85149" : "rgba(255,255,255,.55)";
+    ctx.lineWidth = selHere ? 2.4 : closed ? 2 : 1.2;
+    ctx.stroke();
+    if (closed) {
+      ctx.beginPath();
+      ctx.moveTo(x - 5.5, y + 5.5);
+      ctx.lineTo(x + 5.5, y - 5.5);
+      ctx.strokeStyle = "#f85149";
+      ctx.stroke();
+    }
+    ctx.lineWidth = 1;
   }
 
-  // 国家ラベル・アイコン（選択国は白色の輪郭円）
+  // 国家ラベル（選択=白輪・戦争=赤輪・破綻=橙輪・崩壊=ラベル減光）
   for (const [nid, n] of Object.entries(nations)) {
     const info = meta.geo.nations[nid];
     if (!info) continue;
@@ -112,10 +119,15 @@ export function renderMap(ctx, cv, tick, opts) {
     if (selectedNation === nid) {
       ctx.beginPath(); ctx.arc(x, y, 16, 0, Math.PI * 2);
       ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.stroke(); ctx.lineWidth = 1;
+    } else if (n.at_war_with?.length) {
+      ctx.beginPath(); ctx.arc(x, y, 14, 0, Math.PI * 2);
+      ctx.strokeStyle = "#f85149"; ctx.lineWidth = 1.4; ctx.stroke(); ctx.lineWidth = 1;
     }
-    if (n.at_war_with?.length) ctx.fillText("⚔️", x, y - 14);
-    if (n.collapsed) ctx.fillText("💀", x + 12, y - 12);
-    if (n.defaults > 0) ctx.fillText("🏦✖", x - 14, y - 12);
+    if (n.defaults > 0) {
+      ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI * 2);
+      ctx.strokeStyle = "#ff6b35"; ctx.lineWidth = 1.2; ctx.stroke(); ctx.lineWidth = 1;
+    }
+    if (n.collapsed) ctx.fillStyle = "rgba(139,148,158,.75)";
   }
 }
 
