@@ -941,6 +941,8 @@ class Engine:
                 "techs": self._techs_of(nid),
                 "debt_gdp": round(nat.debt_gdp, 1), "credibility": round(nat.credibility, 1),
                 "defaults": nat.defaults,
+                # friendly度グラフ用: 他国への信頼度(0-100)。形式追加のみで挙動には影響しない
+                "trust": {o: round(v, 1) for o, v in sorted(nat.trust.items())},
             }
         metrics = {
             "world_gdp": round(sum(n.gdp for n in self.nations.values()), 4),

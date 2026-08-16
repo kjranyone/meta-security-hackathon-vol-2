@@ -27,6 +27,9 @@
   },
   "wars": 0,
   "config": {
+    "preset": "earth",
+    "gen_seed": null,
+    "gen_nations": 8,
     "policy": "mock_llm",
     "rl_nation": null,
     "rl_weights": null,

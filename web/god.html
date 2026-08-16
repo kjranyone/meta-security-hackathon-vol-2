@@ -62,6 +62,27 @@
   label.sl span { width:120px; color:var(--dim); }
   label.sl input[type=range] { flex:1; }
   label.sl output { width:44px; text-align:right; }
+  #datebar { position:absolute; top:10px; left:50%; transform:translateX(-50%); z-index:4;
+             background:rgba(13,17,23,.82); border:1px solid var(--border); border-radius:8px;
+             padding:4px 14px; font-size:15px; letter-spacing:.06em; font-variant-numeric:tabular-nums; }
+  #datebar small { color:var(--dim); font-size:11px; display:block; text-align:center; letter-spacing:0; }
+  #godbar { position:absolute; left:50%; bottom:12px; transform:translateX(-50%); z-index:4;
+            display:flex; align-items:center; gap:6px; flex-wrap:wrap; justify-content:center;
+            background:rgba(13,17,23,.88); border:1px solid var(--border); border-radius:12px;
+            padding:7px 10px; max-width:92%; box-shadow:0 6px 24px rgba(0,0,0,.45); }
+  #godbar .tgt { font-size:11.5px; color:var(--dim); border-right:1px solid var(--border); padding-right:8px; margin-right:2px; }
+  #godbar .tgt b { color:var(--god); }
+  #godbar button { background:#21262d; border:1px solid var(--border); color:var(--text); border-radius:8px;
+                   padding:5px 9px; cursor:pointer; font-size:12.5px; white-space:nowrap; }
+  #godbar button:hover:not(:disabled) { border-color:var(--god); }
+  #godbar button:disabled { opacity:.38; cursor:not-allowed; }
+  #godbar select { background:var(--bg); border:1px solid var(--border); color:var(--text);
+                   border-radius:6px; font-size:12px; padding:3px 4px; }
+  #trustlegend { position:absolute; right:10px; bottom:64px; font-size:11px; color:var(--dim);
+                 background:rgba(13,17,23,.75); padding:6px 8px; border-radius:6px; }
+  #timeline.flash { animation: tlgrow .9s ease-out 2; }
+  @keyframes tlgrow { 0% { box-shadow: inset 0 3px 8px rgba(163,113,247,0); } 30% { box-shadow: inset 0 3px 10px rgba(163,113,247,.6); } 100% { box-shadow: inset 0 3px 8px rgba(163,113,247,0); } }
+  #mutebtn { width:40px; }
 </style>
 </head>
 <body>
@@ -88,6 +109,9 @@
   <div id="mapwrap">
     <canvas id="map" width="960" height="540"></canvas>
     <div class="legend">クリック: 海峡⚓=封鎖カード / 国家=介入カード。紫=航路(エネルギー) 緑=食料 青=チップ 紫=地下 水色=宇宙・ ⚔️戦争 💀崩壊 橙枠=破綻</div>
+    <div id="datebar" style="display:none">—</div>
+    <div id="godbar"></div>
+    <div id="trustlegend" style="display:none">友好度線: <span style="color:#3fb950">緑=高信頼</span> / 灰=中立 / <span style="color:#f85149">赤=敵対</span>（国家クリック=その国の関係、未選択=主要関係）</div>
   </div>
   <div id="vsplit" title="ドラッグで幅変更・ダブルクリックで戻す"></div>
   <div id="side">
@@ -105,11 +129,12 @@
   <button onclick="send({cmd:'step'})">⏭ 1tick</button>
   <span id="ticklabel">tick —</span>
   <label class="sl" style="flex:1"><span>速度</span><input type="range" min="200" max="3000" value="1200" oninput="send({cmd:'speed', ms:+this.value})"><output id="speedout">1200ms</output></label>
+  <button id="mutebtn" onclick="toggleMute()" title="イベント音の切替">🔊</button>
 </div>
 <script>
 "use strict";
 // ---------------------------------------------------------------- state
-let META=null, TICKS=[], GEO=null, cur=0, sel={kind:null, id:null};
+let META=null, TICKS=[], GEO=null, GOD_EVENTS=[], cur=0, sel={kind:null, id:null};
 let VIEW={scale:2.4, ox:0, oy:0};
 const COMMO_COLOR={energy:"rgba(227,179,65,.5)",food:"rgba(124,179,66,.5)",chips:"rgba(88,166,255,.5)",minerals:"rgba(210,168,255,.5)",space:"rgba(63,222,255,.5)"};
 const TECHS=["drone_swarm","laser_defense","cyber_arsenal","hypersonic_intercept","ai_fab","biomanuf","autofactory","deepsea_mining","fusion","space_solar","asteroid_mining","ai_religion","techno_nationalism"];
@@ -124,8 +149,13 @@ function connect() {
   ws.onmessage = async (ev) => {
     const m = JSON.parse(ev.data);
     if (m.type === "meta") { META = m; await loadGeo(); TICKS=[]; GOD_EVENTS=[]; cur=0; render(0); }
-    else if (m.type === "tick") { TICKS.push(m); cur = TICKS.length-1; render(cur); }
-    else if (m.type === "god") { if (m.event) { GOD_EVENTS.push(m.event); if (TICKS.length) render(cur); } }
+    else if (m.type === "tick") {
+    TICKS.push(m); cur = TICKS.length-1;
+    const types = (m.events || []).map(e => e.type).filter(t => MAJOR_TYPES[t]);
+    if (types.length) majorFeedback(types);
+    render(cur);
+  }
+    else if (m.type === "god") { if (m.event) { GOD_EVENTS.push(m.event); majorFeedback(["god_intervention"]); if (TICKS.length) render(cur); } }
     else if (m.type === "status") { document.getElementById("ticklabel").textContent=`tick ${m.tick}/${m.max_ticks} ${m.running?"▶":"⏸"}`; document.getElementById("play").textContent = m.running?"⏸ 停止":"▶ 再生"; }
     else if (m.type === "end") { document.getElementById("ticklabel").textContent = `tick ${m.tick}/${m.max_ticks} 終了`; }
   };
@@ -159,6 +189,7 @@ async function loadGeo() {
   }
   GEO={features, byName};
   fitMapCanvas();
+  document.getElementById("trustlegend").style.display = "block";
 }
 
 // ---------------------------------------------------------------- render
@@ -168,10 +199,128 @@ function evRow(e) {
     trade_throttled:"ev-trade",sovereign_default:"ev-default",credibility_hit:"ev-credhit",tech_emergence:"ev-tech",tech_adopted:"ev-tech2"};
   return `<div class="ev ${CLS[e.type]||""}"><span class="t">t${e.tick}</span>${e.text}</div>`;
 }
+// ---------------------------------------------- 暦表示・友好度・神HUD・演出音
+const SIM_MONTH0 = 2026 * 12 + 7;   // tick0 = 西暦2026年8月 (1 tick = 1ヶ月)
+let muted = false, ac = null;
+
+function simDate(tick, frac = 0.5) {
+  const total = SIM_MONTH0 + tick;
+  const y = Math.floor(total / 12), m = total % 12 + 1;
+  const day = 1 + Math.floor(27 * frac), hh = Math.floor(24 * frac), mm = Math.floor(60 * (24 * frac - hh));
+  return `西暦${y}年${m}月${day}日 ${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+}
+function updateDatebar(frac = 0.5) {
+  const el = document.getElementById("datebar");
+  if (!TICKS.length) return;
+  el.style.display = "block";
+  el.innerHTML = simDate(TICKS[cur].tick, frac) +
+    `<small>tick ${TICKS[cur].tick} / 60（1tick=1ヶ月・日時は演出）</small>`;
+}
+function trustColor(t) {
+  const d = t - 20;
+  const hue = d >= 0 ? Math.min(120, d * 1.5) : 0;
+  const sat = Math.min(95, 15 + Math.abs(d) * 1.1);
+  const light = d >= 0 ? 45 - Math.min(18, d * 0.2) : 48;
+  return `hsla(${hue}, ${sat}%, ${light}%, ${Math.min(0.9, 0.25 + Math.abs(d) / 90)})`;
+}
+function drawTrustEdges(ctx, tick, cv) {
+  const nations = tick.nations;
+  if (!META?.geo || !Object.values(nations).some(n => n.trust)) return;
+  const pos = {};
+  for (const [nid, info] of Object.entries(META.geo.nations))
+    if (nations[nid] && !nations[nid].collapsed) pos[nid] = project(...info.centroid);
+  const curve = (a, b, color, width, dash) => {
+    const [x1, y1] = pos[a], [x2, y2] = pos[b];
+    const lift = Math.min(50, Math.hypot(x2 - x1, y2 - y1) * 0.16);
+    ctx.beginPath(); ctx.moveTo(x1, y1);
+    ctx.quadraticCurveTo((x1 + x2) / 2, (y1 + y2) / 2 - lift, x2, y2);
+    ctx.strokeStyle = color; ctx.lineWidth = width;
+    ctx.setLineDash(dash || []); ctx.stroke(); ctx.setLineDash([]);
+  };
+  if (sel.kind === "nation" && nations[sel.id]) {
+    const tr = nations[sel.id].trust || {};
+    for (const [oid, t] of Object.entries(tr)) if (pos[oid]) curve(sel.id, oid, trustColor(t), 0.8 + Math.abs(t - 20) / 45);
+  } else {
+    const pairs = [];
+    for (const a of Object.keys(pos)) {
+      const tr = nations[a].trust || {};
+      for (const b of Object.keys(tr)) if (a < b && pos[b])
+        pairs.push({ a, b, mean: (tr[b] + (nations[b].trust?.[a] ?? 20)) / 2 });
+    }
+    pairs.sort((x, y) => y.mean - x.mean);
+    for (const q of pairs.slice(0, 6)) curve(q.a, q.b, trustColor(q.mean), 2.2, [7, 5]);
+    for (const q of pairs.slice(-6)) if (q.mean < 20) curve(q.a, q.b, trustColor(q.mean), 2.2);
+  }
+}
+// ---- 神介入HUD（地図下部のシミュレーターゲーム風ボタン列） ----
+const GOD_HUD = [
+  { label: "⚓ 封鎖", kind: "cp", act: () => intervene("close_chokepoint", { chokepoint: sel.id, duration: +qs("#hud_dur").value }) },
+  { label: "⚓ 開放", kind: "cp", act: () => intervene("open_chokepoint", { chokepoint: sel.id }) },
+  { label: "💸 救済", kind: "nation", act: () => intervene("bailout", { nation: sel.id }) },
+  { label: "🌾 旱魃", kind: "nation", act: () => intervene("disaster", { nation: sel.id, kind: "drought" }) },
+  { label: "📰 偽情報", kind: "nation", act: () => intervene("disinfo", { target: sel.id, intensity: 0.6 }) },
+  { label: "✨ 資源+2", kind: "nation", act: () => intervene("create_resource", { nation: sel.id, resource: qs("#hud_res").value, quantity: 2 }) },
+  { label: "💥 資源消滅", kind: "nation", act: () => intervene("destroy_resource", { nation: sel.id, resource: qs("#hud_res").value }) },
+  { label: "🧪 技術授与", kind: "nation", act: () => intervene("grant_tech", { nation: sel.id, tech: qs("#hud_tech").value }) },
+  { label: "😠 好戦↑", kind: "nation", act: () => intervene("set_param", { nation: sel.id, param: "aggression", value: 0.2 }) },
+  { label: "🕊️ 好戦↓", kind: "nation", act: () => intervene("set_param", { nation: sel.id, param: "aggression", value: -0.2 }) },
+  { label: "📉 利上げ+5%", kind: "world", act: () => intervene("rate_hike", { value: 0.05 }) },
+  { label: "🚫 技術禁止", kind: "world", act: () => intervene("ban_tech", { tech: qs("#hud_tech").value }) },
+];
+const qs = q => document.querySelector(q);
+function initGodBar() {
+  const bar = qs("#godbar");
+  bar.innerHTML = `<span class="tgt" id="hud_tgt">対象なし</span>` +
+    `<select id="hud_dur" title="封鎖期間（ヶ月）"><option>6</option><option selected>12</option><option>24</option><option>60</option></select>` +
+    `<select id="hud_res" title="資源の種類">${["oil","gas","grain","fab","mineral","orbit"].map(r=>`<option>${r}</option>`).join("")}</select>` +
+    `<select id="hud_tech" title="技術">${TECHS.map(t=>`<option>${t}</option>`).join("")}</select>` +
+    GOD_HUD.map((b, i) => `<button data-i="${i}" data-kind="${b.kind}" onclick="GOD_HUD[${i}].act()" title="${b.kind === "nation" ? "国家選択時に有効" : b.kind === "cp" ? "海峡選択時に有効" : "常時有効（全世界）"}">${b.label}</button>`).join("");
+  updateGodBar();
+}
+function updateGodBar() {
+  const bar = qs("#godbar"); if (!bar || !bar.children.length) return;
+  const t = qs("#hud_tgt");
+  if (sel.kind === "nation") t.innerHTML = `対象: <b>${META?.geo?.nations?.[sel.id]?.name || sel.id}</b>`;
+  else if (sel.kind === "cp") t.innerHTML = `対象: <b>${sel.id}</b>`;
+  else t.innerHTML = "対象なし（国家/海峡をクリック）";
+  bar.querySelectorAll("button").forEach(b => {
+    const k = b.dataset.kind;
+    b.disabled = (k === "nation" && sel.kind !== "nation") || (k === "cp" && sel.kind !== "cp");
+  });
+}
+// ---- 大イベント演出: タイムライン発光 + 音 ----
+const MAJOR_TYPES = { sovereign_default: 220, war_start: 110, collapse: 165, price_spike: 440, god_intervention: 660 };
+function initAudio() {
+  if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch { } }
+  if (ac && ac.state === "suspended") ac.resume();
+}
+function toggleMute() {
+  muted = !muted;
+  document.getElementById("mutebtn").textContent = muted ? "🔇" : "🔊";
+  if (!muted) initAudio();
+}
+function majorFeedback(types) {
+  const tl = document.getElementById("timeline");
+  tl.classList.remove("flash"); void tl.offsetWidth; tl.classList.add("flash");
+  if (muted || !ac || !types.length) return;
+  const o = ac.createOscillator(), g = ac.createGain();
+  o.type = "sawtooth";
+  o.frequency.value = Math.min(...types.map(t => MAJOR_TYPES[t] || 330));
+  g.gain.setValueAtTime(0.001, ac.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.12, ac.currentTime + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.5);
+  o.connect(g).connect(ac.destination);
+  o.start(); o.stop(ac.currentTime + 0.5);
+}
+document.addEventListener("click", () => initAudio(), { once: true });
+initGodBar();
+
 function render(i) {
   if (!TICKS.length) return;
   cur=i; const tick=TICKS[i];
   renderMap(tick); renderStats(tick); renderFeed(tick);
+  updateDatebar();
+  updateGodBar();
 }
 function renderMap(tick) {
   const cv=document.getElementById("map"), ctx=cv.getContext("2d");
@@ -207,6 +356,7 @@ function renderMap(tick) {
       else { ctx.strokeStyle=COMMO_COLOR[r.commodity]||"rgba(200,200,200,.3)"; ctx.setLineDash([]); ctx.lineWidth=1.1; }
       ctx.stroke(); ctx.setLineDash([]);
     }
+    drawTrustEdges(ctx, tick, cv);
     for (const cp of META.geo.chokepoints) {
       const [x,y]=project(cp.lon,cp.lat);
       const selHere = sel.kind==="cp" && sel.id===cp.name;
