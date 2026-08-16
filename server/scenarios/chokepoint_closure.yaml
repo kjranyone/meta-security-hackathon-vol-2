@@ -1,0 +1,6 @@
+name: chokepoint_closure
+description: "Strait of Ormuz を長期封鎖。エネルギー輸入依存国（Kessland/Voltania/Aurexia）への連鎖を観測する。"
+interventions:
+  - tick: 6
+    type: close_chokepoint
+    params: {chokepoint: "Strait of Ormuz", duration: 30}

@@ -1,0 +1,27 @@
+{
+  "scenario": "chokepoint_closure",
+  "description": "Strait of Ormuz を長期封鎖。エネルギー輸入依存国（Kessland/Voltania/Aurexia）への連鎖を観測する。",
+  "seed": 42,
+  "ticks": 36,
+  "event_counts_baseline": {
+    "policy_shift": 288,
+    "shortage": 98
+  },
+  "event_counts_treatment": {
+    "policy_shift": 288,
+    "shortage": 184,
+    "god_intervention": 1,
+    "trade_throttled": 120
+  },
+  "series_divergence_mean_abs": {
+    "world_gdp": 4.2041,
+    "mean_stability": 2.6044,
+    "wars": 0.0,
+    "price_energy": 0.257,
+    "price_food": 0.0543,
+    "collapsed": 0.0
+  },
+  "god_intervention_cascade_sizes": {
+    "e000057": 439
+  }
+}

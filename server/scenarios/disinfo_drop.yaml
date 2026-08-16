@@ -1,0 +1,9 @@
+name: disinfo_drop
+description: "Voltania を標的とした偽情報キャンペーン。疑心暗鬼の連鎖からチキンレース・偶発的衝突への伝播を観測する。"
+interventions:
+  - tick: 4
+    type: disinfo
+    params: {target: VLT, intensity: 1.5}
+  - tick: 12
+    type: disinfo
+    params: {target: VLT, intensity: 1.0}

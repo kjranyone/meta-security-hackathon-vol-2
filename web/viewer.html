@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>Geopolitics Terrarium — Replay Viewer</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --border: #30363d;
+    --text: #e6edf3; --dim: #8b949e; --accent: #58a6ff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font: 13px/1.5 "Helvetica Neue", Arial, sans-serif; display: flex; flex-direction: column; height: 100vh; }
+  header { display: flex; align-items: center; gap: 12px; padding: 8px 14px; border-bottom: 1px solid var(--border); background: var(--panel); }
+  header h1 { font-size: 15px; font-weight: 600; }
+  header .spacer { flex: 1; }
+  header input[type=text] { background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 4px 8px; width: 340px; }
+  header button { background: #21262d; border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 4px 12px; cursor: pointer; }
+  header button:hover { border-color: var(--accent); }
+  #main { display: flex; flex: 1; min-height: 0; }
+  #mapwrap { flex: 1.4; display: flex; align-items: center; justify-content: center; position: relative; background: #0a0e14; min-width: 0; }
+  canvas#map { cursor: crosshair; }
+  #side { width: 460px; border-left: 1px solid var(--border); display: flex; flex-direction: column; min-height: 0; }
+  .pane { border-bottom: 1px solid var(--border); padding: 8px 10px; overflow: auto; }
+  .pane h3 { font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; }
+  #stats { max-height: 190px; }
+  #charts { max-height: 170px; }
+  canvas#chart { width: 100%; height: 120px; }
+  #feed { flex: 1; min-height: 0; }
+  #feed .ev { padding: 3px 6px; border-radius: 4px; margin-bottom: 2px; cursor: pointer; }
+  #feed .ev:hover { background: #1c2129; }
+  #feed .ev .t { color: var(--dim); font-size: 11px; margin-right: 6px; }
+  .ev-war { border-left: 3px solid #f85149; }
+  .ev-collapse { border-left: 3px solid #d29922; }
+  .ev-god { border-left: 3px solid #a371f7; background: rgba(163,113,247,.08); }
+  .ev-shortage { border-left: 3px solid #db6d28; }
+  .ev-sanction, .ev-threat { border-left: 3px solid #d29922; }
+  .ev-alliance { border-left: 3px solid #3fb950; }
+  .ev-price { border-left: 3px solid #e3b341; }
+  .ev-disinfo { border-left: 3px solid #f778ba; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { color: var(--dim); font-weight: 500; text-align: left; }
+  td, th { padding: 2px 6px 2px 0; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.sel td { background: rgba(88,166,255,.15); }
+  #timeline { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-top: 1px solid var(--border); background: var(--panel); }
+  #timeline input[type=range] { flex: 1; }
+  #ticklabel { font-variant-numeric: tabular-nums; min-width: 90px; color: var(--dim); }
+  #hover { position: absolute; pointer-events: none; background: rgba(22,27,34,.95); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-size: 12px; display: none; z-index: 5; max-width: 260px; }
+  .legend { position: absolute; left: 10px; bottom: 10px; font-size: 11px; color: var(--dim); background: rgba(13,17,23,.7); padding: 6px 8px; border-radius: 6px; }
+  #speed { width: 60px; }
+  .drophint { color: var(--dim); padding: 40px; text-align: center; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🌐 Geopolitics Terrarium — Replay Viewer</h1>
+  <span class="spacer"></span>
+  <input type="text" id="url" placeholder="http://localhost:8787/logs/chokepoint_closure/replay.jsonl">
+  <button onclick="loadUrl()">読み込み</button>
+  <button onclick="document.getElementById('file').click()">ファイルを開く</button>
+  <input type="file" id="file" accept=".jsonl" style="display:none" onchange="loadFile(this.files[0])">
+</header>
+<div id="main">
+  <div id="mapwrap">
+    <div class="drophint" id="hint">replay.jsonl をドラッグ＆ドロップ または URL/ファイルで読み込み<br><small>例: <code>cd server && uv run python -m terrarium.runner.headless --scenario scenarios/chokepoint_closure.yaml</code></small></div>
+    <canvas id="map" width="900" height="620" style="display:none"></canvas>
+    <div id="hover"></div>
+    <div class="legend" id="legend" style="display:none">
+      ● 国家領土（色=国家） ・ ◆ 資源 ・ ⚓ 海峡 ・ ▲ 戦争中 ・ 黒=消滅ヘックス
+    </div>
+  </div>
+  <div id="side">
+    <div class="pane" id="stats"><h3>Nations</h3><div id="statbody">—</div></div>
+    <div class="pane" id="charts"><h3>Prices &amp; Stability</h3><canvas id="chart" width="880" height="240"></canvas></div>
+    <div class="pane" id="feed"><h3>Event cascade <span id="cascadeinfo" style="color:var(--accent)"></span></h3><div id="feedbody">—</div></div>
+  </div>
+</div>
+<div id="timeline">
+  <button id="play" onclick="togglePlay()">▶ 再生</button>
+  <input type="range" id="scrub" min="0" max="0" value="0" oninput="render(+this.value)">
+  <span id="ticklabel">tick 0</span>
+  <label style="color:var(--dim)">速度</label>
+  <input type="range" id="speed" min="1" max="10" value="5" oninput="setSpeed(this.value)">
+</div>
+<script>
+"use strict";
+// ---------------------------------------------------------------- state
+let META = null, TICKS = [], destroyedAt = {};
+let cur = 0, playing = false, timer = null, selected = null;
+
+// ---------------------------------------------------------------- loading
+async function loadUrl() {
+  const url = document.getElementById("url").value.trim();
+  if (!url) return;
+  try {
+    const text = await (await fetch(url)).text();
+    ingest(text);
+  } catch (e) { alert("読み込み失敗: " + e.message); }
+}
+function loadFile(f) {
+  if (!f) return;
+  const rd = new FileReader();
+  rd.onload = () => ingest(rd.result);
+  rd.readAsText(f);
+}
+window.addEventListener("dragover", e => e.preventDefault());
+window.addEventListener("drop", e => {
+  e.preventDefault();
+  if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+});
+
+function ingest(text) {
+  META = null; TICKS = []; destroyedAt = {};
+  for (const line of text.split("\n")) {
+    if (!line.trim()) continue;
+    let obj; try { obj = JSON.parse(line); } catch { continue; }
+    if (obj.type === "meta") META = obj;
+    else if (obj.type === "tick") TICKS.push(obj);
+  }
+  if (!TICKS.length) { alert("replay.jsonl に tick がありません"); return; }
+  document.getElementById("hint").style.display = "none";
+  document.getElementById("map").style.display = "block";
+  document.getElementById("legend").style.display = "block";
+  // resource destruction timeline (hex disappears when god destroys it)
+  // events only carry text; visual proxy: use destroyed flags from snapshots is not present,
+  // so map shows static meta map + dynamic chokepoint/war overlays.
+  const scrub = document.getElementById("scrub");
+  scrub.max = TICKS.length - 1;
+  render(0);
+}
+
+// ---------------------------------------------------------------- hex math (matches server hexgrid.py)
+const SQ3 = Math.sqrt(3);
+function axialToPixel(q, r, size) { return [size * SQ3 * (q + r / 2), size * 1.5 * r]; }
+function corners(cx, cy, s) {
+  const pts = [];
+  for (let i = 0; i < 6; i++) {
+    const a = Math.PI / 180 * (60 * i - 30);
+    pts.push([cx + s * Math.cos(a), cy + s * Math.sin(a)]);
+  }
+  return pts;
+}
+function drawHex(ctx, cx, cy, s) {
+  const p = corners(cx, cy, s);
+  ctx.beginPath();
+  ctx.moveTo(p[0][0], p[0][1]);
+  for (let i = 1; i < 6; i++) ctx.lineTo(p[i][0], p[i][1]);
+  ctx.closePath();
+}
+
+const TERRAIN = { ocean: "#0e2233", plain: "#3d5a3b", mountain: "#5a5a66", desert: "#8a7448", forest: "#2c4a30" };
+const RES_ICON = { oil: "🛢", gas: "🔥", grain: "🌾", fab: "🔲", finance: "💰" };
+
+// ---------------------------------------------------------------- map render
+function render(i) {
+  cur = i;
+  const tick = TICKS[i];
+  document.getElementById("ticklabel").textContent = `tick ${tick.tick} / ${TICKS[TICKS.length-1].tick}`;
+  renderMap(tick);
+  renderStats(tick);
+  renderChart(i);
+  renderFeed(tick, i);
+}
+
+function renderMap(tick) {
+  const cv = document.getElementById("map"), ctx = cv.getContext("2d");
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  if (!META) return;
+  const size = Math.min(cv.width / ((META.spec.cols + 1.5) * SQ3), cv.height / (META.spec.rows * 1.5 + 1)) * 1.35;
+  const offX = cv.width / 2 - (META.spec.cols * SQ3 * size) / 2, offY = cv.height / 2 - (META.spec.rows * 1.5 * size) / 2;
+  cv._layout = { size, offX, offY };
+  const nations = tick.nations;
+  // pass 1: tiles
+  for (const t of META.map) {
+    const [x, y] = axialToPixel(t.q, t.r, size);
+    const cx = x + offX, cy = y + offY;
+    drawHex(ctx, cx, cy, size * 0.96);
+    if (t.terrain === "ocean") {
+      ctx.fillStyle = TERRAIN.ocean; ctx.fill();
+    } else {
+      ctx.fillStyle = t.owner && nations[t.owner] ? nations[t.owner].color : TERRAIN[t.terrain];
+      ctx.fill();
+      ctx.strokeStyle = "rgba(0,0,0,.35)"; ctx.stroke();
+    }
+    if (t.resource && !t.destroyed) {
+      ctx.font = `${Math.round(size * 0.9)}px serif`;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(RES_ICON[t.resource] || "?", cx, cy);
+    }
+  }
+  // pass 2: chokepoints
+  for (const [name, closed] of Object.entries(tick.chokepoints || {})) {
+    const cp = META.spec.chokepoints.find(c => c.name === name);
+    if (!cp) continue;
+    const [x, y] = axialToPixel(cp.q, cp.r, size);
+    const cx = x + offX, cy = y + offY;
+    ctx.font = `${Math.round(size * 1.1)}px serif`;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(closed ? "⛔" : "⚓", cx, cy);
+    if (closed) {
+      drawHex(ctx, cx, cy, size * 1.2);
+      ctx.strokeStyle = "#f85149"; ctx.lineWidth = 2; ctx.stroke(); ctx.lineWidth = 1;
+    }
+  }
+  // pass 3: war markers on capitals
+  for (const [nid, n] of Object.entries(nations)) {
+    if (!n.at_war_with?.length) continue;
+    const spec = META.spec.nations.find(s => s.id === nid);
+    const q = spec.center[0] - (spec.center[1] - (spec.center[1] & 1)) / 2;
+    const [x, y] = axialToPixel(q, spec.center[1], size);
+    ctx.font = `${Math.round(size * 1.2)}px serif`;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("⚔️", x + offX, y + offY - size * 0.8);
+    if (n.collapsed) {
+      ctx.font = `${Math.round(size * 1.3)}px serif`;
+      ctx.fillText("💀", x + offX, y + offY + size * 0.6);
+    }
+  }
+  // nation labels
+  ctx.font = "600 11px sans-serif"; ctx.textAlign = "center";
+  for (const spec of META.spec.nations) {
+    const q = spec.center[0] - (spec.center[1] - (spec.center[1] & 1)) / 2;
+    const [x, y] = axialToPixel(q, spec.center[1], size);
+    ctx.fillStyle = "rgba(255,255,255,.85)";
+    ctx.fillText(nations[spec.id]?.name || spec.id, x + offX, y + offY + size * 1.7);
+  }
+}
+
+// ---------------------------------------------------------------- stats
+function renderStats(tick) {
+  const el = document.getElementById("statbody");
+  let rows = `<table><tr><th></th><th>GDP</th><th>物価↑</th><th>安定</th><th>軍事</th><th>備蓄 E/F/C</th></tr>`;
+  for (const [nid, n] of Object.entries(tick.nations)) {
+    const cls = selected === nid ? "sel" : "";
+    const st = n.stocks;
+    rows += `<tr class="${cls}" onclick="selectNation('${nid}')">
+      <td><span style="color:${n.color}">●</span> ${n.name}${n.collapsed ? " 💀" : ""}${n.at_war_with?.length ? " ⚔️" : ""}</td>
+      <td class="num">${n.gdp.toFixed(1)}</td>
+      <td class="num">${(n.inflation * 100).toFixed(1)}%</td>
+      <td class="num">${n.stability.toFixed(0)}</td>
+      <td class="num">${n.military.toFixed(0)}</td>
+      <td class="num">${st.energy?.toFixed(1)}/${st.food?.toFixed(1)}/${st.chips?.toFixed(1)}</td></tr>`;
+  }
+  rows += "</table>";
+  const m = tick.metrics;
+  rows += `<div style="margin-top:6px;color:var(--dim)">世界GDP <b style="color:var(--text)">${m.world_gdp.toFixed(1)}</b>
+    ・平均安定 <b style="color:var(--text)">${m.mean_stability.toFixed(1)}</b>
+    ・戦争 <b style="color:var(--text)">${m.wars}</b>
+    ・崩壊 <b style="color:var(--text)">${m.collapsed}</b>
+    ・平均インフレ <b style="color:var(--text)">${(m.mean_inflation * 100).toFixed(1)}%</b></div>`;
+  el.innerHTML = rows;
+}
+function selectNation(nid) { selected = selected === nid ? null : nid; render(cur); }
+
+// ---------------------------------------------------------------- charts
+const SERIES_COLORS = { price_energy: "#e3b341", price_food: "#7cb342", price_chips: "#58a6ff", mean_stability: "#f778ba", world_gdp: "#a371f7" };
+function renderChart(i) {
+  const cv = document.getElementById("chart"), ctx = cv.getContext("2d");
+  const W = cv.width, H = cv.height;
+  ctx.clearRect(0, 0, W, H);
+  if (!TICKS.length) return;
+  const keys = Object.keys(SERIES_COLORS);
+  const max = {};
+  for (const k of keys) max[k] = Math.max(...TICKS.map(t => t.metrics[k] ?? 0), 1e-9);
+  const x0 = 40, x1 = W - 8, y0 = 10, y1 = H - 18;
+  ctx.strokeStyle = "#30363d";
+  for (let g = 0; g <= 4; g++) {
+    const y = y0 + (y1 - y0) * g / 4;
+    ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke();
+  }
+  for (const k of keys) {
+    ctx.strokeStyle = SERIES_COLORS[k]; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    TICKS.forEach((t, idx) => {
+      const x = x0 + (x1 - x0) * idx / Math.max(1, TICKS.length - 1);
+      const y = y1 - (y1 - y0) * (t.metrics[k] ?? 0) / max[k];
+      idx ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    });
+    ctx.stroke();
+  }
+  // playhead
+  const x = x0 + (x1 - x0) * i / Math.max(1, TICKS.length - 1);
+  ctx.strokeStyle = "#e6edf3"; ctx.setLineDash([3, 3]);
+  ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y1); ctx.stroke(); ctx.setLineDash([]);
+  // legend
+  ctx.font = "11px sans-serif"; ctx.textAlign = "left";
+  let lx = x0;
+  for (const k of keys) {
+    ctx.fillStyle = SERIES_COLORS[k];
+    const label = k.replace("price_", "").replace("mean_", "");
+    ctx.fillText(label, lx, H - 5);
+    lx += ctx.measureText(label).width + 18;
+  }
+  ctx.lineWidth = 1;
+}
+
+// ---------------------------------------------------------------- feed
+const EV_CLASS = { war_start: "ev-war", war_end: "ev-war", collapse: "ev-collapse", god_intervention: "ev-god",
+  shortage: "ev-shortage", sanction: "ev-sanction", threat: "ev-sanction", alliance_formed: "ev-alliance",
+  price_spike: "ev-price", disinfo: "ev-disinfo", trade_throttled: "ev-price" };
+function renderFeed(tick, i) {
+  const el = document.getElementById("feedbody");
+  const evs = (tick.events || []).slice().reverse();
+  let html = "";
+  for (const e of evs) {
+    html += `<div class="ev ${EV_CLASS[e.type] || ""}" title="${(e.parents || []).length ? "上流: " + e.parents.join(",") : ""}">
+      <span class="t">t${e.tick}</span>${e.text}</div>`;
+  }
+  el.innerHTML = html || '<div style="color:var(--dim)">（このtickのイベントなし）</div>';
+  // cascade size: count events in this run so far descending from god events
+  const counts = {};
+  for (const t of TICKS) for (const e of t.events || {}) counts[e.type] = (counts[e.type] || 0) + 1;
+  const casc = Object.entries(counts).filter(([k]) => ["war_start", "collapse", "shortage", "sanction", "alliance_formed", "price_spike", "trade_throttled", "disinfo"].includes(k))
+    .map(([k, v]) => `${k}:${v}`).join(" ");
+  document.getElementById("cascadeinfo").textContent = casc ? "— " + casc : "";
+}
+
+// ---------------------------------------------------------------- hover
+document.getElementById("map").addEventListener("mousemove", ev => {
+  const cv = document.getElementById("map"), ctx = cv.getContext("2d");
+  if (!META || !cv._layout) return;
+  const rect = cv.getBoundingClientRect();
+  const mx = (ev.clientX - rect.left) * (cv.width / rect.width);
+  const my = (ev.clientY - rect.top) * (cv.height / rect.height);
+  const { size, offX, offY } = cv._layout;
+  let best = null, bd = 1e9;
+  for (const t of META.map) {
+    const [x, y] = axialToPixel(t.q, t.r, size);
+    const d = (x + offX - mx) ** 2 + (y + offY - my) ** 2;
+    if (d < bd) { bd = d; best = t; }
+  }
+  const h = document.getElementById("hover");
+  if (best && bd < (size * 1.1) ** 2) {
+    const tick = TICKS[cur];
+    const owner = best.owner ? tick.nations[best.owner] : null;
+    h.innerHTML = `<b>${best.owner ? owner.name : "無主地"}</b><br>地形: ${best.terrain}${best.resource ? "<br>資源: " + best.resource : ""}${owner ? `<br>GDP ${owner.gdp.toFixed(1)} / 安定 ${owner.stability.toFixed(0)} / 世論 ${owner.approval.toFixed(0)}` : ""}`;
+    h.style.display = "block";
+    h.style.left = (ev.clientX - rect.left + 14) + "px";
+    h.style.top = (ev.clientY - rect.top + 10) + "px";
+  } else h.style.display = "none";
+});
+document.getElementById("map").addEventListener("mouseleave", () => document.getElementById("hover").style.display = "none");
+
+// ---------------------------------------------------------------- playback
+function togglePlay() {
+  playing = !playing;
+  document.getElementById("play").textContent = playing ? "⏸ 停止" : "▶ 再生";
+  if (playing) {
+    timer = setInterval(() => {
+      const next = cur + 1 >= TICKS.length ? 0 : cur + 1;
+      document.getElementById("scrub").value = next;
+      render(next);
+    }, 1100 - document.getElementById("speed").value * 100);
+  } else clearInterval(timer);
+}
+function setSpeed(v) { if (playing) { clearInterval(timer); togglePlay(); togglePlay(); } }
+</script>
+</body>
+</html>

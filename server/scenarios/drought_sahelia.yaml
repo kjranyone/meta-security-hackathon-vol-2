@@ -1,0 +1,9 @@
+name: drought_sahelia
+description: "Sahelia に旱魃＋食料スライダー引き下げ。輸入依存の新興国で食料危機と社会崩壊の連鎖を観測する。"
+interventions:
+  - tick: 3
+    type: disaster
+    params: {nation: SAH, kind: drought}
+  - tick: 5
+    type: global_slider
+    params: {param: food_yield, value: 0.6}

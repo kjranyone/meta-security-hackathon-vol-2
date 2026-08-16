@@ -1,0 +1,170 @@
+# Fictional archetypical world (M1). Real-data preset comes in M3.
+name: default
+cols: 26
+rows: 14
+
+nations:
+  - id: VLT
+    name: Voltania
+    persona: "技術立島国。半導体ファブを握るがエネルギーは海外依存。冷静な技術官僚主導。"
+    color: "#4f8ef7"
+    center: [20, 3]
+    radius: 2
+    population_m: 120
+    gdp_t: 5.2
+    military: 40
+    stability: 72
+    approval: 55
+    aggression: 0.2
+    paranoia: 0.35
+    resources: [fab, fab]
+    terrain_bias: forest
+    stockpile_months: {energy: 2.0, food: 3.0, chips: 6.0}
+
+  - id: PTR
+    name: Petrova
+    persona: "資源専制国家。石油とガスの輸出で立ち、好戦的で疑い深い指導部。"
+    color: "#e0a13a"
+    center: [8, 3]
+    radius: 3
+    population_m: 90
+    gdp_t: 2.1
+    military: 55
+    stability: 50
+    approval: 45
+    aggression: 0.6
+    paranoia: 0.5
+    resources: [oil, oil, gas]
+    terrain_bias: desert
+    stockpile_months: {energy: 8.0, food: 2.0, chips: 1.5}
+
+  - id: GRN
+    name: Granaria
+    persona: "穀物超大国。食料の輸出杠杆を外交の武器にする穏健な農業大国。"
+    color: "#7cb342"
+    center: [13, 9]
+    radius: 3
+    population_m: 200
+    gdp_t: 3.4
+    military: 45
+    stability: 65
+    approval: 60
+    aggression: 0.25
+    paranoia: 0.25
+    resources: [grain, grain, grain, grain]
+    terrain_bias: plain
+    stockpile_months: {energy: 3.0, food: 8.0, chips: 2.0}
+
+  - id: MER
+    name: Meridia
+    persona: "金融ハブ都市国家。資本と情報が集まり、軍事力は小さいが経済杠杆は大きい。"
+    color: "#9a6fe0"
+    center: [4, 7]
+    radius: 2
+    population_m: 60
+    gdp_t: 4.0
+    military: 25
+    stability: 75
+    approval: 60
+    aggression: 0.15
+    paranoia: 0.3
+    resources: [finance, finance]
+    terrain_bias: plain
+    stockpile_months: {energy: 2.5, food: 2.5, chips: 3.0}
+
+  - id: KES
+    name: Kessland
+    persona: "製造業大国。輸出依存の工業経済。エネルギーとチップを輸入し防衛的。"
+    color: "#546e7a"
+    center: [17, 6]
+    radius: 3
+    population_m: 150
+    gdp_t: 4.8
+    military: 50
+    stability: 60
+    approval: 50
+    aggression: 0.4
+    paranoia: 0.45
+    resources: [fab]
+    terrain_bias: plain
+    stockpile_months: {energy: 2.0, food: 3.0, chips: 3.0}
+
+  - id: SAH
+    name: Sahelia
+    persona: "新興発展途上国。食料もエネルギーも輸入依存で、人口は若く大きい。不安定だが伸びる。"
+    color: "#c0682f"
+    center: [9, 12]
+    radius: 2
+    population_m: 180
+    gdp_t: 0.8
+    military: 20
+    stability: 45
+    approval: 40
+    aggression: 0.3
+    paranoia: 0.4
+    resources: []
+    terrain_bias: desert
+    stockpile_months: {energy: 1.5, food: 1.5, chips: 1.0}
+
+  - id: NRD
+    name: Nordika
+    persona: "高福祉の資源小国。再エネでほぼ自給。平和主義だが戦略的にも冷静。"
+    color: "#26a69a"
+    center: [3, 1]
+    radius: 2
+    population_m: 30
+    gdp_t: 1.6
+    military: 30
+    stability: 80
+    approval: 65
+    aggression: 0.1
+    paranoia: 0.2
+    resources: [gas, grain]
+    terrain_bias: forest
+    stockpile_months: {energy: 6.0, food: 2.0, chips: 2.0}
+
+  - id: ARX
+    name: Aurexia
+    persona: "巨大な複合経済の覇権国。軍事力は最大級。穀物と石油を一部自給するが輸入も多い。"
+    color: "#d35400"
+    center: [21, 10]
+    radius: 3
+    population_m: 300
+    gdp_t: 6.5
+    military: 80
+    stability: 55
+    approval: 50
+    aggression: 0.5
+    paranoia: 0.55
+    resources: [oil, oil, grain]
+    terrain_bias: plain
+    stockpile_months: {energy: 4.0, food: 4.0, chips: 2.0}
+
+chokepoints:
+  - {name: "Strait of Ormuz", q: 11, r: 4}    # Petrova energy exports east
+  - {name: "Babel Channel", q: 18, r: 8}      # between Kessland/Voltania bloc and Granaria/Aurexia
+  - {name: "Southern Gate", q: 13, r: 12}     # south sea route to Sahelia
+  - {name: "Western Passage", q: 3, r: 4}     # Nordika/Meridia northern route
+
+routes:
+  # energy (Petrova & Aurexia export; Ormuz is the critical artery)
+  - {importer: VLT, exporter: PTR, commodity: energy, share: 0.7, chokepoints: ["Strait of Ormuz"]}
+  - {importer: KES, exporter: PTR, commodity: energy, share: 0.5, chokepoints: ["Strait of Ormuz"]}
+  - {importer: KES, exporter: ARX, commodity: energy, share: 0.5, chokepoints: []}
+  - {importer: MER, exporter: PTR, commodity: energy, share: 0.5, chokepoints: ["Western Passage"]}
+  - {importer: MER, exporter: NRD, commodity: energy, share: 0.5, chokepoints: []}
+  - {importer: SAH, exporter: PTR, commodity: energy, share: 0.3, chokepoints: ["Southern Gate"]}
+  - {importer: SAH, exporter: ARX, commodity: energy, share: 0.4, chokepoints: []}
+  # food (Granaria is the breadbasket)
+  - {importer: SAH, exporter: GRN, commodity: food, share: 0.6, chokepoints: ["Southern Gate"]}
+  - {importer: ARX, exporter: GRN, commodity: food, share: 0.3, chokepoints: ["Babel Channel"]}
+  - {importer: MER, exporter: GRN, commodity: food, share: 0.4, chokepoints: []}
+  - {importer: PTR, exporter: GRN, commodity: food, share: 0.4, chokepoints: ["Strait of Ormuz"]}
+  - {importer: VLT, exporter: GRN, commodity: food, share: 1.0, chokepoints: ["Babel Channel"]}
+  - {importer: KES, exporter: GRN, commodity: food, share: 0.8, chokepoints: []}
+  # chips (Voltania fabs are everyone's bottleneck)
+  - {importer: ARX, exporter: VLT, commodity: chips, share: 0.4, chokepoints: ["Babel Channel"]}
+  - {importer: PTR, exporter: VLT, commodity: chips, share: 0.5, chokepoints: ["Strait of Ormuz"]}
+  - {importer: GRN, exporter: VLT, commodity: chips, share: 0.3, chokepoints: []}
+  - {importer: MER, exporter: VLT, commodity: chips, share: 0.3, chokepoints: []}
+  - {importer: SAH, exporter: VLT, commodity: chips, share: 0.2, chokepoints: ["Southern Gate"]}
