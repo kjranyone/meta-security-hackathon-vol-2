@@ -1,7 +1,17 @@
+import { useEffect } from "react";
 // 「世界を創る」ダイアログ（新規ゲーム画面風・説明文なし）
 export default function CreateWorldDialog({ open, preset, policy, seed, rlNation,
                                             onPreset, onPolicy, onSeed, onRlNation,
                                             onCreate, onClose }) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = e => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "Enter") { onCreate(); onClose(); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onCreate, onClose]);
   if (!open) return null;
   return (
     <div className="modal-back" onClick={onClose}>
