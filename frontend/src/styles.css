@@ -127,7 +127,7 @@ label.sl output { width: 44px; text-align: right; }
 .card button.godbtn:hover { background: rgba(163,113,247,.15); }
 
 /* ---------------- splitters ---------------- */
-.vsplit { flex: 0 0 7px; cursor: col-resize; background: var(--border); position: relative; z-index: 6; }
+.vsplit { flex: 0 0 7px; cursor: col-resize; background: var(--border); position: relative; z-index: 1; }
 .vsplit::before { content: ""; position: absolute; inset: 0 -8px; }
 .vsplit::after { content: "⇔"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
                  color: var(--dim); font-size: 11px; opacity: 0; transition: opacity .15s; }
