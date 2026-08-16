@@ -9,6 +9,7 @@ import CreateWorldDialog from "../components/CreateWorldDialog";
 import DateBar from "../components/DateBar";
 import Toasts, { useToasts } from "../components/Toasts";
 import LegendModal from "../components/LegendModal";
+import StatusModal from "../components/StatusModal";
 import { loadGeojson } from "../lib/geo";
 import { pickAt } from "../lib/renderMap";
 import { initAudio, beep, toneForTypes, MAJOR_TONES } from "../lib/audio";
@@ -38,6 +39,7 @@ export default function GodApp() {
   const [conn, setConn] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [legendOpen, setLegendOpen] = useState(false);
+  const [statusOpen, setStatusOpen] = useState(false);
   const { toasts, push: pushToast } = useToasts();
   const wsRef = useRef(null);
   const tlRef = useRef(null);
@@ -140,14 +142,18 @@ export default function GodApp() {
   return (
     <div className="app">
       <header>
-        <h1>Geopolitics Terrarium — 神の玉座</h1>
-        <span id="conn" className={conn ? "ok" : "bad"}>{conn ? "接続中" : "切断"}</span>
+        <h1 onClick={() => setStatusOpen(true)}>Geopolitics Terrarium — 神の玉座</h1>
+        <span id="conn" className={conn ? "ok" : "bad"} onClick={() => setStatusOpen(true)}>{conn ? "接続中" : "切断"}</span>
         <span className="spacer" />
         <button onClick={() => setCreateOpen(true)}>世界を創る</button>
         <button className="helpbtn" onClick={() => setLegendOpen(true)}>?</button>
       </header>
 
       {legendOpen && <LegendModal onClose={() => setLegendOpen(false)} />}
+      {statusOpen && (
+        <StatusModal onClose={() => setStatusOpen(false)} conn={conn} status={status}
+                     tick={tick} meta={meta} preset={preset} policy={policy} seed={seed} />
+      )}
 
       <CreateWorldDialog open={createOpen} preset={preset} policy={policy} seed={seed}
                          rlNation={rlNation} onPreset={setPreset} onPolicy={setPolicy}
