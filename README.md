@@ -97,6 +97,21 @@ IF世界で新たに起きた:   t9 JPN破綻（債務252%は一度の救済で�
 `run.json` の `config` に元runの (preset, policy, scenario) が記録されるため、IFは自動で同じ条件下から分岐します
 （LLM run は非決定論的なため mock_llm にフォールバック+警告）。
 
+### 全国家AI化: earth_all プリセット（全世界176カ国）
+
+`earth_all` は **Natural Earth の全特徴を1国1国家AIとして手続き生成**します。
+主要66カ国は概算データ（GDP・軍事・債務・資源構造）のテーブルで詳細化し、
+残る国も決定論的なデフォルトで初期化。需給は全体で需要×1.15以上になるよう
+トップアップされ、航路（~660本）は実際の海峡を経由して自動生成されます。
+
+```bash
+uv run python -m terrarium.runner.headless --preset earth_all --seed 42 --ticks 12     --policy mock_llm --scenario scenarios/earth_hormuz.yaml
+```
+
+- 全主体がそれぞれ予算・外交・軍事姿勢を決定する「本当の世界シミュレーター」
+- 176カ国×664航路でも **~70ms/tick**（リアルタイム再生可）
+- 同じseedで常に同一の世界（決定論）。16カ国版 `earth` は提出実験の再現用に温存
+
 ### 世界の自動生成（プロシージャル生成）
 
 実世界プリセット（`presets/earth.yaml`: 実在16主体・実在海峡・シーレーン）に加え、
