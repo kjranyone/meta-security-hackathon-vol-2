@@ -52,7 +52,6 @@ export default function GodCards({ sel, meta, tick, intervene }) {
             </div>
           </div>
         </div>
-        <div className="hint">地図の海峡⚓または国家をクリックして介入カードを選べる。何も選んでいないときは世界パラメータ。</div>
       </>
     );
   }

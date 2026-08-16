@@ -67,10 +67,6 @@ export default function IfPanel({ open, onClose, baseDefault, tickDefault, meta,
   return (
     <div className="ifpanel">
       <h3>⏪ IF史モード — 「過去に△△していたら」</h3>
-      <div style={{ color: "var(--dim)", fontSize: 11.5, marginBottom: 6 }}>
-        見ている歴史を <b>tick</b> まで巻き戻し、神の介入を1つ差し込んで再実行します。
-        決定論エンジンなので分岐tickまでは元の歴史と完全に同一、以降が新しい歴史になります。
-      </div>
       <label>元の歴史（base run）</label>
       <input type="text" value={base} onChange={e => setBase(e.target.value)}
              placeholder="earth_earth_financial_crisis" />

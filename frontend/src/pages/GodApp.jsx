@@ -141,8 +141,8 @@ export default function GodApp() {
                    onMapClick={onMapClick} />
         <DateBar tick={tick?.tick} maxTick={status.max_ticks} visible={!!tick} />
         <div className="legend top">
-          クリック: 海峡⚓=封鎖 / 国家=介入カード。紫=航路(エネルギー) 緑=食料 青=チップ 紫=地下 水色=宇宙・ ⚔️戦争 💀崩壊 橙枠=破綻
-          <br /><span style={{ color: "#3fb950" }}>緑=高信頼</span> / 灰=中立 / <span style={{ color: "#f85149" }}>赤=敵対</span> = 友好度線
+          ⚓/⛔ 海峡 ・ 紫琥珀緑青の弧=航路 ・ ⚔️戦争 💀崩壊 🏦✖破綻
+          <br /><span style={{ color: "#3fb950" }}>緑</span>=高信頼 / 灰=中立 / <span style={{ color: "#f85149" }}>赤</span>=敵対
         </div>
         <GodBar sel={sel} meta={meta} intervene={intervene} />
 

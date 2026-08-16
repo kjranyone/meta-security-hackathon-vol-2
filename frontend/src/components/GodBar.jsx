@@ -27,7 +27,7 @@ export default function GodBar({ sel, meta, intervene }) {
   return (
     <div className="godbar">
       <span className="tgt">
-        {nation || cp ? <>対象: <b>{name}</b></> : "対象なし（国家/海峡をクリック）"}
+        {nation || cp ? <>対象: <b>{name}</b></> : "対象なし"}
       </span>
       <select data-k="dur" >{[6, 12, 24, 60].map(d => <option key={d}>{d}</option>)}</select>
       <select data-k="res" >{RESOURCES.map(r => <option key={r}>{r}</option>)}</select>
