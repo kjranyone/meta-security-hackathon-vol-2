@@ -7,6 +7,7 @@ import DateBar from "../components/DateBar";
 import TimelineBar from "../components/TimelineBar";
 import IfPanel from "../components/IfPanel";
 import Toasts, { useToasts } from "../components/Toasts";
+import LegendModal from "../components/LegendModal";
 import { VSplit, HSplit } from "../components/Splitter";
 
 import { loadGeojson } from "../lib/geo";
@@ -26,6 +27,7 @@ export default function ViewerApp() {
   const [flash, setFlash] = useState(0);
   const [urlInput, setUrlInput] = useState("");
   const [ifOpen, setIfOpen] = useState(false);
+  const [legendOpen, setLegendOpen] = useState(false);
   const { toasts, push: pushToast } = useToasts();
   const [clockFrac, setClockFrac] = useState(0.5);
   const [sideW, setSideW] = useState(460);
@@ -136,7 +138,10 @@ export default function ViewerApp() {
                }} />
         <button className={showRoutes ? "on" : ""} onClick={() => setShowRoutes(s2 => !s2)}>航路</button>
         <button onClick={() => { initAudio(); setIfOpen(o => !o); }}>⏪ IF史</button>
+        <button className="helpbtn" onClick={() => setLegendOpen(true)}>?</button>
       </header>
+
+      {legendOpen && <LegendModal onClose={() => setLegendOpen(false)} />}
 
       <div className="main">
         {tick ? (
@@ -145,10 +150,6 @@ export default function ViewerApp() {
                        selectedNation={selected} showRoutes={showRoutes} />
             <DateBar tick={tick.tick} maxTick={ticks[ticks.length - 1].tick}
                      frac={playing ? clockFrac : 0} visible />
-            <div className="legend">
-              ⚓/⛔ 海峡 ・ 弧=航路（琥珀=能源 緑=食料 青=半導体 紫=地下 水色=宇宙）・ ⚔️戦争 💀崩壊 🏦✖破綻
-              <br /><span style={{ color: "#3fb950" }}>緑</span>=高信頼 / 灰=中立 / <span style={{ color: "#f85149" }}>赤</span>=敵対
-            </div>
           </>
         ) : (
           <div className="mapwrap">

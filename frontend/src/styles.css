@@ -88,10 +88,6 @@ input[type=range] { accent-color: var(--accent); }
            padding: 4px 14px; font-size: 15px; letter-spacing: .06em; font-variant-numeric: tabular-nums;
            max-width: 50%; text-align: center; pointer-events: none; }
 .datebar small { color: var(--dim); font-size: 11px; display: block; text-align: center; letter-spacing: 0; }
-.legend { position: absolute; left: 10px; bottom: 10px; top: auto; font-size: 11px; color: var(--dim);
-          background: rgba(13,17,23,.8); padding: 6px 8px; border-radius: 6px; max-width: 55%;
-          pointer-events: none; z-index: 3; }
-.legend.top { top: 10px; bottom: auto; max-width: 44%; }
 .hover { position: absolute; pointer-events: none; background: rgba(22,27,34,.95); border: 1px solid var(--border);
          border-radius: 6px; padding: 6px 10px; font-size: 12px; display: none; z-index: 5; max-width: 280px; }
 .drophint { color: var(--dim); padding: 40px; text-align: center; }
@@ -175,5 +171,4 @@ label.sl output { width: 44px; text-align: right; }
 
 @media (max-width: 1100px) {
   .datebar { font-size: 12.5px; padding: 3px 10px; }
-  .legend { font-size: 10px; }
-}
+  }

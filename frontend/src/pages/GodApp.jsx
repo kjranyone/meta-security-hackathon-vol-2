@@ -8,6 +8,7 @@ import GodCards from "../components/GodCards";
 import { VSplit, HSplit } from "../components/Splitter";
 import CreateWorldDialog from "../components/CreateWorldDialog";
 import Toasts, { useToasts } from "../components/Toasts";
+import LegendModal from "../components/LegendModal";
 import { loadGeojson } from "../lib/geo";
 import { pickAt } from "../lib/renderMap";
 import { initAudio, beep, toneForTypes, MAJOR_TONES } from "../lib/audio";
@@ -31,6 +32,7 @@ export default function GodApp() {
   const [rlNation, setRlNation] = useState("");
   const [conn, setConn] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [legendOpen, setLegendOpen] = useState(false);
   const { toasts, push: pushToast } = useToasts();
   const wsRef = useRef(null);
   const tlRef = useRef(null);
@@ -134,7 +136,10 @@ export default function GodApp() {
         <span id="conn" className={conn ? "ok" : "bad"}>{conn ? "接続中" : "切断"}</span>
         <span className="spacer" />
         <button onClick={() => setCreateOpen(true)}>🌍 世界を創る</button>
+        <button className="helpbtn" onClick={() => setLegendOpen(true)}>?</button>
       </header>
+
+      {legendOpen && <LegendModal onClose={() => setLegendOpen(false)} />}
 
       <CreateWorldDialog open={createOpen} preset={preset} policy={policy} seed={seed}
                          rlNation={rlNation} onPreset={setPreset} onPolicy={setPolicy}
@@ -147,10 +152,6 @@ export default function GodApp() {
                    selectedChokepoint={sel.kind === "cp" ? sel.id : null}
                    onMapClick={onMapClick} />
         <DateBar tick={tick?.tick} maxTick={status.max_ticks} visible={!!tick} />
-        <div className="legend top">
-          ⚓/⛔ 海峡 ・ 紫琥珀緑青の弧=航路 ・ ⚔️戦争 💀崩壊 🏦✖破綻
-          <br /><span style={{ color: "#3fb950" }}>緑</span>=高信頼 / 灰=中立 / <span style={{ color: "#f85149" }}>赤</span>=敵対
-        </div>
         <GodBar sel={sel} meta={meta} intervene={intervene} />
 
         <VSplit
