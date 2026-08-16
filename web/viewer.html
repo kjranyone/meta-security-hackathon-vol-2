@@ -23,10 +23,23 @@
   #side { width: 460px; border-left: 1px solid var(--border); display: flex; flex-direction: column; min-height: 0; }
   .pane { border-bottom: 1px solid var(--border); padding: 8px 10px; overflow: auto; }
   .pane h3 { font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; }
-  #stats { max-height: 200px; }
-  #charts { max-height: 170px; }
+  #stats { height: 200px; flex: none; }
+  #charts { height: 170px; flex: none; }
   canvas#chart { width: 100%; height: 120px; }
   #feed { flex: 1; min-height: 0; }
+  /* ---- draggable splitters（ペインのドラッグ拡大・縮小） ---- */
+  #vsplit { flex: 0 0 7px; cursor: col-resize; background: var(--border); position: relative; }
+  #vsplit::before { content: ""; position: absolute; inset: 0 -8px; } /* 広い当たり判定 */
+  #vsplit::after { content: "⇔"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                   color: var(--dim); font-size: 11px; opacity: 0; transition: opacity .15s; }
+  #vsplit:hover::after, #vsplit.drag::after { opacity: 1; }
+  #vsplit:hover, #vsplit.drag { background: var(--accent); }
+  .hsplit { flex: 0 0 7px; cursor: row-resize; background: var(--border); position: relative; }
+  .hsplit::before { content: ""; position: absolute; inset: -8px 0; } /* 広い当たり判定 */
+  .hsplit::after { content: "⇕"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                   color: var(--dim); font-size: 11px; opacity: 0; transition: opacity .15s; }
+  .hsplit:hover::after, .hsplit.drag::after { opacity: 1; }
+  .hsplit:hover, .hsplit.drag { background: var(--accent); }
   #feed .ev { padding: 3px 6px; border-radius: 4px; margin-bottom: 2px; cursor: pointer; }
   #feed .ev:hover { background: #1c2129; }
   #feed .ev .t { color: var(--dim); font-size: 11px; margin-right: 6px; }
@@ -86,9 +99,12 @@
     <div id="hover"></div>
     <div class="legend" id="legend" style="display:none">色付き国=国家 ・ ⚓/⛔ 海峡 ・ 実線=航路（琥珀=エネルギー 緑=食料 青=チップ 紫=地下資源 水色=宇宙）・ ⚔️ 戦争 ・ 💀 崩壊 ・ 橙枠=債務不履行 ・ 水色枠=未来技術の創発</div>
   </div>
+  <div id="vsplit" title="ドラッグで幅変更・ダブルクリックで戻す"></div>
   <div id="side">
     <div class="pane" id="stats"><h3>Nations</h3><div id="statbody">—</div></div>
+    <div class="hsplit" data-pane="stats" title="ドラッグで高さ変更・ダブルクリックで戻す"></div>
     <div class="pane" id="charts"><h3>Prices &amp; Stability</h3><canvas id="chart" width="880" height="240"></canvas></div>
+    <div class="hsplit" data-pane="charts" title="ドラッグで高さ変更・ダブルクリックで戻す"></div>
     <div class="pane" id="feed"><h3>Event cascade <span id="cascadeinfo" style="color:var(--accent)"></span></h3><div id="feedbody">—</div></div>
   </div>
 </div>
@@ -186,15 +202,106 @@ async function ingest(text) {
   document.getElementById("hint").style.display = "none";
   document.getElementById("map").style.display = "block";
   document.getElementById("legend").style.display = "block";
-  const cv = document.getElementById("map");
-  VIEW.scale = Math.min(cv.width / 366, cv.height / 186);
-  VIEW.ox = (cv.width - 360 * VIEW.scale) / 2;
-  VIEW.oy = (cv.height - 180 * VIEW.scale) / 2;
+  fitMapCanvas();
+  fitChartCanvas();
 
   const scrub = document.getElementById("scrub");
   scrub.max = TICKS.length - 1;
   render(0);
 }
+
+// ------------------------------------------------- pane resizing (splitters)
+function fitMapCanvas() {
+  const cv = document.getElementById("map");
+  if (cv.style.display === "none") return;
+  const box = document.getElementById("mapwrap").getBoundingClientRect();
+  const w = Math.max(320, Math.floor(box.width) - 8);
+  const h = Math.max(240, Math.floor(box.height) - 8);
+  cv.width = w; cv.height = h;
+  VIEW.scale = Math.min(cv.width / 366, cv.height / 186);
+  VIEW.ox = (cv.width - 360 * VIEW.scale) / 2;
+  VIEW.oy = (cv.height - 180 * VIEW.scale) / 2;
+}
+
+function fitChartCanvas() {
+  const ch = document.getElementById("chart");
+  if (!ch.clientWidth || !ch.clientHeight) return;
+  // 2x backing store for crisp lines (CSS shows it at client size)
+  ch.width = ch.clientWidth * 2;
+  ch.height = ch.clientHeight * 2;
+}
+
+(function initSplitters() {
+  const side = document.getElementById("side");
+  const vs = document.getElementById("vsplit");
+
+  function drag(onMove, onEnd) {
+    const move = e => { e.preventDefault(); onMove(e); };
+    const up = () => {
+      document.removeEventListener("pointermove", move);
+      document.removeEventListener("pointerup", up);
+      document.body.style.cursor = "";
+      document.querySelectorAll(".drag").forEach(el => el.classList.remove("drag"));
+      if (onEnd) onEnd();
+    };
+    document.addEventListener("pointermove", move);
+    document.addEventListener("pointerup", up);
+    document.body.style.cursor = "col-resize";
+  }
+
+  vs.addEventListener("pointerdown", e => {
+    e.preventDefault();
+    vs.classList.add("drag");
+    drag(ev => {
+      const w = Math.min(Math.max(window.innerWidth - ev.clientX, 300), window.innerWidth - 420);
+      side.style.width = w + "px";
+      fitMapCanvas();
+      if (META && TICKS.length) renderMap(TICKS[cur]);
+    }, () => { fitChartCanvas(); if (META && TICKS.length) renderChart(cur); });
+  });
+  vs.addEventListener("dblclick", () => {
+    side.style.width = "460px";
+    fitMapCanvas(); fitChartCanvas();
+    if (META && TICKS.length) render(cur);
+  });
+
+  document.querySelectorAll(".hsplit").forEach(h => {
+    const pane = document.getElementById(h.dataset.pane);
+    const defH = pane.id === "stats" ? 200 : 170;
+    h.addEventListener("pointerdown", e => {
+      e.preventDefault();
+      h.classList.add("drag");
+      document.body.style.cursor = "row-resize";
+      const move = ev => {
+        ev.preventDefault();
+        const top = pane.getBoundingClientRect().top;
+        const maxH = side.getBoundingClientRect().height - 180;
+        pane.style.height = Math.min(Math.max(ev.clientY - top, 70), Math.max(maxH, 70)) + "px";
+        fitChartCanvas();
+      };
+      const up = () => {
+        document.removeEventListener("pointermove", move);
+        document.removeEventListener("pointerup", up);
+        document.body.style.cursor = "";
+        h.classList.remove("drag");
+        if (META && TICKS.length) renderChart(cur);
+      };
+      document.addEventListener("pointermove", move);
+      document.addEventListener("pointerup", up);
+    });
+    h.addEventListener("dblclick", () => {
+      pane.style.height = defH + "px";
+      fitChartCanvas();
+      if (META && TICKS.length) renderChart(cur);
+    });
+  });
+
+  window.addEventListener("resize", () => {
+    fitMapCanvas();
+    fitChartCanvas();
+    if (META && TICKS.length) render(cur);
+  });
+})();
 
 // ---------------------------------------------------------------- map render
 const COMMO_COLOR = { energy: "rgba(227,179,65,0.5)", food: "rgba(124,179,66,0.5)", chips: "rgba(88,166,255,0.5)",

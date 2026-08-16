@@ -21,6 +21,18 @@
   #mapwrap { flex:1.5; position:relative; background:#0a0e14; min-width:0; display:flex; align-items:center; justify-content:center; }
   canvas#map { cursor:pointer; max-width:100%; max-height:100%; }
   #side { width:480px; border-left:1px solid var(--border); display:flex; flex-direction:column; min-height:0; }
+  #stats { height:200px; flex:none; }
+  /* ---- draggable splitters（ペインのドラッグ拡大・縮小） ---- */
+  #vsplit { flex:0 0 7px; cursor:col-resize; background:var(--border); position:relative; }
+  #vsplit::before { content:""; position:absolute; inset:0 -8px; }
+  #vsplit::after { content:"⇔"; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:var(--dim); font-size:11px; opacity:0; transition:opacity .15s; }
+  #vsplit:hover::after, #vsplit.drag::after { opacity:1; }
+  #vsplit:hover, #vsplit.drag { background:var(--god); }
+  .hsplit { flex:0 0 7px; cursor:row-resize; background:var(--border); position:relative; }
+  .hsplit::before { content:""; position:absolute; inset:-8px 0; }
+  .hsplit::after { content:"⇕"; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:var(--dim); font-size:11px; opacity:0; transition:opacity .15s; }
+  .hsplit:hover::after, .hsplit.drag::after { opacity:1; }
+  .hsplit:hover, .hsplit.drag { background:var(--god); }
   .pane { border-bottom:1px solid var(--border); padding:8px 10px; overflow:auto; }
   .pane h3 { font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:.08em; margin-bottom:6px; }
   #godpane { max-height:300px; background:rgba(163,113,247,.04); }
@@ -77,12 +89,14 @@
     <canvas id="map" width="960" height="540"></canvas>
     <div class="legend">クリック: 海峡⚓=封鎖カード / 国家=介入カード。紫=航路(エネルギー) 緑=食料 青=チップ 紫=地下 水色=宇宙・ ⚔️戦争 💀崩壊 橙枠=破綻</div>
   </div>
+  <div id="vsplit" title="ドラッグで幅変更・ダブルクリックで戻す"></div>
   <div id="side">
     <div class="pane" id="godpane">
       <h3>⚡ 神の介入 <span id="godtarget" style="color:var(--god)"></span></h3>
       <div id="godbody" class="hint">地図の海峡⚓または国家をクリックして介入カードを選べる。何も選んでいないときは世界パラメータ。</div>
     </div>
     <div class="pane" id="stats"><h3>Nations</h3><div id="statbody">—</div></div>
+    <div class="hsplit" data-pane="stats" title="ドラッグで高さ変更・ダブルクリックで戻す"></div>
     <div class="pane" id="feed"><h3>Event cascade <span id="cascadeinfo" style="color:var(--accent)"></span></h3><div id="feedbody">—</div></div>
   </div>
 </div>
@@ -144,9 +158,7 @@ async function loadGeo() {
     features.push({admin, rings}); if(!byName[admin]) byName[admin]=features.length-1;
   }
   GEO={features, byName};
-  const cv=document.getElementById("map");
-  VIEW.scale=Math.min(cv.width/366, cv.height/186);
-  VIEW.ox=(cv.width-360*VIEW.scale)/2; VIEW.oy=(cv.height-180*VIEW.scale)/2;
+  fitMapCanvas();
 }
 
 // ---------------------------------------------------------------- render
@@ -316,6 +328,53 @@ function renderGodPanel() {
 function selectNation(nid) { sel = sel.kind==="nation"&&sel.id===nid ? {kind:null,id:null} : {kind:"nation",id:nid}; renderGodPanel(); if(TICKS.length) render(cur); }
 
 // ---------------------------------------------------------------- map click
+// ------------------------------------------------- pane resizing (splitters)
+function fitMapCanvas() {
+  const cv=document.getElementById("map");
+  if (cv.style.display==="none") return;
+  const box=document.getElementById("mapwrap").getBoundingClientRect();
+  cv.width=Math.max(320, Math.floor(box.width)-8);
+  cv.height=Math.max(240, Math.floor(box.height)-8);
+  VIEW.scale=Math.min(cv.width/366, cv.height/186);
+  VIEW.ox=(cv.width-360*VIEW.scale)/2; VIEW.oy=(cv.height-180*VIEW.scale)/2;
+  if (TICKS.length) renderMap(TICKS[cur]);
+}
+(function initSplitters() {
+  const side=document.getElementById("side");
+  const vs=document.getElementById("vsplit");
+  vs.addEventListener("pointerdown", e => {
+    e.preventDefault(); vs.classList.add("drag");
+    document.body.style.cursor="col-resize";
+    const move=ev => { ev.preventDefault();
+      const w=Math.min(Math.max(window.innerWidth-ev.clientX, 320), window.innerWidth-420);
+      side.style.width=w+"px"; fitMapCanvas(); };
+    const up=() => { document.removeEventListener("pointermove",move); document.removeEventListener("pointerup",up);
+      document.body.style.cursor=""; vs.classList.remove("drag"); };
+    document.addEventListener("pointermove",move); document.addEventListener("pointerup",up);
+  });
+  vs.addEventListener("dblclick", () => { side.style.width="480px"; fitMapCanvas(); });
+  document.querySelectorAll(".hsplit").forEach(h => {
+    const pane=document.getElementById(h.dataset.pane);
+    const defH=pane.offsetHeight;   // 読み込み時の高さを既定値として記憶
+    h.addEventListener("pointerdown", e => {
+      e.preventDefault(); h.classList.add("drag");
+      document.body.style.cursor="row-resize";
+      const move=ev => { ev.preventDefault();
+        const top=pane.getBoundingClientRect().top;
+        const maxH=side.getBoundingClientRect().height-160;
+        pane.style.height=Math.min(Math.max(ev.clientY-top, 70), Math.max(maxH,70))+"px"; };
+      const up=() => { document.removeEventListener("pointermove",move); document.removeEventListener("pointerup",up);
+        document.body.style.cursor=""; h.classList.remove("drag"); };
+      document.addEventListener("pointermove",move); document.addEventListener("pointerup",up);
+    });
+    h.addEventListener("dblclick", () => { pane.style.height=defH+"px"; });
+  });
+  window.addEventListener("resize", fitMapCanvas);
+  // 地図が表示されたら実サイズに合わせる（初回meta受信後）
+  const mo=new MutationObserver(() => { if (document.getElementById("map").style.display!=="none") { fitMapCanvas(); mo.disconnect(); } });
+  mo.observe(document.getElementById("map"), { attributes:true, attributeFilter:["style"] });
+})();
+
 document.getElementById("map").addEventListener("click", async (ev) => {
   if (!META || !GEO) return;
   await loadGeo();
