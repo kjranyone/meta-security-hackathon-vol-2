@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>Geopolitics Terrarium — 神の玉座</title>
+<style>
+  :root { --bg:#0d1117; --panel:#161b22; --border:#30363d; --text:#e6edf3; --dim:#8b949e; --accent:#58a6ff; --god:#a371f7; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text); font:13px/1.5 "Helvetica Neue",Arial,sans-serif; display:flex; flex-direction:column; height:100vh; }
+  header { display:flex; align-items:center; gap:10px; padding:7px 14px; border-bottom:1px solid var(--border); background:var(--panel); flex-wrap:wrap; }
+  header h1 { font-size:15px; }
+  #conn { font-size:11px; padding:2px 8px; border-radius:10px; background:#21262d; }
+  #conn.ok { color:#3fb950; } #conn.bad { color:#f85149; }
+  .spacer { flex:1; }
+  select, input[type=number] { background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:6px; padding:3px 6px; }
+  button { background:#21262d; border:1px solid var(--border); color:var(--text); border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; }
+  button:hover { border-color:var(--accent); }
+  button.godbtn { border-color:var(--god); color:var(--god); }
+  button.godbtn:hover { background:rgba(163,113,247,.15); }
+  #main { display:flex; flex:1; min-height:0; }
+  #mapwrap { flex:1.5; position:relative; background:#0a0e14; min-width:0; display:flex; align-items:center; justify-content:center; }
+  canvas#map { cursor:pointer; max-width:100%; max-height:100%; }
+  #side { width:480px; border-left:1px solid var(--border); display:flex; flex-direction:column; min-height:0; }
+  .pane { border-bottom:1px solid var(--border); padding:8px 10px; overflow:auto; }
+  .pane h3 { font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:.08em; margin-bottom:6px; }
+  #godpane { max-height:300px; background:rgba(163,113,247,.04); }
+  #stats { max-height:180px; }
+  #feed { flex:1; min-height:0; }
+  #feed .ev { padding:3px 6px; border-radius:4px; margin-bottom:2px; }
+  #feed .ev .t { color:var(--dim); font-size:11px; margin-right:6px; }
+  .ev-war { border-left:3px solid #f85149; } .ev-collapse { border-left:3px solid #d29922; }
+  .ev-god { border-left:3px solid #a371f7; background:rgba(163,113,247,.08); }
+  .ev-shortage { border-left:3px solid #db6d28; } .ev-sanction,.ev-threat { border-left:3px solid #d29922; }
+  .ev-alliance { border-left:3px solid #3fb950; } .ev-price,.ev-trade { border-left:3px solid #e3b341; }
+  .ev-disinfo { border-left:3px solid #f778ba; } .ev-default { border-left:3px solid #ff6b35; background:rgba(255,107,53,.08); }
+  .ev-credhit { border-left:3px solid #ffa657; }
+  .ev-tech { border-left:3px solid #3fdeff; background:rgba(63,222,255,.07); } .ev-tech2 { border-left:3px solid #2f9c99; }
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  th { color:var(--dim); font-weight:500; text-align:left; }
+  td,th { padding:2px 5px 2px 0; }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  #timeline { display:flex; align-items:center; gap:10px; padding:7px 14px; border-top:1px solid var(--border); background:var(--panel); }
+  #ticklabel { font-variant-numeric:tabular-nums; min-width:110px; color:var(--dim); }
+  .cardrow { display:flex; gap:6px; flex-wrap:wrap; margin:4px 0; }
+  .card { border:1px solid var(--border); border-radius:8px; padding:6px 8px; background:#161b22; }
+  .card b { font-size:12px; color:var(--god); }
+  .hint { color:var(--dim); font-size:11px; }
+  .legend { position:absolute; left:10px; bottom:10px; font-size:11px; color:var(--dim); background:rgba(13,17,23,.75); padding:6px 8px; border-radius:6px; }
+  label.sl { display:flex; align-items:center; gap:6px; font-size:11px; margin:2px 0; }
+  label.sl span { width:120px; color:var(--dim); }
+  label.sl input[type=range] { flex:1; }
+  label.sl output { width:44px; text-align:right; }
+</style>
+</head>
+<body>
+<header>
+  <h1>👑 Geopolitics Terrarium — 神の玉座</h1>
+  <span id="conn" class="bad">接続中…</span>
+  <span class="spacer"></span>
+  <select id="preset">
+    <option value="earth" selected>earth（実世界16国）</option>
+    <option value="default">default（架空8国）</option>
+    <option value="gen">gen（自動生成 seed=7）</option>
+  </select>
+  <select id="policy">
+    <option value="mock_llm" selected>mock_llm（オフライン）</option>
+    <option value="heuristic">heuristic</option>
+    <option value="llm">llm（z.ai / 要APIキー）</option>
+    <option value="rl">rl（要rl-nation）</option>
+  </select>
+  <input type="number" id="seed" value="42" style="width:64px" title="seed">
+  <input type="number" id="rl-nation" placeholder="RL国(VLT等)" style="width:100px" title="rl-nation（policy=rl/hybrid時）">
+  <button onclick="resetWorld()">🌍 世界を創る</button>
+</header>
+<div id="main">
+  <div id="mapwrap">
+    <canvas id="map" width="960" height="540"></canvas>
+    <div class="legend">クリック: 海峡⚓=封鎖カード / 国家=介入カード。紫=航路(エネルギー) 緑=食料 青=チップ 紫=地下 水色=宇宙・ ⚔️戦争 💀崩壊 橙枠=破綻</div>
+  </div>
+  <div id="side">
+    <div class="pane" id="godpane">
+      <h3>⚡ 神の介入 <span id="godtarget" style="color:var(--god)"></span></h3>
+      <div id="godbody" class="hint">地図の海峡⚓または国家をクリックして介入カードを選べる。何も選んでいないときは世界パラメータ。</div>
+    </div>
+    <div class="pane" id="stats"><h3>Nations</h3><div id="statbody">—</div></div>
+    <div class="pane" id="feed"><h3>Event cascade <span id="cascadeinfo" style="color:var(--accent)"></span></h3><div id="feedbody">—</div></div>
+  </div>
+</div>
+<div id="timeline">
+  <button id="play" onclick="togglePlay()">▶ 再生</button>
+  <button onclick="send({cmd:'step'})">⏭ 1tick</button>
+  <span id="ticklabel">tick —</span>
+  <label class="sl" style="flex:1"><span>速度</span><input type="range" min="200" max="3000" value="1200" oninput="send({cmd:'speed', ms:+this.value})"><output id="speedout">1200ms</output></label>
+</div>
+<script>
+"use strict";
+// ---------------------------------------------------------------- state
+let META=null, TICKS=[], GEO=null, cur=0, sel={kind:null, id:null};
+let VIEW={scale:2.4, ox:0, oy:0};
+const COMMO_COLOR={energy:"rgba(227,179,65,.5)",food:"rgba(124,179,66,.5)",chips:"rgba(88,166,255,.5)",minerals:"rgba(210,168,255,.5)",space:"rgba(63,222,255,.5)"};
+const TECHS=["drone_swarm","laser_defense","cyber_arsenal","hypersonic_intercept","ai_fab","biomanuf","autofactory","deepsea_mining","fusion","space_solar","asteroid_mining","ai_religion","techno_nationalism"];
+const RESOURCES=["oil","gas","grain","fab","mineral","orbit"];
+
+// ---------------------------------------------------------------- ws
+let ws;
+function connect() {
+  ws = new WebSocket(`ws://${location.host}/ws`);
+  ws.onopen = () => { document.getElementById("conn").textContent="接続中"; document.getElementById("conn").className="ok"; };
+  ws.onclose = () => { document.getElementById("conn").textContent="切断"; document.getElementById("conn").className="bad"; setTimeout(connect, 1500); };
+  ws.onmessage = async (ev) => {
+    const m = JSON.parse(ev.data);
+    if (m.type === "meta") { META = m; await loadGeo(); TICKS=[]; GOD_EVENTS=[]; cur=0; render(0); }
+    else if (m.type === "tick") { TICKS.push(m); cur = TICKS.length-1; render(cur); }
+    else if (m.type === "god") { if (m.event) { GOD_EVENTS.push(m.event); if (TICKS.length) render(cur); } }
+    else if (m.type === "status") { document.getElementById("ticklabel").textContent=`tick ${m.tick}/${m.max_ticks} ${m.running?"▶":"⏸"}`; document.getElementById("play").textContent = m.running?"⏸ 停止":"▶ 再生"; }
+    else if (m.type === "end") { document.getElementById("ticklabel").textContent = `tick ${m.tick}/${m.max_ticks} 終了`; }
+  };
+}
+function send(obj) { if (ws && ws.readyState===1) ws.send(JSON.stringify(obj)); }
+function intervene(type, params) { send({cmd:"intervene", type, params: params||{}}); }
+function togglePlay() { send({cmd: TICKS.length && document.getElementById("play").textContent.startsWith("▶") ? "play":"pause"}); }
+async function resetWorld() {
+  const p = document.getElementById("preset").value;
+  const body = { preset: p==="gen" ? "default" : p, policy: document.getElementById("policy").value,
+                 seed:+document.getElementById("seed").value||42, ticks: 60 };
+  if (p==="gen") body.gen_seed = 7;
+  const rn = document.getElementById("rl-nation").value.trim();
+  if (rn) body.rl_nation = rn;
+  await fetch("/api/reset", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body)});
+}
+
+// ---------------------------------------------------------------- geo
+function project(lon,lat){ return [VIEW.ox+(lon+180)*VIEW.scale, VIEW.oy+(90-lat)*VIEW.scale]; }
+function unproject(x,y){ return [(x-VIEW.ox)/VIEW.scale-180, 90-(y-VIEW.oy)/VIEW.scale]; }
+async function loadGeo() {
+  if (GEO) return;
+  const data = await (await fetch("/static/web/world.geojson")).json();
+  const features=[]; const byName={};
+  for (const f of data.features) {
+    const admin=f.properties.ADMIN||f.properties.NAME||""; const rings=[]; const g=f.geometry;
+    if (!g) continue;
+    if (g.type==="Polygon") rings.push(g.coordinates[0]);
+    else if (g.type==="MultiPolygon") for (const p of g.coordinates) rings.push(p[0]);
+    features.push({admin, rings}); if(!byName[admin]) byName[admin]=features.length-1;
+  }
+  GEO={features, byName};
+  const cv=document.getElementById("map");
+  VIEW.scale=Math.min(cv.width/366, cv.height/186);
+  VIEW.ox=(cv.width-360*VIEW.scale)/2; VIEW.oy=(cv.height-180*VIEW.scale)/2;
+}
+
+// ---------------------------------------------------------------- render
+function evRow(e) {
+  const CLS={war_start:"ev-war",war_end:"ev-war",collapse:"ev-collapse",god_intervention:"ev-god",shortage:"ev-shortage",
+    sanction:"ev-sanction",threat:"ev-sanction",alliance_formed:"ev-alliance",price_spike:"ev-price",disinfo:"ev-disinfo",
+    trade_throttled:"ev-trade",sovereign_default:"ev-default",credibility_hit:"ev-credhit",tech_emergence:"ev-tech",tech_adopted:"ev-tech2"};
+  return `<div class="ev ${CLS[e.type]||""}"><span class="t">t${e.tick}</span>${e.text}</div>`;
+}
+function render(i) {
+  if (!TICKS.length) return;
+  cur=i; const tick=TICKS[i];
+  renderMap(tick); renderStats(tick); renderFeed(tick);
+}
+function renderMap(tick) {
+  const cv=document.getElementById("map"), ctx=cv.getContext("2d");
+  ctx.clearRect(0,0,cv.width,cv.height);
+  ctx.fillStyle="#0e2233"; ctx.fillRect(0,0,cv.width,cv.height);
+  const nations=tick.nations;
+  const claim=new Map();
+  if (META?.geo) for (const [nid,info] of Object.entries(META.geo.nations))
+    for (const g of info.geo_ids||[]) { const idx=GEO.byName[g]; if (idx!==undefined) claim.set(idx,nid); }
+  const collapsed=new Set(Object.entries(nations).filter(([,n])=>n.collapsed).map(([id])=>id));
+  const defaulted=new Set(Object.entries(nations).filter(([,n])=>n.defaults>0).map(([id])=>id));
+  GEO.features.forEach((f,idx)=>{
+    const nid=claim.get(idx); const selHere = sel.kind==="nation" && sel.id===nid;
+    ctx.beginPath();
+    for (const ring of f.rings) ring.forEach(([lon,lat],k)=>{ const [x,y]=project(lon,lat); k?ctx.lineTo(x,y):ctx.moveTo(x,y); });
+    ctx.closePath();
+    if (nid && nations[nid]) {
+      ctx.fillStyle=nations[nid].color; ctx.fill();
+      if (collapsed.has(nid)) { ctx.fillStyle="rgba(13,17,23,.55)"; ctx.fill(); }
+    } else { ctx.fillStyle="#22303c"; ctx.fill(); }
+    if (defaulted.has(nid)) { ctx.fillStyle="rgba(255,107,53,.35)"; ctx.fill(); }
+    ctx.strokeStyle = selHere ? "#ffffff" : "rgba(13,17,23,.9)"; ctx.lineWidth = selHere?1.8:1; ctx.stroke(); ctx.lineWidth=1;
+  });
+  // routes
+  if (META?.geo) {
+    for (const r of META.geo.routes) {
+      const imp=META.geo.nations[r.importer], exp=META.geo.nations[r.exporter]; if(!imp||!exp) continue;
+      const anyClosed=(r.chokepoints||[]).some(n=>tick.chokepoints?.[n]);
+      const [x1,y1]=project(...exp.centroid), [x2,y2]=project(...imp.centroid);
+      const mx=(x1+x2)/2, my=(y1+y2)/2, lift=Math.min(60,Math.hypot(x2-x1,y2-y1)*0.18), sign=my<cv.height/2?-1:1;
+      ctx.beginPath(); ctx.moveTo(x1,y1); ctx.quadraticCurveTo(mx,my+lift*sign,x2,y2);
+      if (anyClosed){ ctx.strokeStyle="rgba(248,81,73,.65)"; ctx.setLineDash([5,4]); ctx.lineWidth=1.8; }
+      else { ctx.strokeStyle=COMMO_COLOR[r.commodity]||"rgba(200,200,200,.3)"; ctx.setLineDash([]); ctx.lineWidth=1.1; }
+      ctx.stroke(); ctx.setLineDash([]);
+    }
+    for (const cp of META.geo.chokepoints) {
+      const [x,y]=project(cp.lon,cp.lat);
+      const selHere = sel.kind==="cp" && sel.id===cp.name;
+      ctx.font="14px serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
+      ctx.fillText(tick.chokepoints?.[cp.name]?"⛔":"⚓", x, y);
+      ctx.beginPath(); ctx.arc(x,y,12,0,Math.PI*2);
+      ctx.strokeStyle = selHere ? "#ffffff" : (tick.chokepoints?.[cp.name] ? "#f85149" : "rgba(255,255,255,.35)");
+      ctx.lineWidth = selHere?2:1.2; ctx.stroke(); ctx.lineWidth=1;
+    }
+    for (const [nid,n] of Object.entries(nations)) {
+      const info=META.geo.nations[nid]; if(!info) continue;
+      const [x,y]=project(...info.centroid);
+      const hasLand=(info.geo_ids||[]).some(g=>GEO.byName[g]!==undefined);
+      if (!hasLand){ ctx.beginPath(); ctx.arc(x,y,9,0,Math.PI*2); ctx.fillStyle=n.color; ctx.fill(); ctx.strokeStyle="rgba(255,255,255,.6)"; ctx.stroke(); }
+      ctx.font="600 11px sans-serif"; ctx.textAlign="center"; ctx.fillStyle="rgba(255,255,255,.9)";
+      ctx.fillText(n.name, x, y+20);
+      if (n.at_war_with?.length) ctx.fillText("⚔️", x, y-14);
+      if (n.collapsed) ctx.fillText("💀", x+12, y-12);
+      if (n.defaults>0) ctx.fillText("🏦✖", x-14, y-12);
+    }
+  }
+}
+function renderStats(tick) {
+  const el=document.getElementById("statbody");
+  let rows=`<table><tr><th></th><th>GDP</th><th>物価↑</th><th>安定</th><th>債務</th><th>破綻</th></tr>`;
+  for (const [nid,n] of Object.entries(tick.nations)) {
+    rows+=`<tr onclick="selectNation('${nid}')">
+      <td><span style="color:${n.color}">●</span> ${n.name}${n.collapsed?" 💀":""}${n.at_war_with?.length?" ⚔️":""}</td>
+      <td class="num">${n.gdp.toFixed(1)}</td><td class="num">${(n.inflation*100).toFixed(1)}%</td>
+      <td class="num">${n.stability.toFixed(0)}</td>
+      <td class="num" style="color:${n.debt_gdp>130?'#f85149':(n.debt_gdp>100?'#e3b341':'inherit')}">${n.debt_gdp.toFixed(0)}%</td>
+      <td class="num">${n.defaults||""}</td></tr>`;
+  }
+  rows+="</table>";
+  const m=tick.metrics;
+  rows+=`<div style="margin-top:6px;color:var(--dim)">世界GDP <b style="color:var(--text)">${m.world_gdp.toFixed(1)}</b>・安定 ${m.mean_stability.toFixed(1)}・戦争 ${m.wars}・崩壊 ${m.collapsed}・平均債務 ${(m.mean_debt_gdp||0).toFixed(0)}%・破綻 <b style="color:${m.defaults>0?'#ff6b35':'var(--text)'}">${m.defaults||0}</b></div>`;
+  el.innerHTML=rows;
+}
+function renderFeed(tick) {
+  const godHtml = GOD_EVENTS.slice(-8).reverse().map(evRow).join("");
+  document.getElementById("feedbody").innerHTML = godHtml + ((tick.events||[]).slice().reverse().map(evRow).join("") || '<div class="hint">（イベント待ち）</div>');
+  const counts={};
+  for (const t of TICKS) for (const e of t.events||[]) counts[e.type]=(counts[e.type]||0)+1;
+  document.getElementById("cascadeinfo").textContent = Object.entries(counts).map(([k,v])=>`${k}:${v}`).join(" ");
+}
+
+// ---------------------------------------------------------------- god panel
+function renderGodPanel() {
+  const body=document.getElementById("godbody"), target=document.getElementById("godtarget");
+  if (!sel.kind) {
+    target.textContent="— 世界パラメータ";
+    body.innerHTML = `
+      <div class="cardrow">
+        <div class="card"><b>💥 世界金利</b><div class="cardrow">
+          <label class="sl"><span>利上げ</span><input type="range" id="g_rate" min="0" max="15" step="0.5" value="5" oninput="this.nextElementSibling.value=this.value+'%'"><output>5%</output></label>
+          <button class="godbtn" onclick="intervene('rate_hike',{value:+document.getElementById('g_rate').value/100})">利上げを宣告</button>
+        </div></div>
+        <div class="card"><b>🌍 世界スライダー</b>
+          ${["trade_efficiency","food_yield","energy_yield","chips_yield","minerals_yield","space_yield","ai_aggression","disinfo_intensity"].map(p=>`
+          <label class="sl"><span>${p}</span><input type="range" min="0.3" max="1.8" step="0.05" value="1" id="g_${p}" oninput="this.nextElementSibling.value=this.value"><output>1</output></label>`).join("")}
+          <button class="godbtn" onclick="(() => { for (const p of ['trade_efficiency','food_yield','energy_yield','chips_yield','minerals_yield','space_yield','ai_aggression','disinfo_intensity']) intervene('global_slider',{param:p,value:+document.getElementById('g_'+p).value}); })()">全スライダーを適用</button>
+        </div>
+        <div class="card"><b>🚫 技術の禁止</b><div class="cardrow">
+          <select id="g_bantech">${TECHS.map(t=>`<option>${t}</option>`).join("")}</select>
+          <button class="godbtn" onclick="intervene('ban_tech',{tech:document.getElementById('g_bantech').value})">全世界で禁止</button>
+        </div></div>
+      </div>`;
+    return;
+  }
+  if (sel.kind==="cp") {
+    target.textContent = `— ${sel.id}`;
+    body.innerHTML = `
+      <div class="cardrow">
+        <div class="card"><b>⛔ 海峡封鎖: ${sel.id}</b><div class="cardrow">
+          ${[6,12,24,60].map(d=>`<button class="godbtn" onclick="intervene('close_chokepoint',{chokepoint:${JSON.stringify(sel.id)},duration:${d}})">${d}ヶ月</button>`).join("")}
+          <button onclick="intervene('open_chokepoint',{chokepoint:${JSON.stringify(sel.id)}})">解除</button>
+        </div></div>
+      </div>`;
+    return;
+  }
+  // nation selected
+  const nid=sel.id;
+  const n = TICKS.length ? TICKS[cur].nations[nid] : null;
+  const name = META?.geo?.nations?.[nid]?.name || nid;
+  target.textContent = `— ${name}`;
+  body.innerHTML = `
+    <div class="cardrow">
+      <div class="card"><b>📰 偽情報</b><div class="cardrow">
+        <label class="sl"><span>強度</span><input type="range" id="n_dis" min="0.5" max="3" step="0.25" value="1.5" oninput="this.nextElementSibling.value=this.value"><output>1.5</output></label>
+        <button class="godbtn" onclick="intervene('disinfo',{target:'${nid}',intensity:+document.getElementById('n_dis').value})">投下</button>
+      </div></div>
+      <div class="card"><b>🌪 災害</b><div class="cardrow">
+        ${["drought","earthquake","epidemic"].map(k=>`<button class="godbtn" onclick="intervene('disaster',{nation:'${nid}',kind:'${k}'})">${k}</button>`).join("")}
+      </div></div>
+      <div class="card"><b>🧠 性格書き換え</b>
+        <label class="sl"><span>好戦性</span><input type="range" id="n_agg" min="0" max="1" step="0.05" value="0.8" oninput="this.nextElementSibling.value=this.value"><output>0.8</output></label>
+        <label class="sl"><span>疑心暗鬼</span><input type="range" id="n_par" min="0" max="1" step="0.05" value="0.8" oninput="this.nextElementSibling.value=this.value"><output>0.8</output></label>
+        <button class="godbtn" onclick="intervene('set_param',{nation:'${nid}',param:'aggression',value:+document.getElementById('n_agg').value});intervene('set_param',{nation:'${nid}',param:'paranoia',value:+document.getElementById('n_par').value})">書き換える</button>
+      </div></div>
+      <div class="card"><b>⛏ 資源を創る</b><div class="cardrow">
+        <select id="n_res">${RESOURCES.map(r=>`<option>${r}</option>`).join("")}</select>
+        <select id="n_qty">${[1,2,3].map(q=>`<option>${q}</option>`).join("")}</select>
+        <button class="godbtn" onclick="intervene('create_resource',{nation:'${nid}',resource:document.getElementById('n_res').value,quantity:+document.getElementById('n_qty').value})">創造</button>
+      </div></div>
+      <div class="card"><b>💀 資源を消す</b><div class="cardrow">
+        <select id="n_dres">${RESOURCES.map(r=>`<option>${r}</option>`).join("")}</select>
+        <button onclick="intervene('destroy_resource',{nation:'${nid}',resource:document.getElementById('n_dres').value})">消滅</button>
+      </div></div>
+      <div class="card"><b>🏦 救済（ベイルアウト）</b><div class="cardrow">
+        <button class="godbtn" onclick="intervene('bailout',{nation:'${nid}'})">債務を半減し信用回復</button>
+      </div></div>
+      <div class="card"><b>🔬 技術を授ける</b><div class="cardrow">
+        <select id="n_tech">${TECHS.map(t=>`<option>${t}</option>`).join("")}</select>
+        <button class="godbtn" onclick="intervene('grant_tech',{nation:'${nid}',tech:document.getElementById('n_tech').value})">授与</button>
+      </div></div>
+    </div>
+    ${n ? `<div class="hint">現況: GDP ${n.gdp.toFixed(1)}兆$ / 債務 ${n.debt_gdp.toFixed(0)}% / 信用 ${n.credibility.toFixed(0)} / 安定 ${n.stability.toFixed(0)} / 破綻 ${n.defaults}回</div>` : ""}`;
+}
+function selectNation(nid) { sel = sel.kind==="nation"&&sel.id===nid ? {kind:null,id:null} : {kind:"nation",id:nid}; renderGodPanel(); if(TICKS.length) render(cur); }
+
+// ---------------------------------------------------------------- map click
+document.getElementById("map").addEventListener("click", async (ev) => {
+  if (!META || !GEO) return;
+  await loadGeo();
+  const cv=document.getElementById("map");
+  const rect=cv.getBoundingClientRect();
+  const mx=(ev.clientX-rect.left)*(cv.width/rect.width), my=(ev.clientY-rect.top)*(cv.height/rect.height);
+  // nearest chokepoint?
+  let best=null, bd=14;
+  for (const cp of META.geo.chokepoints||[]) {
+    const [x,y]=project(cp.lon,cp.lat);
+    const d=Math.hypot(x-mx,y-my);
+    if (d<bd){bd=d;best=cp;}
+  }
+  if (best) { sel={kind:"cp",id:best.name}; renderGodPanel(); render(cur); return; }
+  // nearest nation centroid?
+  best=null; bd=16;
+  for (const [nid,info] of Object.entries(META.geo.nations)) {
+    const [x,y]=project(...info.centroid);
+    const d=Math.hypot(x-mx,y-my);
+    if (d<bd){bd=d;best=nid;}
+  }
+  if (best) { selectNation(best); return; }
+  // country fill hit
+  const [lon,lat]=unproject(mx,my);
+  const idx=GEO.features.findIndex(f=>f.rings.some(ring=>pointInRing(lon,lat,ring)));
+  if (idx>=0) {
+    const claim=new Map();
+    for (const [nid,info] of Object.entries(META.geo.nations))
+      for (const g of info.geo_ids||[]) { const gi=GEO.byName[g]; if(gi!==undefined) claim.set(gi,nid); }
+    const nid=claim.get(idx);
+    if (nid) { selectNation(nid); return; }
+  }
+  sel={kind:null,id:null}; renderGodPanel(); render(cur);
+});
+function pointInRing(x,y,ring){ let inside=false; for(let i=0,j=ring.length-1;i<ring.length;j=i++){ const [xi,yi]=ring[i],[xj,yj]=ring[j]; if((yi>y)!==(yj>y)&&x<(xj-xi)*(y-yi)/(yj-yi)+xi) inside=!inside; } return inside; }
+
+// ---------------------------------------------------------------- boot
+(async () => { await loadGeo(); connect(); })();
+</script>
+</body>
+</html>

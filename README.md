@@ -197,6 +197,22 @@ uv run python -m terrarium.runner.compare_policies --preset default --nation SAH
 - 36ヶ月の最終指標では手調整heuristicと**互角**（崩壊率0%を維持）— RLはドクトリンを書かずに同等性能へ到達
 - ハイブリッド実走行の思考例: 「半導体を交渉カードにエネルギー供給源を分散確保。備蓄最優先の防衛態勢」（LLM戦略）×「予算=stockpile」（RL戦術）
 
+## 神の玉座: リアルタイム介入UI（FastAPI + WebSocket）
+
+ヘッドレス解析だけでなく、**プレイ中に神として介入できるライブUI**:
+
+```bash
+cd server && uv run uvicorn terrarium.server.app:app --port 8788
+open http://localhost:8788/    # 👑 神の玉座
+```
+
+- 実世界地図がリアルタイムに描画され、tickごとのイベントがストリーミングされる
+- **地図の海峡⚓をクリック** → 封鎖カード（6/12/24/60ヶ月・解除）
+- **国家をクリック（または統計表の行）** → 介入カード: 偽情報・災害・好戦性/疑心暗鬼の書き換え・資源の創造/消滅・ベイルアウト・技術の授与
+- 何も選んでいないときは**世界パラメータ**: 世界金利の利上げ・各資源産出スライダー・技術の全世界禁止
+- 再生/一時停止/1tick進行/速度調整、世界の再創造（プリセット・policy・seed・生成世界・RL国家を指定可能）
+- `--policy llm`（z.ai）でLLM国家AIがリアルタイム思考する様子を観察できる
+
 ### LLM戦略層の設定
 
 ```bash
@@ -213,7 +229,7 @@ cd server && uv run python scripts/smoke_test_llm.py   # 接続テスト
 - [x] M1: 決定論エンジン、イベントソーシング、A/B反実仮想、リプレイビューア
 - [x] 実世界地図化（Natural Earth GeoJSON、実在海峡・シーレーン、地下・宇宙資源、未来技術創発）
 - [x] 複合戦略AI（LLM戦略層 × RL戦術層、学習・比較実験基盤）
-- [ ] M2: リアルタイム神介入UI（FastAPI + WebSocket）
+- [x] M2: リアルタイム神介入UI「神の玉座」（FastAPI + WebSocket）
 - [ ] M3: 実データ風プリセットの精緻化、マルチ国同時RL（自己対戦）
 - [ ] M4: 実験・チューニング、解析ノートブック、ドキュメント整備
 
