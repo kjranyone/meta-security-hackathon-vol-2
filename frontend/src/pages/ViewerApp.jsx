@@ -7,8 +7,7 @@ import DateBar from "../components/DateBar";
 import TimelineBar from "../components/TimelineBar";
 import IfPanel from "../components/IfPanel";
 import { VSplit, HSplit } from "../components/Splitter";
-import HelpModal from "../components/HelpModal";
-import Tip from "../components/Tooltip";
+
 import { loadGeojson } from "../lib/geo";
 import { ingestReplay, computeMajor } from "../lib/replay";
 import { initAudio, beep, toneForColor } from "../lib/audio";
@@ -26,7 +25,6 @@ export default function ViewerApp() {
   const [flash, setFlash] = useState(0);
   const [urlInput, setUrlInput] = useState("");
   const [ifOpen, setIfOpen] = useState(false);
-  const [helpOpen, setHelpOpen] = useState(() => !localStorage.getItem("terrarium_help_viewer"));
   const [clockFrac, setClockFrac] = useState(0.5);
   const [sideW, setSideW] = useState(460);
   const [statsH, setStatsH] = useState(200);
@@ -110,16 +108,10 @@ export default function ViewerApp() {
       <header>
         <h1>🌐 Geopolitics Terrarium — Real-World Viewer</h1>
         <span className="spacer" />
-        <Tip title="replayのURL" text="server/logs/<run>/replay.jsonl を指定して実行済みの歴史を読み込む。?replay= パラメータでも自動読込。">
-          <input type="text" value={urlInput} onChange={e => setUrlInput(e.target.value)}
-                 placeholder="http://localhost:8787/server/logs/earth_hormuz/replay.jsonl" />
-        </Tip>
-        <Tip title="読み込み" text="URLからreplay.jsonlを取得して再生できるようにする。">
-          <button onClick={() => loadUrl(urlInput)}>読み込み</button>
-        </Tip>
-        <Tip title="ファイルを開く" text="ローカルのreplay.jsonlを開く（画面へのドラッグ＆ドロップでも可）。">
-          <button onClick={() => document.getElementById("file").click()}>ファイルを開く</button>
-        </Tip>
+        <input type="text" value={urlInput} onChange={e => setUrlInput(e.target.value)}
+               placeholder="http://localhost:8787/server/logs/earth_hormuz/replay.jsonl" />
+        <button onClick={() => loadUrl(urlInput)}>読み込み</button>
+        <button onClick={() => document.getElementById("file").click()}>ファイルを開く</button>
         <input type="file" id="file" accept=".jsonl" style={{ display: "none" }}
                onChange={e => {
                  const f = e.target.files[0];
@@ -128,23 +120,9 @@ export default function ViewerApp() {
                  rd.onload = () => loadReplayText(rd.result);
                  rd.readAsText(f);
                }} />
-        <Tip title="航路の表示ON/OFF" text="海峡を経由する貿易航路の弧（琥珀=エネルギー 緑=食料 青=半導体 紫=地下 水色=宇宙）の表示を切替。封鎖航路は赤破線。">
-          <button className={showRoutes ? "on" : ""} onClick={() => setShowRoutes(s => !s)}>航路</button>
-        </Tip>
-        <Tip title="IF史モード" text="「過去、●●年に△△していたら」: 分岐tickと介入を1つ選び、決定論エンジンで歴史を分岐させる。">
-          <button onClick={() => { initAudio(); setIfOpen(o => !o); }}>⏪ IF史</button>
-        </Tip>
-        <Tip title="操作ガイド" text="地図の読み方・タイムライン・IF史の使い方をもう一度見る。">
-          <button className="helpbtn" onClick={() => setHelpOpen(true)}>?</button>
-        </Tip>
+        <button className={showRoutes ? "on" : ""} onClick={() => setShowRoutes(s2 => !s2)}>航路</button>
+        <button onClick={() => { initAudio(); setIfOpen(o => !o); }}>⏪ IF史</button>
       </header>
-
-      {helpOpen && (
-        <HelpModal page="viewer" onClose={() => {
-          setHelpOpen(false);
-          localStorage.setItem("terrarium_help_viewer", "1");
-        }} />
-      )}
 
       <div className="main">
         {tick ? (

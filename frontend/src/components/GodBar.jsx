@@ -29,11 +29,11 @@ export default function GodBar({ sel, meta, intervene }) {
       <span className="tgt">
         {nation || cp ? <>対象: <b>{name}</b></> : "対象なし（国家/海峡をクリック）"}
       </span>
-      <select data-k="dur" title="封鎖期間（時間）">{[6, 12, 24, 60].map(d => <option key={d}>{d}</option>)}</select>
-      <select data-k="res" title="資源の種類">{RESOURCES.map(r => <option key={r}>{r}</option>)}</select>
-      <select data-k="tech" title="技術">{TECHS.map(t => <option key={t}>{t}</option>)}</select>
+      <select data-k="dur" >{[6, 12, 24, 60].map(d => <option key={d}>{d}</option>)}</select>
+      <select data-k="res" >{RESOURCES.map(r => <option key={r}>{r}</option>)}</select>
+      <select data-k="tech" >{TECHS.map(t => <option key={t}>{t}</option>)}</select>
       {B.map((b, i) => (
-        <button key={i} disabled={b.dis} title={b.title}
+        <button key={i} disabled={b.dis}
                 onClick={e => b.act(Object.fromEntries(
                   Array.from(e.currentTarget.parentElement.querySelectorAll("select[data-k]"))
                     .map(s => [s.dataset.k, s.value])))}>

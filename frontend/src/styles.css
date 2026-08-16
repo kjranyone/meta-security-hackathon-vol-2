@@ -141,13 +141,6 @@ label.sl output { width: 44px; text-align: right; }
 .hsplit:hover::after, .hsplit.drag::after { opacity: 1; }
 .hsplit:hover, .hsplit.drag { background: var(--accent); }
 
-/* ---------------- tooltips ---------------- */
-.tipwrap { position: relative; display: inline-flex; }
-.tipbox { position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%);
-          background: #1c2129; border: 1px solid var(--accent); border-radius: 8px;
-          padding: 8px 12px; font-size: 12px; line-height: 1.5; color: var(--text);
-          z-index: 60; box-shadow: 0 8px 24px rgba(0,0,0,.5); pointer-events: none; text-align: left; }
-.tipbox b { color: var(--accent); display: inline-block; margin-bottom: 2px; }
 
 /* ---------------- modal dialogs ---------------- */
 .modal-back { position: fixed; inset: 0; background: rgba(4,8,14,.72); z-index: 80;
@@ -156,25 +149,16 @@ label.sl output { width: 44px; text-align: right; }
          width: min(620px, 92vw); max-height: 86vh; overflow: auto; padding: 22px 26px;
          box-shadow: 0 20px 60px rgba(0,0,0,.6); }
 .modal h2 { font-size: 19px; margin-bottom: 8px; color: var(--text); }
-.modalsub { color: var(--dim); font-size: 12.5px; margin-bottom: 12px; }
-.modalsecs { display: flex; flex-direction: column; gap: 12px; margin: 10px 0 6px; }
-.modalsec { display: flex; gap: 12px; background: rgba(13,17,23,.5);
-            border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
-.modalsec-icon { font-size: 22px; line-height: 1.2; }
-.modalsec b { color: var(--accent); font-size: 13.5px; }
-.modalsec p { color: var(--dim); font-size: 12.5px; margin-top: 2px; line-height: 1.6; }
 .modalfield { display: block; font-size: 12px; color: var(--dim); margin: 10px 0 2px; }
 .modalfield select, .modalfield input { display: block; width: 100%; margin-top: 4px;
   background: var(--bg); border: 1px solid var(--border); color: var(--text);
   border-radius: 6px; padding: 6px 8px; font-size: 13px; }
-.modalinfo { color: var(--dim); font-size: 11.5px; margin: 2px 0 6px; line-height: 1.5; }
 .modalrow { display: flex; gap: 14px; }
 .modalbtns { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
 .modalbtns button { background: #21262d; border: 1px solid var(--border); color: var(--text);
   border-radius: 8px; padding: 8px 18px; cursor: pointer; font-size: 14px; }
 .modalbtns button.go { border-color: var(--god); color: var(--god); font-weight: 600; }
 .modalbtns button.go:hover { background: rgba(163,113,247,.15); }
-.helpbtn { font-size: 15px; font-weight: 700; width: 36px; }
 .ifpanel { position: fixed; top: 60px; right: 16px; width: 380px; max-height: 80vh; overflow: auto;
            background: var(--panel); border: 1px solid var(--accent); border-radius: 10px;
            padding: 14px 16px; z-index: 40; font-size: 13px; box-shadow: 0 8px 30px rgba(0,0,0,.5); }
