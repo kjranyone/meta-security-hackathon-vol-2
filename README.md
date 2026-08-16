@@ -271,6 +271,10 @@ cd server && uv run python ../analysis/make_figures.py
 | `analysis/out/ab_*.png` | **A/Bダイバージェンス**: baseline vs シナリオのGDP・価格・安定・不足イベント系列 |
 | `analysis/out/sensitivity_matrix.png` + `.csv` | **介入点×指標の感度行列**（最終値の差分）。どの介入点がどの指標に効くか一望 |
 
+提出物は `report/` にあります: **ビジュアルレポート** `slides.html`（10スライド、`slides.pdf` も同梱）、
+解析ノートブック `analysis/terrarium_analysis.ipynb`（実行結果埋込済み）、
+デモ動画台本 `report/demo_script.md`。
+
 ## ロードマップ
 
 - [x] M1: 決定論エンジン、イベントソーシング、A/B反実仮想、リプレイビューア
@@ -278,8 +282,10 @@ cd server && uv run python ../analysis/make_figures.py
 - [x] 複合戦略AI（LLM戦略層 × RL戦術層、学習・比較実験基盤）
 - [x] M2: リアルタイム神介入UI「神の玉座」（FastAPI + WebSocket）
 - [x] 財政・金融システム（債務不履行・感染）、解析パイプライン（カスケードグラフ・感度行列）
-- [ ] M3: 実データ風プリセットの精緻化、マルチ国同時RL（自己対戦）
-- [ ] M4: 実験・チューニング、解析ノートブック、レポート・デモ動画
+- [x] 自己対戦RL（マルチ国同時学習）、報酬設計ノブ（`--default-penalty`）
+- [x] ビジュアルレポート・解析ノートブック・デモ台本（`report/`）
+- [ ] M3: 実データ風プリセットの精緻化
+- [ ] M4: 3分デモ動画の収録（締切8/30）
 
 ## 開発
 
