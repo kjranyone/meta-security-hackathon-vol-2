@@ -24,6 +24,7 @@ export default function GodBar({ sel, meta, intervene }) {
     { label: "🚫 技術禁止", dis: false, act: d => intervene("ban_tech", { tech: d.tech }), title: "常時有効（全世界）" },
   ];
 
+  if (!nation && !cp) return null;
   return (
     <div className="godbar">
       <span className="tgt">

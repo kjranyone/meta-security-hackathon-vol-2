@@ -96,7 +96,9 @@ code { background: #1c2129; padding: 1px 4px; border-radius: 4px; }
 .godbar { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 4;
           display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center;
           background: rgba(13,17,23,.88); border: 1px solid var(--border); border-radius: 12px;
-          padding: 7px 10px; max-width: calc(100% - 24px); box-shadow: 0 6px 24px rgba(0,0,0,.45); }
+          padding: 7px 10px; max-width: calc(100% - 24px); box-shadow: 0 6px 24px rgba(0,0,0,.45);
+          animation: godbarin .18s ease-out; }
+@keyframes godbarin { from { transform: translate(-50%, 16px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
 .godbar .tgt { font-size: 11.5px; color: var(--dim); border-right: 1px solid var(--border); padding-right: 8px; margin-right: 2px; white-space: nowrap; }
 .godbar .tgt b { color: var(--god); }
 .godbar button { background: #21262d; border: 1px solid var(--border); color: var(--text); border-radius: 8px;
