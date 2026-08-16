@@ -6,11 +6,12 @@ import PriceChart from "../components/PriceChart";
 import DateBar from "../components/DateBar";
 import TimelineBar from "../components/TimelineBar";
 import IfPanel from "../components/IfPanel";
+import Toasts, { useToasts } from "../components/Toasts";
 import { VSplit, HSplit } from "../components/Splitter";
 
 import { loadGeojson } from "../lib/geo";
 import { ingestReplay, computeMajor } from "../lib/replay";
-import { initAudio, beep, toneForColor } from "../lib/audio";
+import { initAudio, beep, MAJOR_TONES } from "../lib/audio";
 
 export default function ViewerApp() {
   const [geo, setGeo] = useState(null);
@@ -25,6 +26,7 @@ export default function ViewerApp() {
   const [flash, setFlash] = useState(0);
   const [urlInput, setUrlInput] = useState("");
   const [ifOpen, setIfOpen] = useState(false);
+  const { toasts, push: pushToast } = useToasts();
   const [clockFrac, setClockFrac] = useState(0.5);
   const [sideW, setSideW] = useState(460);
   const [statsH, setStatsH] = useState(200);
@@ -70,14 +72,23 @@ export default function ViewerApp() {
 
   const major = ticks.length ? computeMajor(ticks) : {};
 
+  const majorEventAt = useCallback(i => {
+    const t = ticks[i];
+    if (!t || !major[t.tick]) return null;
+    const ev = (t.events || []).find(e => MAJOR_TONES[e.type]);
+    return ev || { type: "crash", text: `世界GDP急落 t${t.tick}` };
+  }, [ticks, major]);
+
   const scrub = useCallback(i => {
     setCur(i);
     lastBeep.current = -1;
-    if (major[ticks[i]?.tick]) {
+    const ev = majorEventAt(i);
+    if (ev) {
       setFlash(f => f + 1);
-      if (!muted) beep(toneForColor(major[ticks[i].tick]));
+      if (!muted) beep(MAJOR_TONES[ev.type] || 330);
+      pushToast(ev.type, ev.text);
     }
-  }, [major, ticks, muted]);
+  }, [majorEventAt, muted, pushToast]);
 
   const period = 1100 - speed * 100;
   useEffect(() => {
@@ -89,7 +100,9 @@ export default function ViewerApp() {
         if (major[t] && lastBeep.current !== t) {
           lastBeep.current = t;
           setFlash(f => f + 1);
-          if (!muted) beep(toneForColor(major[t]));
+          if (!muted) beep(MAJOR_TONES[majorEventAt(next)?.type] || 330);
+          const ev = majorEventAt(next);
+          if (ev) pushToast(ev.type, ev.text);
         }
         return next;
       });
@@ -105,6 +118,7 @@ export default function ViewerApp() {
 
   return (
     <div className="app">
+      <Toasts toasts={toasts} />
       <header>
         <h1>🌐 Geopolitics Terrarium — Real-World Viewer</h1>
         <span className="spacer" />

@@ -7,6 +7,7 @@ import GodBar from "../components/GodBar";
 import GodCards from "../components/GodCards";
 import { VSplit, HSplit } from "../components/Splitter";
 import CreateWorldDialog from "../components/CreateWorldDialog";
+import Toasts, { useToasts } from "../components/Toasts";
 import { loadGeojson } from "../lib/geo";
 import { pickAt } from "../lib/renderMap";
 import { initAudio, beep, toneForTypes, MAJOR_TONES } from "../lib/audio";
@@ -30,6 +31,7 @@ export default function GodApp() {
   const [rlNation, setRlNation] = useState("");
   const [conn, setConn] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const { toasts, push: pushToast } = useToasts();
   const wsRef = useRef(null);
   const tlRef = useRef(null);
 
@@ -70,12 +72,16 @@ export default function GodApp() {
           setMeta(m); setTicks([]); setGodEvents([]); setCur(0);
         } else if (m.type === "tick") {
           setTicks(t => [...t, m]);
-          const types = (m.events || []).map(e => e.type).filter(t => MAJOR_TONES[t]);
-          if (types.length) feedback(types);
+          const majors = (m.events || []).filter(e => MAJOR_TONES[e.type]);
+          if (majors.length) {
+            feedback(majors.map(e => e.type));
+            majors.slice(0, 2).forEach(e => pushToast(e.type, e.text));
+          }
         } else if (m.type === "god") {
           if (m.event) {
             setGodEvents(g => [...g, m.event]);
             feedback(["god_intervention"]);
+            pushToast("god_intervention", m.event.text);
           }
         } else if (m.type === "status") {
           setStatus({ running: m.running, tick: m.tick, max_ticks: m.max_ticks });
@@ -122,6 +128,7 @@ export default function GodApp() {
 
   return (
     <div className="app">
+      <Toasts toasts={toasts} />
       <header>
         <h1>👑 Geopolitics Terrarium — 神の玉座</h1>
         <span id="conn" className={conn ? "ok" : "bad"}>{conn ? "接続中" : "切断"}</span>
