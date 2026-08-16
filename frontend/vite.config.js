@@ -18,9 +18,9 @@ export default defineConfig({
         viewer: resolve(__dirname, "viewer.html"),
       },
       output: {
-        entryFileNames: "assets/[name].js",
-        chunkFileNames: "assets/chunk-[name].js",
-        assetFileNames: "assets/[name][extname]",
+        entryFileNames: "assets/[name]-[hash].js",
+        chunkFileNames: "assets/chunk-[name]-[hash].js",
+        assetFileNames: "assets/[name]-[hash][extname]",
       },
     },
   },

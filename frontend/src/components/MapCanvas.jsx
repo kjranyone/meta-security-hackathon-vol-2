@@ -23,8 +23,9 @@ export default function MapCanvas({ tick, geo, meta, selectedNation, selectedCho
     ro.observe(wrap);
     fit();
     return () => ro.disconnect();
+    // canvas は tick 到着で後からマウントされるため、そのとき付け直す
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wrapRef, cvRef]);
+  }, [wrapRef, cvRef, tick != null]);
 
   useEffect(() => { draw(); });
   // eslint-disable-next-line react-hooks/exhaustive-deps
