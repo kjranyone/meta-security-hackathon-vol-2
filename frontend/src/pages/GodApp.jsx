@@ -6,6 +6,9 @@ import DateBar from "../components/DateBar";
 import GodBar from "../components/GodBar";
 import GodCards from "../components/GodCards";
 import { VSplit, HSplit } from "../components/Splitter";
+import HelpModal from "../components/HelpModal";
+import CreateWorldDialog from "../components/CreateWorldDialog";
+import Tip from "../components/Tooltip";
 import { loadGeojson } from "../lib/geo";
 import { pickAt } from "../lib/renderMap";
 import { initAudio, beep, toneForTypes, MAJOR_TONES } from "../lib/audio";
@@ -40,6 +43,8 @@ export default function GodApp() {
   const [seed, setSeed] = useState(42);
   const [rlNation, setRlNation] = useState("");
   const [conn, setConn] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(() => !localStorage.getItem("terrarium_help_god"));
+  const [createOpen, setCreateOpen] = useState(false);
   const wsRef = useRef(null);
   const tlRef = useRef(null);
 
@@ -117,6 +122,7 @@ export default function GodApp() {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
+    setSel({ kind: null, id: null });
   }
 
   function onMapClick(mx, my) {
@@ -135,17 +141,43 @@ export default function GodApp() {
         <h1>👑 Geopolitics Terrarium — 神の玉座</h1>
         <span id="conn" className={conn ? "ok" : "bad"}>{conn ? "接続中" : "切断"}</span>
         <span className="spacer" />
-        <select value={preset} onChange={e => setPreset(e.target.value)}>
-          {PRESETS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
-        </select>
-        <select value={policy} onChange={e => setPolicy(e.target.value)}>
-          {POLICIES.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
-        </select>
-        <input type="number" value={seed} onChange={e => setSeed(e.target.value)} title="seed" />
-        <input type="text" value={rlNation} onChange={e => setRlNation(e.target.value)}
-               placeholder="RL国(VLT等)" style={{ width: 110 }} title="rl-nation（policy=rl/hybrid時）" />
-        <button onClick={resetWorld}>🌍 世界を創る</button>
+        <Tip title="世界（プリセット）" text="earth=実世界16国（提出実験は全てこれ） / default=架空8国 / gen=seed=7から自動生成。">
+          <select value={preset} onChange={e => setPreset(e.target.value)}>
+            {PRESETS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+          </select>
+        </Tip>
+        <Tip title="国家AIの頭脳（policy）" text="mock_llm=オフラインLLM風(速い・決定論) / heuristic=手書きルール / llm=本物GLM思考(遅い・要APIキー) / rl=強化学習(下のRL国に装着)。">
+          <select value={policy} onChange={e => setPolicy(e.target.value)}>
+            {POLICIES.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+          </select>
+        </Tip>
+        <Tip title="seed（世界の初期状態）" text="同じseedなら完全に同じ歴史が再現される（決定論）。A/B実験とIF史の土台。">
+          <input type="number" value={seed} onChange={e => setSeed(e.target.value)} />
+        </Tip>
+        {policy === "rl" && (
+          <Tip title="RL国" text="policy=rl のとき学習済み戦術層を装着する国家ID（カンマ区切り可。例: JPN,EGY）。">
+            <input type="text" value={rlNation} onChange={e => setRlNation(e.target.value)}
+                   placeholder="RL国(JPN,EGY等)" style={{ width: 110 }} />
+          </Tip>
+        )}
+        <Tip title="世界を創る" text="現在の設定で新しい世界を生成（確認ダイアログが開きます）。現在の世界は上書きされます。">
+          <button onClick={() => setCreateOpen(true)}>🌍 世界を創る</button>
+        </Tip>
+        <Tip title="操作ガイド" text="地図の読み方・介入の使い方をもう一度見る。">
+          <button className="helpbtn" onClick={() => setHelpOpen(true)}>?</button>
+        </Tip>
       </header>
+
+      {helpOpen && (
+        <HelpModal page="god" onClose={() => {
+          setHelpOpen(false);
+          localStorage.setItem("terrarium_help_god", "1");
+        }} />
+      )}
+      <CreateWorldDialog open={createOpen} preset={preset} policy={policy} seed={seed}
+                         rlNation={rlNation} onPreset={setPreset} onPolicy={setPolicy}
+                         onSeed={setSeed} onRlNation={setRlNation}
+                         onCreate={resetWorld} onClose={() => setCreateOpen(false)} />
 
       <div className="main">
         <MapCanvas tick={tick} geo={geo} meta={meta} god
