@@ -1,0 +1,30 @@
+[
+ {
+  "episode": 0,
+  "eval_reward": -164.855
+ },
+ {
+  "episode": 500,
+  "train_reward": -129.549,
+  "eval_reward": -130.842
+ },
+ {
+  "episode": 1000,
+  "train_reward": -130.967,
+  "eval_reward": -130.742
+ },
+ {
+  "episode": 1500,
+  "train_reward": -130.506,
+  "eval_reward": -130.473
+ },
+ {
+  "episode": 2000,
+  "train_reward": -130.462,
+  "eval_reward": -131.599
+ },
+ {
+  "episode": 2000,
+  "eval_reward": -131.599
+ }
+]

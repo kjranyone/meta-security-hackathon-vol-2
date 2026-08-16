@@ -144,24 +144,57 @@ web/
 
 **創発的な洞察（seed=42, 36ヶ月）**: ホルムズ封鎖のエネルギー価格は1.05にとどまる（t20以降に核融合・宇宙太陽光が普及し、**未来技術が海峡ショックを吸収**する）。一方 `earth_ban_fusion`シナリオで神が核融合を禁じてから封鎖するとエネルギー価格は**1.35**まで跳ね上がる — **未来エネルギー技術の禁止は海峡依存を固定化する**。未来予測と地政学の相互作用そのものを観測できる。
 
-## LLM国家AI（開発中）
+## 複合戦略AI: LLM（戦略層）× 強化学習（戦術層）× ルール（世界解決層）
 
-`--policy llm` で OpenAI 互換エンドポイント（デフォルト: z.ai coding plan / GLM）に国家ごとの意思決定を委譲します。
+| 層 | 担当 | 実装 |
+|---|---|---|
+| **戦略層** | 外交・軍事姿勢・配給/プロパガンダ判断、自然言語の理屈 | LLM (z.ai/GLM, OpenAI互換) |
+| **戦術層** | 毎月の予算配分（6プリセット）・姿勢・配給の微決定 | **強化学習** (numpy実装Actor-Critic, MLP) |
+| **世界解決層** | 市場・物理・連鎖の決定論的解決 | ルールベース・エンジン |
+
+RLは**DLフレームワーク非依存のnumpy実装**（Actor-Critic + Adam + エントロピー正則化）。依存軽量・CPUで高速・bit再現可能:
+
+```bash
+# 学習（例: 脆弱な新興国 SAH を旱魃ストレス下で2000エピソード）
+uv run python -m terrarium.rl.train --preset default --nation SAH \
+    --scenario scenarios/drought_sahelia.yaml --episodes 2000 --out models/rl_SAH_drought.npz
+
+# 学習済み戦術層でシミュレーション
+uv run python -m terrarium.runner.headless --preset default --policy rl \
+    --rl-nation SAH --rl-weights models/rl_SAH_drought.npz --scenario scenarios/drought_sahelia.yaml
+
+# ハイブリッド（LLM戦略 × RL戦術。ZAI_API_KEY必要）
+uv run python -m terrarium.runner.headless --preset default --policy hybrid \
+    --rl-nation VLT --scenario scenarios/chokepoint_closure.yaml
+
+# 比較実験（heuristic vs RL vs hybrid、複数シード）
+uv run python -m terrarium.runner.compare_policies --preset default --nation SAH \
+    --scenario scenarios/drought_sahelia.yaml --seeds 5 --with-hybrid
+```
+
+**実測**（学習曲線は `models/*.curve.json`、重みは同梱）:
+- 学習評価報酬: SAH（旱魃下）**-164.9 → -131.6 (+33.3)**、VLT **-4.3 → +7.2 (+11.5)** — 脆弱国家の生存戦略を獲得
+- 36ヶ月の最終指標では手調整heuristicと**互角**（崩壊率0%を維持）— RLはドクトリンを書かずに同等性能へ到達
+- ハイブリッド実走行の思考例: 「半導体を交渉カードにエネルギー供給源を分散確保。備蓄最優先の防衛態勢」（LLM戦略）×「予算=stockpile」（RL戦術）
+
+### LLM戦略層の設定
 
 ```bash
 cp server/.env.example server/.env   # ZAI_API_KEY を設定
 cd server && uv run python scripts/smoke_test_llm.py   # 接続テスト
 ```
 
-- 各国家はpersona（技術立島国、資源専制国...）を持ち、情勢JSONを渡して政策JSON（予算配分・外交・軍事態勢）を返す
+- 各国家はpersona（技術立島国、資源専制国...）を持ち、情勢JSON（自国状態・技術・他国関係を含む）を渡して政策JSON（外交・軍事態勢・配給）を返す
 - 失敗時はheuristicにフォールバック。生応答はログ保存
-- ロードマップ: LLM（戦略層）× 強化学習（戦術層）× ルール（世界解決層）の複合AI
+- `--policy llm` で全国家LLM、`--policy hybrid` で対象国のみLLM×RL
 
 ## ロードマップ
 
 - [x] M1: 決定論エンジン、イベントソーシング、A/B反実仮想、リプレイビューア
-- [ ] M2: リアルタイム神介入UI（FastAPI + WebSocket）、LLM国家AI実戦接続
-- [ ] M3: RL戦術層（小型MLPポリシー）、実データ風プリセット
+- [x] 実世界地図化（Natural Earth GeoJSON、実在海峡・シーレーン、地下・宇宙資源、未来技術創発）
+- [x] 複合戦略AI（LLM戦略層 × RL戦術層、学習・比較実験基盤）
+- [ ] M2: リアルタイム神介入UI（FastAPI + WebSocket）
+- [ ] M3: 実データ風プリセットの精緻化、マルチ国同時RL（自己対戦）
 - [ ] M4: 実験・チューニング、解析ノートブック、ドキュメント整備
 
 ## 開発

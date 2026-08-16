@@ -587,31 +587,35 @@ class Engine:
                         )
 
     # --------------------------------------------------------------- decisions
+    def nation_view(self, nid: str) -> NationView:
+        """Single nation's observation of the world (shared by policies & RL)."""
+        nat = self.nations[nid]
+        me_view = dict(nat.view())
+        me_view["techs"] = self._techs_of(nid)
+        recent = [r.text for r in self.event_log.records[-8:]]
+        return NationView(
+            tick=self.tick_no,
+            me=me_view,
+            prices=dict(self.prices),
+            god_params=self.god.model_dump(),
+            relations={
+                o: {
+                    "trust": round(onat.trust.get(nid, 0.0), 1),
+                    "alliance": o in nat.alliances,
+                    "war": o in nat.at_war_with,
+                    "sanction": o in nat.sanctions_on,
+                }
+                for o, onat in sorted(self.nations.items()) if o != nid
+            },
+            market_news=[f"{k} price {v:.2f}" for k, v in self.prices.items()],
+            recent_events=recent,
+        )
+
     def _decide(self) -> dict[str, Decisions]:
         out: dict[str, Decisions] = {}
-        recent = [r.text for r in self.event_log.records[-8:]]
         for nid in sorted(self.nations):
-            nat = self.nations[nid]
             policy = self.policies.get(nid) or self.policies.get("*")
-            me_view = dict(nat.view())
-            me_view["techs"] = self._techs_of(nid)
-            view = NationView(
-                tick=self.tick_no,
-                me=me_view,
-                prices=dict(self.prices),
-                god_params=self.god.model_dump(),
-                relations={
-                    o: {
-                        "trust": round(onat.trust.get(nid, 0.0), 1),
-                        "alliance": o in nat.alliances,
-                        "war": o in nat.at_war_with,
-                        "sanction": o in nat.sanctions_on,
-                    }
-                    for o, onat in sorted(self.nations.items()) if o != nid
-                },
-                market_news=[f"{k} price {v:.2f}" for k, v in self.prices.items()],
-                recent_events=recent,
-            )
+            view = self.nation_view(nid)
             out[nid] = policy.decide(view)
         return out
 

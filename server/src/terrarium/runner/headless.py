@@ -27,7 +27,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--gen-nations", type=int, default=8)
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--ticks", type=int, default=36)
-    ap.add_argument("--policy", default="heuristic", choices=["heuristic", "mock_llm", "llm"])
+    ap.add_argument("--policy", default="heuristic",
+                    choices=["heuristic", "mock_llm", "llm", "rl", "hybrid"])
+    ap.add_argument("--rl-nation", default=None, help="nation id controlled by rl/hybrid policy")
+    ap.add_argument("--rl-weights", default=None, help="path to trained .npz weights")
     ap.add_argument("--scenario", default=None, help="scenario YAML with god interventions")
     ap.add_argument("--out", default=None, help="output dir (default logs/<name>)")
     ap.add_argument("--name", default=None)
@@ -47,7 +50,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     out = Path(args.out) if args.out else Path(__file__).resolve().parents[3] / "logs" / run_name
 
-    factory = make_policy_factory(args.policy, seed=args.seed)
+    factory = make_policy_factory(args.policy, seed=args.seed,
+                                  rl_nation=args.rl_nation, rl_weights=args.rl_weights)
     policies = {ns.id: factory(ns) for ns in spec.nations}
 
     eng = Engine(spec, policies, seed=args.seed, out_dir=out, run_name=run_name)

@@ -1,0 +1,127 @@
+{
+  "preset": "default",
+  "nation": "VLT",
+  "scenario": "scenarios/chokepoint_closure.yaml",
+  "seeds": [
+    42,
+    43,
+    44,
+    45,
+    46
+  ],
+  "ticks": 36,
+  "summary": {
+    "heuristic": {
+      "gdp": 9.08,
+      "stability": 54.61,
+      "approval": 55.56,
+      "military": 55.47,
+      "shortages": 24.2,
+      "collapsed_rate": 0.0
+    },
+    "rl": {
+      "gdp": 9.06,
+      "stability": 53.55,
+      "approval": 51.75,
+      "military": 50.62,
+      "shortages": 24.4,
+      "collapsed_rate": 0.0
+    }
+  },
+  "raw": {
+    "heuristic": [
+      {
+        "gdp": 9.426,
+        "stability": 56.32,
+        "approval": 52.61,
+        "military": 54.82,
+        "collapsed": false,
+        "shortages": 17,
+        "wars": 0
+      },
+      {
+        "gdp": 8.874,
+        "stability": 55.18,
+        "approval": 55.15,
+        "military": 54.77,
+        "collapsed": false,
+        "shortages": 27,
+        "wars": 0
+      },
+      {
+        "gdp": 9.939,
+        "stability": 57.73,
+        "approval": 52.42,
+        "military": 56.09,
+        "collapsed": false,
+        "shortages": 18,
+        "wars": 0
+      },
+      {
+        "gdp": 9.058,
+        "stability": 47.8,
+        "approval": 63.87,
+        "military": 56.37,
+        "collapsed": false,
+        "shortages": 34,
+        "wars": 0
+      },
+      {
+        "gdp": 8.109,
+        "stability": 56.04,
+        "approval": 53.74,
+        "military": 55.28,
+        "collapsed": false,
+        "shortages": 25,
+        "wars": 0
+      }
+    ],
+    "rl": [
+      {
+        "gdp": 9.395,
+        "stability": 56.83,
+        "approval": 51.78,
+        "military": 50.32,
+        "collapsed": false,
+        "shortages": 18,
+        "wars": 0
+      },
+      {
+        "gdp": 8.874,
+        "stability": 53.68,
+        "approval": 51.82,
+        "military": 50.59,
+        "collapsed": false,
+        "shortages": 27,
+        "wars": 0
+      },
+      {
+        "gdp": 9.84,
+        "stability": 56.38,
+        "approval": 51.8,
+        "military": 50.9,
+        "collapsed": false,
+        "shortages": 18,
+        "wars": 0
+      },
+      {
+        "gdp": 9.058,
+        "stability": 46.31,
+        "approval": 51.75,
+        "military": 51.05,
+        "collapsed": false,
+        "shortages": 34,
+        "wars": 0
+      },
+      {
+        "gdp": 8.109,
+        "stability": 54.56,
+        "approval": 51.58,
+        "military": 50.25,
+        "collapsed": false,
+        "shortages": 25,
+        "wars": 0
+      }
+    ]
+  }
+}

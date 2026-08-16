@@ -22,8 +22,9 @@ from ..world.presets import load_preset
 SERVER_ROOT = Path(__file__).resolve().parents[3]
 
 
-def run_once(spec, seed: int, ticks: int, policy: str, scenario: Scenario, name: str, out: Path) -> Engine:
-    factory = make_policy_factory(policy, seed=seed)
+def run_once(spec, seed: int, ticks: int, policy: str, scenario: Scenario, name: str, out: Path,
+             rl_nation: str | None = None, rl_weights: str | None = None) -> Engine:
+    factory = make_policy_factory(policy, seed=seed, rl_nation=rl_nation, rl_weights=rl_weights)
     policies = {ns.id: factory(ns) for ns in spec.nations}
     eng = Engine(spec, policies, seed=seed, out_dir=out, run_name=name)
     eng.run(ticks, scenario)
@@ -40,7 +41,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--gen-nations", type=int, default=8)
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--ticks", type=int, default=36)
-    ap.add_argument("--policy", default="mock_llm")
+    ap.add_argument("--policy", default="mock_llm",
+                    choices=["heuristic", "mock_llm", "llm", "rl", "hybrid"])
+    ap.add_argument("--rl-nation", default=None)
+    ap.add_argument("--rl-weights", default=None)
     ap.add_argument("--scenario", required=True)
     ap.add_argument("--out", default=None)
     args = ap.parse_args(argv)
@@ -57,8 +61,10 @@ def main(argv: list[str] | None = None) -> int:
     out = Path(args.out) if args.out else SERVER_ROOT / "logs" / f"ab_{scenario.name}_{base_name}"
     out.mkdir(parents=True, exist_ok=True)
 
-    base = run_once(world_spec, args.seed, args.ticks, args.policy, Scenario(name="baseline"), "baseline", out / "baseline")
-    treat = run_once(world_spec, args.seed, args.ticks, args.policy, scenario, scenario.name, out / "treatment")
+    base = run_once(world_spec, args.seed, args.ticks, args.policy, Scenario(name="baseline"), "baseline",
+                    out / "baseline", args.rl_nation, args.rl_weights)
+    treat = run_once(world_spec, args.seed, args.ticks, args.policy, scenario, scenario.name,
+                     out / "treatment", args.rl_nation, args.rl_weights)
 
     # metric diff csv
     fields = ["tick"] + [f"base_{k}" for k in base.series[0] if k != "tick"] + [f"treat_{k}" for k in treat.series[0] if k != "tick"]

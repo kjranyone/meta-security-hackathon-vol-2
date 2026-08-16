@@ -1,0 +1,50 @@
+[
+ {
+  "episode": 0,
+  "eval_reward": -59.06
+ },
+ {
+  "episode": 250,
+  "train_reward": -43.264,
+  "eval_reward": -42.679
+ },
+ {
+  "episode": 500,
+  "train_reward": -43.344,
+  "eval_reward": -42.773
+ },
+ {
+  "episode": 750,
+  "train_reward": -43.793,
+  "eval_reward": -43.206
+ },
+ {
+  "episode": 1000,
+  "train_reward": -43.38,
+  "eval_reward": -42.473
+ },
+ {
+  "episode": 1250,
+  "train_reward": -42.709,
+  "eval_reward": -42.714
+ },
+ {
+  "episode": 1500,
+  "train_reward": -42.639,
+  "eval_reward": -42.633
+ },
+ {
+  "episode": 1750,
+  "train_reward": -43.229,
+  "eval_reward": -42.767
+ },
+ {
+  "episode": 2000,
+  "train_reward": -42.557,
+  "eval_reward": -43.102
+ },
+ {
+  "episode": 2000,
+  "eval_reward": -43.102
+ }
+]

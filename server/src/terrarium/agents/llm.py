@@ -140,12 +140,35 @@ class MockLLMPolicy:
         return d
 
 
-def make_policy_factory(mode: str, seed: int = 0):
-    """mode: heuristic | mock_llm | llm -> callable(NationSpec) -> Policy"""
+def make_policy_factory(mode: str, seed: int = 0, rl_nation: str | None = None,
+                        rl_weights: str | None = None):
+    """mode: heuristic | mock_llm | llm | rl | hybrid -> callable(NationSpec) -> Policy
+
+    rl / hybrid install the special policy only for rl_nation; all other
+    nations (and any missing weights) fall back to heuristic."""
     if mode == "heuristic":
         return lambda spec: HeuristicPolicy()
     if mode == "mock_llm":
         return lambda spec: MockLLMPolicy(spec.id, spec.persona, seed=seed)
     if mode == "llm":
         return lambda spec: ZaiLLMPolicy(spec.id, spec.persona)
+    if mode == "rl":
+        if not rl_nation:
+            raise ValueError("--rl-nation is required for --policy rl")
+        from .rl_policy import RLPolicy
+
+        rl = RLPolicy(rl_nation, rl_weights)
+        return lambda spec: rl if spec.id == rl_nation else HeuristicPolicy()
+    if mode == "hybrid":
+        if not rl_nation:
+            raise ValueError("--rl-nation is required for --policy hybrid")
+        from .heuristic import HeuristicPolicy as _H
+        from .hybrid import HybridPolicy
+        from .rl_policy import RLPolicy
+
+        def make_hybrid(spec):
+            if spec.id == rl_nation:
+                return HybridPolicy(ZaiLLMPolicy(spec.id, spec.persona), RLPolicy(rl_nation, rl_weights))
+            return _H()
+        return make_hybrid
     raise ValueError(f"unknown policy mode: {mode}")
