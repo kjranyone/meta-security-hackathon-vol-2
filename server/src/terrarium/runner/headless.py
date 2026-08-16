@@ -56,7 +56,13 @@ def main(argv: list[str] | None = None) -> int:
                                   rl_nation=args.rl_nation, rl_weights=args.rl_weights)
     policies = {ns.id: factory(ns) for ns in spec.nations}
 
-    eng = Engine(spec, policies, seed=args.seed, out_dir=out, run_name=run_name)
+    eng = Engine(spec, policies, seed=args.seed, out_dir=out, run_name=run_name,
+                  run_config={
+                      "preset": args.preset, "gen_seed": args.gen_seed,
+                      "gen_nations": args.gen_nations, "policy": args.policy,
+                      "rl_nation": args.rl_nation, "rl_weights": args.rl_weights,
+                      "scenario": args.scenario,
+                  })
     eng.run(args.ticks, scenario)
     eng.write_outputs()
 

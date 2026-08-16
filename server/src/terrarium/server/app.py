@@ -158,6 +158,79 @@ async def reset(payload: dict) -> dict:
     return session.status()
 
 
+@app.get("/api/runs")
+async def list_runs() -> dict:
+    """Replayable runs for the viewer's IF-mode base picker."""
+    logs = REPO_ROOT / "server" / "logs"
+    runs = []
+    if logs.exists():
+        for d in sorted(logs.iterdir()):
+            if d.is_dir() and (d / "replay.jsonl").exists():
+                runs.append(d.name)
+    return {"runs": runs}
+
+
+@app.post("/api/whatif")
+async def whatif(payload: dict) -> dict:
+    """IF-history fork: rerun a recorded history with one intervention
+    rewritten at a past tick. Determinism reproduces the base history up to
+    the fork; the report says where the timelines split."""
+    import asyncio
+
+    from ..runner.whatif import divergence_report, load_base, parse_iv, unique_name
+    from ..sim.interventions import Scenario, load_scenario as _load
+    from ..world.presets import load_preset as _load_preset
+
+    base = payload["base"]
+    tick = int(payload["tick"])
+    iv_specs = payload.get("ivs") or [payload["iv"]]
+    meta = load_base(base)
+    cfg = meta.get("config") or {}
+    scenario_path = payload.get("scenario") or cfg.get("scenario")
+    warnings = []
+    if scenario_path is None:
+        god_events = sum(1 for l in (REPO_ROOT / "server" / "logs" / base / "events.jsonl")
+                         .read_text(encoding="utf-8").splitlines() if '"god_intervention"' in l)
+        if god_events:
+            warnings.append(f"base run has {god_events} god interventions but no recorded "
+                            f"scenario — the fork will NOT reproduce them")
+    base_scenario = _load(scenario_path)
+    ivs = [parse_iv(s, tick) for s in iv_specs]
+    scenario = Scenario(name=f"{base_scenario.name}_if",
+                        description=f"IF fork of {base} at t{tick}",
+                        interventions=list(base_scenario.interventions) + ivs)
+
+    if cfg.get("gen_seed") is not None:
+        from ..world.worldgen import GenParams, generate_world
+        spec = generate_world(GenParams(seed=cfg["gen_seed"], n_nations=cfg.get("gen_nations", 8)))
+    else:
+        spec = _load_preset(payload.get("preset") or cfg.get("preset") or "earth")
+
+    from ..agents.llm import make_policy_factory as _factory
+    from ..runner.ab import run_once
+
+    policy = payload.get("policy") or cfg.get("policy") or "mock_llm"
+    if policy in ("llm", "hybrid"):
+        warnings.append(f"base policy '{policy}' is nondeterministic; forking with mock_llm")
+        policy = "mock_llm"
+    name = unique_name(payload.get("name") or f"{base}_if_t{tick}")
+    loop = asyncio.get_running_loop()
+    await loop.run_in_executor(
+        None,
+        lambda: run_once(spec, seed=meta["seed"], ticks=meta["ticks"], policy=policy,
+                         scenario=scenario, name=name.name, out=name,
+                         rl_nation=cfg.get("rl_nation"), rl_weights=cfg.get("rl_weights"),
+                         run_config={**cfg, "if_base": base, "if_tick": tick,
+                                     "if_ivs": [iv.model_dump() for iv in ivs]}),
+    )
+    report = divergence_report(base, name.name, tick, ivs)
+    (name / "whatif.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+    return {"name": name.name,
+            "replay": f"/static/server/logs/{name.name}/replay.jsonl",
+            "report": report,
+            "warnings": warnings}
+
+
 @app.websocket("/ws")
 async def ws_endpoint(ws: WebSocket) -> None:
     await ws.accept()

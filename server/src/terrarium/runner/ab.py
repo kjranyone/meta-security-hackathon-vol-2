@@ -23,10 +23,11 @@ SERVER_ROOT = Path(__file__).resolve().parents[3]
 
 
 def run_once(spec, seed: int, ticks: int, policy: str, scenario: Scenario, name: str, out: Path,
-             rl_nation: str | None = None, rl_weights: str | None = None) -> Engine:
+             rl_nation: str | None = None, rl_weights: str | None = None,
+             run_config: dict | None = None) -> Engine:
     factory = make_policy_factory(policy, seed=seed, rl_nation=rl_nation, rl_weights=rl_weights)
     policies = {ns.id: factory(ns) for ns in spec.nations}
-    eng = Engine(spec, policies, seed=seed, out_dir=out, run_name=name)
+    eng = Engine(spec, policies, seed=seed, out_dir=out, run_name=name, run_config=run_config)
     eng.run(ticks, scenario)
     eng.write_outputs()
     return eng

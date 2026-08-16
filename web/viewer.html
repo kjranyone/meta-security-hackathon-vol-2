@@ -54,6 +54,18 @@
   #speed { width: 60px; }
   .drophint { color: var(--dim); padding: 40px; text-align: center; }
   code { background:#1c2129; padding:1px 4px; border-radius:4px; }
+  #ifpanel { position: fixed; top: 60px; right: 16px; width: 380px; max-height: 80vh; overflow: auto;
+             background: var(--panel); border: 1px solid var(--accent); border-radius: 10px;
+             padding: 14px 16px; z-index: 40; font-size: 13px; box-shadow: 0 8px 30px rgba(0,0,0,.5); display: none; }
+  #ifpanel h3 { margin: 0 0 8px; }
+  #ifpanel label { color: var(--dim); font-size: 11.5px; display: block; margin: 8px 0 2px; }
+  #ifpanel select, #ifpanel input { background: var(--bg); border: 1px solid var(--border); color: var(--text);
+                                    border-radius: 6px; padding: 4px 8px; width: 100%; box-sizing: border-box; }
+  #ifpanel button { background: #21262d; border: 1px solid var(--border); color: var(--text); border-radius: 6px;
+                    padding: 5px 12px; cursor: pointer; margin-top: 10px; }
+  #ifpanel button.go { border-color: var(--accent); color: var(--accent); }
+  #ifresult { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px; font-size: 12.5px; }
+  #ifresult .ok { color: #3fb950; } #ifresult .ng { color: #f85149; } #ifresult b { color: var(--accent); }
 </style>
 </head>
 <body>
@@ -65,6 +77,7 @@
   <button onclick="document.getElementById('file').click()">ファイルを開く</button>
   <input type="file" id="file" accept=".jsonl" style="display:none" onchange="loadFile(this.files[0])">
   <button id="routebtn" class="on" onclick="toggleRoutes()">航路</button>
+  <button id="ifbtn" onclick="toggleIf()">⏪ IF史</button>
 </header>
 <div id="main">
   <div id="mapwrap">
@@ -85,6 +98,31 @@
   <span id="ticklabel">tick 0</span>
   <label style="color:var(--dim)">速度</label>
   <input type="range" id="speed" min="1" max="10" value="5" oninput="setSpeed(this.value)">
+</div>
+
+<div id="ifpanel" style="display:none">
+  <h3>⏪ IF史モード — 「過去に△△していたら」</h3>
+  <div style="color:var(--dim); font-size:11.5px; margin-bottom:6px;">
+    見ている歴史を <b>tick</b> まで巻き戻し、神の介入を1つ差し込んで再実行します。
+    決定論エンジンなので分岐tickまでは元の歴史と完全に同一、以降が新しい歴史になります。
+  </div>
+  <label>元の歴史（base run）</label>
+  <input type="text" id="ifbase" placeholder="earth_earth_financial_crisis">
+  <label>分岐するtick（現在のscrub位置で初期化）</label>
+  <input type="number" id="iftick" min="0" value="0">
+  <label>介入カード</label>
+  <select id="iftype" onchange="renderIfParams()">
+    <option value="bailout">💸 救済（ベイルアウト） nation</option>
+    <option value="rate_hike">📈 世界金利引き上げ value</option>
+    <option value="close_chokepoint">⚓ 海峡封鎖 chokepoint, duration</option>
+    <option value="create_resource">✨ 資源の創造 nation, resource, quantity</option>
+    <option value="grant_tech">🧪 技術の授与 nation, tech</option>
+    <option value="ban_tech">🚫 技術の全世界禁止 tech</option>
+  </select>
+  <div id="ifparams"></div>
+  <button class="go" onclick="runWhatif()">❖ 歴史を分岐させる</button>
+  <button onclick="toggleIf()">閉じる</button>
+  <div id="ifresult"></div>
 </div>
 <script>
 "use strict";
@@ -461,9 +499,110 @@ function setSpeed(v) { if (playing) { clearInterval(timer); timer = setInterval(
 (async () => {
   const q = new URLSearchParams(location.search).get("replay");
   if (!q) return;
+  document.getElementById("url").value = q;   // IFパネルのbase検出用
   try { ingest(await (await fetch(q)).text()); }
   catch (e) { console.error("auto-load failed", e); }
 })();
+
+// ---------------------------------------------------------------- IF史モード
+const IF_TECHS = ["cyber_arsenal", "drone_swarm", "laser_defense", "hypersonic_intercept",
+  "ai_fab", "biomanuf", "autofactory", "deepsea_mining", "fusion", "space_solar",
+  "asteroid_mining", "ai_religion", "techno_nationalism"];
+const IF_RESOURCES = ["oil", "gas", "grain", "fab", "mineral", "orbit", "finance"];
+
+function toggleIf() {
+  const p = document.getElementById("ifpanel");
+  p.style.display = p.style.display === "none" ? "block" : "none";
+  if (p.style.display === "block") {
+    // prefill base run from the loaded replay URL, tick from scrub position
+    const m = (document.getElementById("url").value || "").match(/logs\/([^/]+)\/replay\.jsonl/);
+    if (m) document.getElementById("ifbase").value = m[1];
+    document.getElementById("iftick").value = cur;
+    renderIfParams();
+    if (location.port !== "8788") {
+      document.getElementById("ifresult").innerHTML =
+        '<span class="ng">⚠ 神サーバ経由で開いてください: <code>http://localhost:8788/static/web/viewer.html?replay=...</code></span>';
+    } else {
+      document.getElementById("ifresult").innerHTML = "";
+    }
+  }
+}
+
+function ifOptions(values, selected) {
+  return values.map(v => `<option value="${v}" ${v === selected ? "selected" : ""}>${v}</option>`).join("");
+}
+
+function renderIfParams() {
+  const type = document.getElementById("iftype").value;
+  const nationIds = META && META.geo ? Object.keys(META.geo.nations) : ["JPN", "USA"];
+  const cps = META && META.geo ? META.geo.chokepoints.map(c => c.name) : ["Strait of Hormuz"];
+  const nat = `<label>nation（国家ID）</label><select id="ifp_nation">${ifOptions(nationIds, nationIds.includes("JPN") ? "JPN" : nationIds[0])}</select>`;
+  let html = "";
+  if (type === "bailout") html = nat;
+  else if (type === "rate_hike") html = `<label>value（引き上げ幅、例 0.08 = +8%）</label><input type="number" id="ifp_value" step="0.01" value="0.08">`;
+  else if (type === "close_chokepoint") html =
+    `<label>chokepoint（海峡）</label><select id="ifp_chokepoint">${ifOptions(cps, "Strait of Hormuz")}</select>` +
+    `<label>duration（ヶ月、空欄=永続）</label><input type="number" id="ifp_duration" value="24">`;
+  else if (type === "create_resource") html = nat +
+    `<label>resource（資源）</label><select id="ifp_resource">${ifOptions(IF_RESOURCES, "oil")}</select>` +
+    `<label>quantity（ユニット数）</label><input type="number" id="ifp_quantity" value="2">`;
+  else if (type === "grant_tech") html = nat +
+    `<label>tech（技術）</label><select id="ifp_tech">${ifOptions(IF_TECHS, "fusion")}</select>`;
+  else if (type === "ban_tech") html =
+    `<label>tech（技術）</label><select id="ifp_tech">${ifOptions(IF_TECHS, "fusion")}</select>`;
+  document.getElementById("ifparams").innerHTML = html;
+}
+
+async function runWhatif() {
+  const out = document.getElementById("ifresult");
+  const base = document.getElementById("ifbase").value.trim();
+  const tick = +document.getElementById("iftick").value;
+  const type = document.getElementById("iftype").value;
+  const val = id => { const el = document.getElementById(id); return el ? el.value : null; };
+  const params = {};
+  if (val("ifp_nation")) params.nation = val("ifp_nation");
+  if (val("ifp_chokepoint")) params.chokepoint = val("ifp_chokepoint");
+  if (val("ifp_value") !== null && val("ifp_value") !== "") params.value = +val("ifp_value");
+  if (val("ifp_duration")) params.duration = +val("ifp_duration");
+  if (val("ifp_resource")) params.resource = val("ifp_resource");
+  if (val("ifp_quantity")) params.quantity = +val("ifp_quantity");
+  if (val("ifp_tech")) params.tech = val("ifp_tech");
+  const iv = type + ":" + Object.entries(params).map(([k, v]) => `${k}=${v}`).join(",");
+  out.innerHTML = '<span class="ng">⏳ 分岐実行中…（決定論再実行、数秒）</span>';
+  try {
+    const res = await fetch("/api/whatif", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ base, tick, ivs: [iv] }),
+    });
+    if (!res.ok) throw new Error((await res.json()).detail || res.statusText);
+    const data = await res.json();
+    const r = data.report;
+    const d = r.final_metric_deltas;
+    const only = list => list.map(e => `<li>t${e.tick} ${e.actor} ${e.type}</li>`).join("");
+    const warns = (data.warnings || []).map(w => `<span class="ng">⚠ ${w}</span><br>`).join("");
+    out.innerHTML =
+      `<span class="ok">✅ 分岐: ${data.name}</span><br>` +
+      warns +
+      `IF: <b>t${tick}</b> で <b>${type}</b> ${JSON.stringify(params)}<br>` +
+      `歴史が変わった最初のtick: <b>t${r.first_divergence_tick}</b><br>` +
+      `最終差分: GDP ${fmt(d.world_gdp)} / デフォルト ${fmt(d.defaults)} / 戦争 ${fmt(d.wars)}<br>` +
+      (r.only_in_base.length ? `<div style="margin-top:6px">元の歴史でだけ起きた:<ul>${only(r.only_in_base)}</ul></div>` : "") +
+      (r.only_in_fork.length ? `<div>IF世界で新たに起きた:<ul>${only(r.only_in_fork)}</ul></div>` : "") +
+      `<button onclick="loadIfReplay('${data.replay}')">🗺 IF世界をこの画面で開く</button>`;
+  } catch (e) {
+    out.innerHTML = `<span class="ng">失敗: ${e.message}</span><br>` +
+      '<small style="color:var(--dim)">base run 名と神サーバ(8788)経由のアクセスを確認してください</small>';
+  }
+}
+
+function fmt(x) { return (x >= 0 ? "+" : "") + (+x).toFixed(1); }
+
+function loadIfReplay(staticUrl) {
+  const url = location.origin + staticUrl;
+  document.getElementById("url").value = url;
+  loadUrl();
+  toggleIf();
+}
 </script>
 </body>
 </html>

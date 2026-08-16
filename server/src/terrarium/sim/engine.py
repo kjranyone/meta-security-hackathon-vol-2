@@ -56,6 +56,7 @@ class Engine:
         out_dir: Optional[Path] = None,
         run_name: str = "run",
         log_stream: Optional[IO[str]] = None,
+        run_config: Optional[dict] = None,
     ):
         self.spec = spec
         self.policies = policies
@@ -63,6 +64,9 @@ class Engine:
         self.seed = seed
         self.tick_no = 0
         self.god = GodParams()
+        # provenance recorded into run.json so IF-history forks can replay
+        # the exact (preset, policy, scenario) that produced this history
+        self.run_config = run_config or {}
         self.chokepoints = {cp.name: cp for cp in spec.chokepoints}
         self.prices = {c.value: 1.0 for c in Commodity}
         self.last_prices = dict(self.prices)
@@ -987,6 +991,7 @@ class Engine:
             "final_metrics": self.series[-1] if self.series else {},
             "event_counts": self._event_counts(),
             "wars": len(self.wars),
+            "config": self.run_config,
         }
         (self.out_dir / "run.json").write_text(
             json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8"

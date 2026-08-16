@@ -147,7 +147,30 @@ ax.legend(loc="lower left")
 ax.set_title("神の介入による歴史の分岐（seed=42、A/B反実仮想）")
 plt.show()"""))
 
-cells.append(md("""## 5. RL戦術層の学習曲線
+cells.append(md("""## 5. IF史: 過去の介入を1つ差し替えて歴史を分岐させる
+
+`whatif` ランナーは記録済みの歴史を分岐tickまで決定論的に再生し、介入を
+差し込んで再実行する（分岐前は元の歴史とbit等価）。各分岐runの
+`whatif.json` から「どこで歴史が変わったか」を読む。"""))
+cells.append(code("""def _iv_label(iv):
+    ps = ",".join(str(k) + "=" + str(v) for k, v in iv["params"].items())
+    return iv["type"] + "(" + ps + ")"
+
+rows = []
+for wj in sorted(LOGS.glob("*/whatif.json")):
+    r = json.loads(wj.read_text())
+    d = r["final_metric_deltas"]
+    rows.append({
+        "fork": r["fork_run"], "base": r["base_run"],
+        "IF": "t" + str(r["fork_tick"]) + " " + ", ".join(_iv_label(iv) for iv in r["interventions"]),
+        "first_div": r["first_divergence_tick"],
+        "d_gdp": d.get("world_gdp"), "d_defaults": d.get("defaults"),
+        "only_in_base": "; ".join("t" + str(e["tick"]) + e["actor"] for e in r["only_in_base"])[:60],
+        "only_in_fork": "; ".join("t" + str(e["tick"]) + e["actor"] for e in r["only_in_fork"])[:60],
+    })
+pd.DataFrame(rows)"""))
+
+cells.append(md("""## 6. RL戦術層の学習曲線
 
 単一国家学習（heuristic相手）と自己対戦学習（他の学習者も環境の一部）の
 評価報酬推移。`models/*.curve.json` から読み込み。"""))
@@ -165,7 +188,7 @@ ax.legend()
 ax.set_title("RL戦術層: 脆弱国ほど学習利得が大きい / 自己対戦は共進化")
 plt.show()"""))
 
-cells.append(md("""## 6. LLM戦略層の思考ログ
+cells.append(md("""## 7. LLM戦略層の思考ログ
 
 `--policy llm`（z.ai GLM）実行の `policy_shift` イベントには、国家AIが
 残した判断の理由（rationale）がそのまま記録されている。"""))
