@@ -16,6 +16,7 @@ api = [
     "openai>=1.40",
 ]
 dev = [
+    "matplotlib>=3.10.9",
     "pytest>=8.0",
 ]
 

@@ -224,14 +224,30 @@ cd server && uv run python scripts/smoke_test_llm.py   # 接続テスト
 - 失敗時はheuristicにフォールバック。生応答はログ保存
 - `--policy llm` で全国家LLM、`--policy hybrid` で対象国のみLLM×RL
 
+## 解析パイプライン（図表生成）
+
+`analysis/make_figures.py` がコミット済み実行ログ（`server/logs/*/`）から提出用図表を一括生成します:
+
+```bash
+cd server && uv run python ../analysis/make_figures.py
+```
+
+| 出力 | 内容 |
+|---|---|
+| `analysis/out/cascade_*.png` | **因果カスケードグラフ**: 神の介入・技術創発を根とし、parentリンクをBFS辿りして深さ方向に配置。色はイベント種（デフォルト=赤・戦争=橙・崩壊=黒・政策転換=青…） |
+| `analysis/out/cascade_bar_*.png` | 介入別の**子孫イベント数**（どの介入が最も大きな連鎖を生んだか） |
+| `analysis/out/ab_*.png` | **A/Bダイバージェンス**: baseline vs シナリオのGDP・価格・安定・不足イベント系列 |
+| `analysis/out/sensitivity_matrix.png` + `.csv` | **介入点×指標の感度行列**（最終値の差分）。どの介入点がどの指標に効くか一望 |
+
 ## ロードマップ
 
 - [x] M1: 決定論エンジン、イベントソーシング、A/B反実仮想、リプレイビューア
 - [x] 実世界地図化（Natural Earth GeoJSON、実在海峡・シーレーン、地下・宇宙資源、未来技術創発）
 - [x] 複合戦略AI（LLM戦略層 × RL戦術層、学習・比較実験基盤）
 - [x] M2: リアルタイム神介入UI「神の玉座」（FastAPI + WebSocket）
+- [x] 財政・金融システム（債務不履行・感染）、解析パイプライン（カスケードグラフ・感度行列）
 - [ ] M3: 実データ風プリセットの精緻化、マルチ国同時RL（自己対戦）
-- [ ] M4: 実験・チューニング、解析ノートブック、ドキュメント整備
+- [ ] M4: 実験・チューニング、解析ノートブック、レポート・デモ動画
 
 ## 開発
 
