@@ -145,9 +145,12 @@ web/           # ビルド済み成果物（コミット済み → 利用者は 
 `npm install` なしでそのまま動かせます（従来の単一HTMLと同じURL）。
 
 ```bash
-cd frontend
-npm install && npm run build   # web/god.html + web/viewer.html + web/assets/ を再生成
-npm run dev                    # 開発時ホットリロード（プロキシなし: 8788のAPIを直叩き時はCORS設定を）
+cd server && uv run uvicorn terrarium.server.app:app --port 8788   # バックエンド
+cd frontend && npm install && npm run dev                          # HMR開発サーバ(5173)
+#   → http://localhost:5173/            神の玉座（WS/APIは8788へ自動プロキシ）
+#   → http://localhost:5173/viewer.html ビューア（?replay=/static/server/logs/<run>/replay.jsonl）
+
+npm run build   # 変更を確定するとき: web/god.html + web/viewer.html + web/assets/（ハッシュ付き）を再生成してコミット
 ```
 
 共有コンポーネント/ロジック（両UIで再利用）: 地図レンダラ（領土・航路・海峡・友好度グラフ）、

@@ -126,6 +126,13 @@ class Session:
 session = Session()
 app = FastAPI(title="Geopolitics Terrarium — God Server")
 
+# 開発時: Vite dev server (5173) からのreplay直接fetch用
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(CORSMiddleware,
+                    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+                    allow_methods=["*"], allow_headers=["*"])
+
 
 @app.on_event("startup")
 async def _startup() -> None:
