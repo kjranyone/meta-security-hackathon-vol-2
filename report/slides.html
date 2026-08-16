@@ -106,7 +106,7 @@
         <tr><td><b>戦術層</b></td><td>毎月の予算配分・姿勢・配給</td><td><b>強化学習</b>（numpy Actor-Critic、自己対戦）</td></tr>
         <tr><td><b>世界解決層</b></td><td>市場・物理・財政・連鎖</td><td>決定論ルールエンジン</td></tr>
       </table>
-      <h3>1 tick（=1ヶ月）のパイプライン</h3>
+      <h3>1 tick（=1時間・RTS風高速世界時計）のパイプライン</h3>
       <p>技術ステップ → 生産 → 貿易（比例配給） → 市場 → 消費 → <b>意思決定（AI）</b> → 外交 → 紛争 → 財政・マクロ</p>
       <h3>経済の相互接続（連鎖の物理）</h3>
       <ul>
@@ -142,7 +142,7 @@
       </ul>
     </div>
     <div class="col">
-      <h3>未来技術の創発（2026年開始、1tick=1ヶ月）</h3>
+      <h3>未来技術の創発（2026年開始、超加速研究世界）</h3>
       <table>
         <tr><th>分類</th><th>技術（創発時期）</th><th>効果</th></tr>
         <tr><td>兵器</td><td>自律ドローン群(t8)・極超音速迎撃網(t22)</td><td>軍事力増強・不信上昇</td></tr>
@@ -161,7 +161,7 @@
 <section class="slide">
   <h2>4. バタフライ・エフェクト（実測）: 介入点 × 指標の感度</h2>
   <table>
-    <tr><th>シナリオ（seed=42・同世界・36ヶ月・実ログ）</th><th class="num">世界GDP</th><th class="num">エネルギー価格</th><th class="num">半導体価格</th><th class="num">デフォルト</th><th class="num">不足</th></tr>
+    <tr><th>シナリオ（seed=42・同世界・36tick・実ログ）</th><th class="num">世界GDP</th><th class="num">エネルギー価格</th><th class="num">半導体価格</th><th class="num">デフォルト</th><th class="num">不足</th></tr>
     <tr><td>baseline（無介入）</td><td class="num">189.2</td><td class="num">1.00</td><td class="num">1.00</td><td class="num">1</td><td class="num">312</td></tr>
     <tr><td>台湾海峡封鎖</td><td class="num">166.7 (−11.9%)</td><td class="num">—</td><td class="num">1.04</td><td class="num">2</td><td class="num">—</td></tr>
     <tr><td>ホルムズ海峡封鎖</td><td class="num bad">154.2 (−18.5%)</td><td class="num bad">1.22</td><td class="num bad">1.09</td><td class="num">2</td><td class="num">457</td></tr>
@@ -226,7 +226,7 @@
       <ul>
         <li>学習評価報酬: SAH（旱魃下の脆弱国）<span class="good">−164.9 → −131.6 (+33.3)</span>、
             VLT <span class="good">−4.3 → +7.2</span></li>
-        <li>36ヶ月の最終指標は手調整heuristicと<b>互角</b> — ドクトリンを書かずに同等性能へ</li>
+        <li>36tickの最終指標は手調整heuristicと<b>互角</b> — ドクトリンを書かずに同等性能へ</li>
         <li><b>自己対戦</b>（複数学習者が同一世界で共進化）: EGY <span class="good">+13.5</span> / JPN +0.5 / USA +0.1 —
             脆弱な債務国ほど学習利得が大</li>
         <li>報酬設計も介入点: <code>--default-penalty</code> で「成長最適化⇔債務規律」を切替</li>
@@ -236,7 +236,7 @@
       <h3>正直な結果: 介入点の階層性</h3>
       <div class="box">
         金融危機下（債務252%+封鎖+利上げ8%）でRL戦術層は予算ドクトリンを変えた
-        （福祉35/備蓄1・防御20ヶ月 → 福祉36・中立36）。<br><br>
+        （福祉35/備蓄1・防御20tick → 福祉36・中立36）。<br><br>
         しかし<b>構造的デフォルトは国内予算配分では防げず、連鎖は不変</b>
         （JPN t7 → EU t12 → JPN t20 → USA t22）。<br><br>
         連鎖を変えたのは<b>神のベイルアウト</b>（破綻4件→3件）。
@@ -267,7 +267,7 @@
       </div>
     </div>
     <div class="col">
-      <h3>フルLLM実行（16カ国すべてGLM思考、ホルムズ封鎖下14ヶ月）</h3>
+      <h3>フルLLM実行（16カ国すべてGLM思考、ホルムズ封鎖下14tick）</h3>
       <div id="llm_quotes" class="box" style="font-size:14.5px; max-height:400px; overflow:hidden;"><p style="margin:6px 0;"><b>t8 豪州</b><span class="sub">（defensive）</span><br>チップ零備蓄が最大の弱点。食料輸出で台湾とチップ相互補完を構築し、米中両方と関係維持し資源輸出路を守る。…</p>
 <p style="margin:6px 0;"><b>t5 ブラジル</b><span class="sub">（defensive）</span><br>世界的食料不足は好機。食料備蓄を外交カードに中立的輸出拡大、TWN(半導体)・SAU(エネルギー)と相互補完関係を構築する。…</p>
 <p style="margin:6px 0;"><b>t12 カナダ</b><span class="sub">（defensive）</span><br>食料・エネルギー輸出の cards 切り替え——TWN食料不足とKOR半導体を互恵貿易で結び、チップ備蓄ゼロの脆弱性を同盟で解消…</p>

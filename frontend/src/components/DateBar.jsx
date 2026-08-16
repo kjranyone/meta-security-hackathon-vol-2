@@ -5,7 +5,7 @@ export default function DateBar({ tick, maxTick, frac = 0.5, visible }) {
   return (
     <div className="datebar">
       {simDate(tick, frac)}
-      <small>tick {tick} / {maxTick ?? "?"}（1tick=1ヶ月・日時は演出）</small>
+      <small>tick {tick} / {maxTick ?? "?"}（1tick=1時間・分は演出）</small>
     </div>
   );
 }

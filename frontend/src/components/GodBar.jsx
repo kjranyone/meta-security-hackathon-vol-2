@@ -29,7 +29,7 @@ export default function GodBar({ sel, meta, intervene }) {
       <span className="tgt">
         {nation || cp ? <>対象: <b>{name}</b></> : "対象なし（国家/海峡をクリック）"}
       </span>
-      <select data-k="dur" title="封鎖期間（ヶ月）">{[6, 12, 24, 60].map(d => <option key={d}>{d}</option>)}</select>
+      <select data-k="dur" title="封鎖期間（時間）">{[6, 12, 24, 60].map(d => <option key={d}>{d}</option>)}</select>
       <select data-k="res" title="資源の種類">{RESOURCES.map(r => <option key={r}>{r}</option>)}</select>
       <select data-k="tech" title="技術">{TECHS.map(t => <option key={t}>{t}</option>)}</select>
       {B.map((b, i) => (

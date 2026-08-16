@@ -152,7 +152,7 @@ export default function ViewerApp() {
             <MapCanvas tick={tick} geo={geo} meta={meta}
                        selectedNation={selected} showRoutes={showRoutes} />
             <DateBar tick={tick.tick} maxTick={ticks[ticks.length - 1].tick}
-                     frac={playing ? clockFrac : 0.5} visible />
+                     frac={playing ? clockFrac : 0} visible />
             <div className="legend">
               色付き国=国家 ・ ⚓/⛔ 海峡 ・ 実線=航路（琥珀=エネルギー 緑=食料 青=チップ 紫=地下資源 水色=宇宙）・ ⚔️ 戦争 ・ 💀 崩壊 ・ 橙枠=債務不履行 ・ 水色枠=未来技術の創発
               <br /><span style={{ color: "#3fb950" }}>緑=高信頼</span> / 灰=中立 / <span style={{ color: "#f85149" }}>赤=敵対</span> = 友好度線（国選択中=その国の関係全域、未選択=主要関係）

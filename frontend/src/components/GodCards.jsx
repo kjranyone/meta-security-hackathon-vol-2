@@ -67,7 +67,7 @@ export default function GodCards({ sel, meta, tick, intervene }) {
               {[6, 12, 24, 60].map(d => (
                 <button key={d} className="godbtn"
                         onClick={() => intervene("close_chokepoint", { chokepoint: sel.id, duration: d })}>
-                  {d}ヶ月
+                  {d}時間
                 </button>
               ))}
               <button onClick={() => intervene("open_chokepoint", { chokepoint: sel.id })}>解除</button>
