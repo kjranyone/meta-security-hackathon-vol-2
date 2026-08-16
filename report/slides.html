@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>Geopolitics Terrarium — ビジュアルレポート</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --border: #30363d;
+    --fg: #e6edf3; --sub: #9198a1;
+    --accent: #f0883e; --blue: #58a6ff; --red: #e5534b; --green: #3fb950; --purple: #d6a8ff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--fg);
+         font-family: "Hiragino Sans", "Yu Gothic", sans-serif; }
+  .slide { width: 1280px; height: 720px; margin: 24px auto; padding: 44px 56px;
+           background: var(--bg); border: 1px solid var(--border); border-radius: 12px;
+           position: relative; overflow: hidden; page-break-after: always; }
+  @media print { body { background: #fff; } .slide { margin: 0; border: none; border-radius: 0; } }
+  h1 { font-size: 44px; margin-bottom: 12px; }
+  h2 { font-size: 30px; margin-bottom: 18px; color: var(--accent);
+       border-bottom: 2px solid var(--border); padding-bottom: 8px; }
+  h3 { font-size: 19px; margin: 10px 0 6px; color: var(--blue); }
+  p, li, td, th { font-size: 16.5px; line-height: 1.55; }
+  ul { padding-left: 22px; margin: 6px 0; }
+  .sub { color: var(--sub); font-size: 14px; }
+  .cols { display: flex; gap: 28px; }
+  .col { flex: 1; min-width: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 8px 0; }
+  th, td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; }
+  th { background: var(--panel); color: var(--sub); font-weight: 600; font-size: 14px; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .box { background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+         padding: 14px 18px; margin: 10px 0; }
+  .hl { color: var(--accent); font-weight: 700; }
+  .good { color: var(--green); font-weight: 700; }
+  .bad { color: var(--red); font-weight: 700; }
+  img { max-width: 100%; border-radius: 8px; border: 1px solid var(--border); }
+  .footer { position: absolute; bottom: 18px; left: 56px; right: 56px;
+            display: flex; justify-content: space-between; color: var(--sub); font-size: 12.5px; }
+  .big { font-size: 34px; font-weight: 800; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .tag { display: inline-block; background: var(--panel); border: 1px solid var(--border);
+         border-radius: 999px; padding: 2px 12px; margin: 2px 4px 2px 0; font-size: 13.5px; }
+  code { background: var(--panel); padding: 1px 6px; border-radius: 5px; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<!-- ================= 1. Title ================= -->
+<section class="slide">
+  <div style="margin-top:110px; text-align:center;">
+    <div style="font-size:70px; margin-bottom: 6px;">👑🌍</div>
+    <h1 style="font-size:56px;">Geopolitics Terrarium</h1>
+    <p style="font-size:24px; color:var(--accent); margin-bottom:28px;">〜神の地政学とバタフライ・エフェクト〜</p>
+    <p style="font-size:19px; max-width:880px; margin:0 auto 30px;">
+      実世界地図上の国家AIたちに「神」として介入し、サプライチェーンの連鎖反応が
+      世界をどう変えるかを観測する非対称安全保障サンドボックス
+    </p>
+    <div class="box" style="max-width:880px; margin:0 auto; text-align:left;">
+      <b>問い（ハッカソンテーマ直結）</b>：介入点を変えれば連鎖はどう変わるか —
+      <span class="hl">海峡封鎖 / 金融感染 / 技術創発 / 偽情報</span>の各介入点が
+      GDP・価格・デフォルト・戦争に与える因果を、<b>決定論シミュレーション×A/B反実仮想</b>で計測する
+    </div>
+    <p class="sub" style="margin-top:34px;">
+      複合戦略AI: LLM（戦略層・z.ai GLM） × 強化学習（戦術層・自己対戦） × ルール（世界解決層）<br>
+      第2回 AIエージェント社会シミュレーション・ハッカソン「メタ安全保障」応募作品
+    </p>
+  </div>
+  <div class="footer"><span>Geopolitics Terrarium</span><span>1 / 10</span></div>
+</section>
+
+<!-- ================= 2. Concept ================= -->
+<section class="slide">
+  <h2>1. コンセプト: 神は統治しない、介入だけする</h2>
+  <div class="cols">
+    <div class="col">
+      <h3>非対称設計</h3>
+      <ul>
+        <li>プレイヤー（神）は国家を<b>運営しない</b> — 介入カードと環境スライダーで世界を歪めるだけ</li>
+        <li>国家AIが生存をかけた対応を行い、<b>プレイヤーは結果の連鎖を読む</b></li>
+        <li>神のカード: 海峡封鎖・資源の創造/消滅・技術の授与/禁止・利上げ・救済・災害・偽情報・好戦性の書き換え</li>
+      </ul>
+      <h3>再現性ファースト</h3>
+      <ul>
+        <li>完全決定論: 同じ <code>(seed, preset, policy, scenario)</code> → <b>bit等価</b>（テスト担保）</li>
+        <li>全イベントは<b>因果parentリンク付き</b>JSONL → 介入から崩壊・開戦への因果グラフを再構築</li>
+        <li>リプレイはログ再生のみで再現（LLM再呼び出し不要）</li>
+      </ul>
+    </div>
+    <div class="col">
+      <img src="assets/god_throne.png" alt="神の玉座UI" style="height:480px; width:100%; object-fit:cover;">
+      <p class="sub" style="text-align:center;">ライブ介入UI「神の玉座」（国家選択で介入カードが出現）</p>
+    </div>
+  </div>
+  <div class="footer"><span>Geopolitics Terrarium</span><span>2 / 10</span></div>
+</section>
+
+<!-- ================= 3. Architecture ================= -->
+<section class="slide">
+  <h2>2. アーキテクチャ: 複合戦略AI × イベントソーシング</h2>
+  <div class="cols">
+    <div class="col">
+      <table>
+        <tr><th>層</th><th>担当</th><th>実装</th></tr>
+        <tr><td><b>戦略層</b></td><td>外交・軍事姿勢・配給判断、<b>自然言語の理屈</b></td><td>LLM（z.ai GLM、OpenAI互換）</td></tr>
+        <tr><td><b>戦術層</b></td><td>毎月の予算配分・姿勢・配給</td><td><b>強化学習</b>（numpy Actor-Critic、自己対戦）</td></tr>
+        <tr><td><b>世界解決層</b></td><td>市場・物理・財政・連鎖</td><td>決定論ルールエンジン</td></tr>
+      </table>
+      <h3>1 tick（=1ヶ月）のパイプライン</h3>
+      <p>技術ステップ → 生産 → 貿易（比例配給） → 市場 → 消費 → <b>意思決定（AI）</b> → 外交 → 紛争 → 財政・マクロ</p>
+      <h3>経済の相互接続（連鎖の物理）</h3>
+      <ul>
+        <li>半導体ファブは<b>電力と地下資源</b>を消費 → エネルギー不足はファブ減産（×0.4）へ伝播</li>
+        <li>宇宙資源は<b>海峡封鎖を無視</b>（軌道直通）し、喪失は軍事力漸減（−1.5/月）へ</li>
+        <li>輸入依存×価格上昇 → インフレ → 債務国の金利上昇（金融連鎖への入口）</li>
+      </ul>
+    </div>
+    <div class="col">
+      <img src="assets/viewer_financial_crisis.png" alt="リプレイビューア" style="height:480px; width:100%; object-fit:cover;">
+      <p class="sub" style="text-align:center;">リプレイビューア: 実世界地図・航路・価格・イベントカスケード</p>
+    </div>
+  </div>
+  <div class="footer"><span>Geopolitics Terrarium</span><span>3 / 10</span></div>
+</section>
+
+<!-- ================= 4. World model ================= -->
+<section class="slide">
+  <h2>3. 世界モデル: 実地図 × 資源 × 未来技術の創発</h2>
+  <div class="cols">
+    <div class="col">
+      <h3>実世界の再現（公開データのみ）</h3>
+      <ul>
+        <li>Natural Earth GeoJSON（パブリックドメイン）で実地図描画、16の実在世界主体</li>
+        <li>実在7海峡（ホルムズ・マラッカ・台湾・スエズ・バブ・エル・マンデブ・パナマ・トルコ）を航路が経由</li>
+        <li>債務対GDP比は実態を概算反映（日252%・米122%・エジプト93%…）</li>
+        <li>シードから<b>架空世界を実地図上に自動生成</b>（需給バランス保証、8アーキタイプ）</li>
+      </ul>
+      <h3>神は資源を創造できる</h3>
+      <ul>
+        <li>地下資源（レアアース）・宇宙資源（軌道）を含む6種の資源ユニット</li>
+        <li><code>create_resource</code> / <code>destroy_resource</code> で神が需給構造そのものを書き換え</li>
+      </ul>
+    </div>
+    <div class="col">
+      <h3>未来技術の創発（2026年開始、1tick=1ヶ月）</h3>
+      <table>
+        <tr><th>分類</th><th>技術（創発時期）</th><th>効果</th></tr>
+        <tr><td>兵器</td><td>自律ドローン群(t8)・極超音速迎撃網(t22)</td><td>軍事力増強・不信上昇</td></tr>
+        <tr><td>製造</td><td>AI設計ファブ(t10)・自己修復工場(t26)</td><td>生産倍率向上</td></tr>
+        <tr><td>資源</td><td><b>核融合(t20)</b>・宇宙太陽光(t24)・小惑星採掘(t30)</td><td>油田ゼロの国にも電力</td></tr>
+        <tr><td>宗教</td><td><b>AI神格宗教(t15)</b>・テクノ・ナショナリズム(t18)</td><td>安定↑・他国との信頼↓</td></tr>
+      </table>
+      <p class="sub">導入確率は研究吸収能力（GDP・金融・半導体備蓄）に比例 → <b>技術格差が創発的に生成</b>。<br>
+      神は <code>grant_tech</code> / <code>ban_tech</code> で技術ツリー自体を介入できる。</p>
+    </div>
+  </div>
+  <div class="footer"><span>Geopolitics Terrarium</span><span>4 / 10</span></div>
+</section>
+
+<!-- ================= 5. Butterfly ================= -->
+<section class="slide">
+  <h2>4. バタフライ・エフェクト（実測）: 介入点 × 指標の感度</h2>
+  <table>
+    <tr><th>シナリオ（seed=42・同世界・36ヶ月）</th><th class="num">世界GDP</th><th class="num">エネルギー価格</th><th class="num">半導体価格</th><th class="num">デフォルト</th><th class="num">不足</th></tr>
+    <tr><td>baseline（無介入）</td><td class="num">200.1</td><td class="num">1.00</td><td class="num">1.00</td><td class="num">0</td><td class="num">326</td></tr>
+    <tr><td>ホルムズ海峡封鎖</td><td class="num bad">147.0 (−26.5%)</td><td class="num bad">1.50</td><td class="num bad">1.31</td><td class="num">1</td><td class="num">490</td></tr>
+    <tr><td>三重危機（ホルムズ+台湾+スエズ）</td><td class="num bad">118.8 (−40.6%)</td><td class="num bad">1.60</td><td class="num bad">1.60</td><td class="num">1</td><td class="num">—</td></tr>
+    <tr><td><b>金融危機（封鎖+世界金利+8%）</b></td><td class="num bad">136.7 (−31.6%)</td><td class="num bad">1.26</td><td class="num">1.08</td><td class="num bad">4</td><td class="num">—</td></tr>
+    <tr><td>金融危機 + 日・エジプト救済（A/B）</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num good">3</td><td class="num">—</td></tr>
+  </table>
+  <div class="cols" style="margin-top:6px;">
+    <div class="col">
+      <div class="box">
+        <b>発見1: 物理より金融が重い</b><br>
+        金融感染（GDP −31.6%・デフォルト4件）は三重封鎖（−40.6%だがデフォルト1件）と異なり、
+        <b>破綻の連鎖という質的に異なる被害</b>を生む。安全保障における金融の位置づけを可視化。
+      </div>
+    </div>
+    <div class="col">
+      <div class="box">
+        <b>発見2: 未来技術は海峡ショックを吸収する</b><br>
+        ホルムズ封鎖時のエネルギー価格は <b>1.05</b>（t20以降に核融合・宇宙太陽光が普及し依存が薄まる）。<br>
+        神が核融合を禁止すると <span class="bad">1.35</span> — <b>技術禁止がエネルギー依存を固定化</b>する。
+      </div>
+    </div>
+  </div>
+  <div class="footer"><span>Geopolitics Terrarium</span><span>5 / 10</span></div>
+</section>
+
+<!-- ================= 6. Cascade ================= -->
+<section class="slide">
+  <h2>5. 因果カスケード: 神の介入1件から連鎖を辿る</h2>
+  <div class="cols">
+    <div class="col">
+      <img src="../analysis/out/cascade_earth_earth_financial_crisis.png"
+           style="height:430px; width:100%; object-fit:contain; background:var(--panel);">
+      <p class="sub">金融危機シナリオの因果グラフ（左=原因、右=結果。赤=破綻、橙=戦争、黒=崩壊）</p>
+    </div>
+    <div class="col">
+      <h3>デフォルト感染チェーン（parentリンクから復元）</h3>
+      <table>
+        <tr><th>tick</th><th>国</th><th>利率</th><th>原因（親イベント）</th></tr>
+        <tr><td>t7</td><td>日本</td><td>10%</td><td>封鎖→輸入インフレ→金利上昇</td></tr>
+        <tr><td>t12</td><td>EU</td><td>19%</td><td>日本債の <code>credibility_hit</code> から感染</td></tr>
+        <tr><td>t20</td><td>日本（再）</td><td>24%</td><td>信用毀損の残存</td></tr>
+        <tr><td>t22</td><td>米国</td><td>13%</td><td>感染チェーンの終端</td></tr>
+      </table>
+      <div class="box">
+        イベントの <code>parents</code> リンクをBFSで辿り、<b>介入→子孫イベント数</b>を定量比較
+        （<code>analysis/out/cascade_bar_*.png</code>）。どの介入がどれだけの連鎖を生んだか一行で読める。
+      </div>
+    </div>
+  </div>
+  <div class="footer"><span>Geopolitics Terrarium</span><span>6 / 10</span></div>
+</section>
+
+<!-- ================= 7. Hybrid AI ================= -->
+<section class="slide">
+  <h2>6. 複合戦略AI: 学習した国家、学習しなかった国家</h2>
+  <div class="cols">
+    <div class="col">
+      <img src="../analysis/out/rl_curves.png"
+           style="height:300px; width:100%; object-fit:contain; background:var(--panel);">
+      <h3>RL戦術層（numpy Actor-Critic、DLフレームワーク不要）</h3>
+      <ul>
+        <li>学習評価報酬: SAH（旱魃下の脆弱国）<span class="good">−164.9 → −131.6 (+33.3)</span>、
+            VLT <span class="good">−4.3 → +7.2</span></li>
+        <li>36ヶ月の最終指標は手調整heuristicと<b>互角</b> — ドクトリンを書かずに同等性能へ</li>
+        <li><b>自己対戦</b>（複数学習者が同一世界で共進化）: EGY <span class="good">+13.5</span> / JPN +0.5 / USA +0.1 —
+            脆弱な債務国ほど学習利得が大</li>
+        <li>報酬設計も介入点: <code>--default-penalty</code> で「成長最適化⇔債務規律」を切替</li>
+      </ul>
+    </div>
+    <div class="col">
+      <h3>正直な結果: 介入点の階層性</h3>
+      <div class="box">
+        金融危機下（債務252%+封鎖+利上げ8%）でRL戦術層は予算ドクトリンを変えた
+        （福祉35/備蓄1・防御20ヶ月 → 福祉36・中立36）。<br><br>
+        しかし<b>構造的デフォルトは国内予算配分では防げず、連鎖は不変</b>
+        （JPN t7 → EU t12 → JPN t20 → USA t22）。<br><br>
+        連鎖を変えたのは<b>神のベイルアウト</b>（破綻4件→3件）。
+      </div>
+      <p>→ 戦術層（国家AI）・戦略層（LLM）・神（プレイヤー）の3階層のうち、
+      <span class="hl">構造的危機を断てるのは神の介入のみ</span> — 本作テーマの裏付け。</p>
+    </div>
+  </div>
+  <div class="footer"><span>Geopolitics Terrarium</span><span>7 / 10</span></div>
+</section>
+
+<!-- ================= 8. LLM thinking ================= -->
+<section class="slide">
+  <h2>7. LLM戦略層: 国家AIの思考はログに残る</h2>
+  <div class="cols">
+    <div class="col">
+      <ul>
+        <li>各国家はpersona（技術立島国・資源専制国…）を持ち、情勢JSON（自国状態・技術・他国関係）から
+            政策JSON（外交・軍事姿勢・配給・予算）を返す</li>
+        <li>判断の<b>自然言語の理屈（rationale）</b>がイベントログに記録され、
+            リプレイで「なぜその国家がその行動を取ったか」を追跡できる</li>
+        <li>失敗時はheuristicへフォールバック、生応答はログ保存 — <b>再現性を壊さない</b></li>
+      </ul>
+      <h3>ハイブリッド実走行の思考（LLM戦略 × RL戦術）</h3>
+      <div class="box" style="font-size:15px;">
+        「半導体を交渉カードにエネルギー供給源を分散確保。備蓄最優先の防衛態勢」<span class="sub">（LLM戦略）</span><br>
+        × 予算=stockpile <span class="sub">（RL戦術）</span>
+      </div>
+    </div>
+    <div class="col">
+      <h3>フルLLM実行（16カ国すべてGLM思考、ホルムズ封鎖下）</h3>
+      <div id="llm_quotes" class="box" style="font-size:14.5px; max-height:400px; overflow:hidden;">
+        <p class="sub">実行完了後に引用を挿入（earth_llm_hormuz 実行ログより）</p>
+      </div>
+    </div>
+  </div>
+  <div class="footer"><span>Geopolitics Terrarium</span><span>8 / 10</span></div>
+</section>
+
+<!-- ================= 9. Reproducibility ================= -->
+<section class="slide">
+  <h2>8. 再現性: このレポートの数字は全てコマンド1つで再現できる</h2>
+  <div class="cols">
+    <div class="col">
+      <h3>クイックスタート（Python 3.10+ / uv）</h3>
+      <div class="box" style="font-family:monospace; font-size:14px; line-height:1.8;">
+        cd server && uv sync --all-extras<br>
+        uv run pytest                        <span class="sub"># 決定論テスト含む38本</span><br>
+        uv run python -m terrarium.runner.headless \<br>
+        &nbsp;&nbsp;--preset earth --seed 42 --ticks 36 \<br>
+        &nbsp;&nbsp;--policy mock_llm --scenario scenarios/earth_hormuz.yaml<br>
+        uv run python -m terrarium.runner.ab ... <span class="sub"># A/B反実仮想</span><br>
+        uv run python ../analysis/make_figures.py <span class="sub"># 図表一括生成</span>
+      </div>
+      <h3>提出物</h3>
+      <ul>
+        <li>解析ノートブック <code>analysis/terrarium_analysis.ipynb</code>（実行結果埋込済み・ログのみから再現）</li>
+        <li>生ログ <code>server/logs/*/</code>（events.jsonl / series.csv / run.json / replay.jsonl）</li>
+        <li>RL重みと学習曲線 <code>server/models/</code></li>
+        <li>3分デモ動画（別添）</li>
+      </ul>
+    </div>
+    <div class="col">
+      <img src="../analysis/out/sensitivity_matrix.png"
+           style="height:430px; width:100%; object-fit:contain; background:var(--panel);">
+      <p class="sub">介入点×指標の感度行列（baseline差分）— make_figures.py が自動生成</p>
+    </div>
+  </div>
+  <div class="footer"><span>Geopolitics Terrarium</span><span>9 / 10</span></div>
+</section>
+
+<!-- ================= 10. Summary ================= -->
+<section class="slide">
+  <h2>9. まとめ: どの介入点が連鎖を変えるか</h2>
+  <table>
+    <tr><th>介入点</th><th>観測された連鎖</th><th>教訓</th></tr>
+    <tr><td>海峡封鎖（物理）</td><td>エネルギー+50% → ファブ電力不足 → 半導体+31% → GDP −26.5%</td><td>1点の介入が複数商品に伝播</td></tr>
+    <tr><td>世界金利（金融）</td><td>債務国の利払い急増 → 破綻 → 債権国へ感染（4件連鎖）</td><td>金融感染は封鎖と異なる被害構造</td></tr>
+    <tr><td>ベイルアウト（金融・神）</td><td>破綻4件→3件（A/Bで計測）</td><td>最後の貸し手の効果が定量できる</td></tr>
+    <tr><td>技術の禁止/授与（創発）</td><td>核融合禁止で海峡ショック吸収が消失（1.05→1.35）</td><td>未来技術が地政学依存をリセット</td></tr>
+    <tr><td>RL報酬設計（AI）</td><td>予算ドクトリンは変わるが構造的危機は不変</td><td>階層が違う介入は代替できない</td></tr>
+  </table>
+  <div class="box" style="margin-top:14px;">
+    <b>貢献</b>: (1) 決定論×イベントソーシングによる<b>因果が追跡できる</b>安全保障サンドボックス、
+    (2) LLM×RL×ルールの<b>複合戦略AI</b>と自己対戦学習、(3) 介入点ごとの<b>感度行列とA/B反実仮想</b>による
+    「どこを動かせば何が変わるか」の定量示唆、(4) 神の玉座という<b>リアルタイム介入UI</b>。
+  </div>
+  <p class="sub" style="margin-top:12px;">
+    ⚠️ 本シミュレーションは公開されている概算データに基づく中立・分析目的のものです。
+    特定の国・個人の標的化を意図するものではありません。地図データはNatural Earth（パブリックドメイン）を使用しています。
+  </p>
+  <div class="footer"><span>Geopolitics Terrarium</span><span>10 / 10</span></div>
+</section>
+
+<script>
+// Slide 7: embed LLM rationale quotes when the full-LLM run log is present.
+// Kept dependency-free: quotes are injected server-side into window.LLM_QUOTES
+// by scripts/inject_llm_quotes.py (no-op when the log is absent).
+</script>
+</body>
+</html>

@@ -247,6 +247,34 @@ def cascade_bar(run: str) -> Path | None:
     return out
 
 
+# ---------------------------------------------------------------- rl curves
+def rl_curves() -> Path | None:
+    models = REPO / "server" / "models"
+    curves = sorted(models.glob("*.curve.json"))
+    if not curves:
+        return None
+    fig, ax = plt.subplots(figsize=(9, 4.6))
+    for f in curves:
+        c = json.loads(f.read_text(encoding="utf-8"))
+        xs = [p["episode"] for p in c]
+        if "eval_reward" in c[0]:
+            ys = [p["eval_reward"] for p in c]
+        else:  # self-play curves: per-nation dict -> mean
+            ys = [sum(p["eval"].values()) / len(p["eval"]) for p in c]
+        base, final = ys[0], ys[-1]
+        ax.plot(xs, ys, marker=".", label=f"{f.stem} ({final - base:+.1f})")
+    ax.set_xlabel("episode")
+    ax.set_ylabel("評価報酬")
+    ax.set_title("RL戦術層の学習曲線（凡例: 最終改善幅）")
+    ax.legend(fontsize=8)
+    ax.grid(color="#21262d")
+    out = OUT / "rl_curves.png"
+    fig.tight_layout()
+    fig.savefig(out, dpi=150)
+    plt.close(fig)
+    return out
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--baseline", default="earth_baseline")
@@ -270,6 +298,9 @@ def main(argv=None) -> int:
             if f:
                 made.append(f)
     f = sensitivity(args.baseline, treats)
+    if f:
+        made.append(f)
+    f = rl_curves()
     if f:
         made.append(f)
     print(json.dumps([str(m) for m in made], ensure_ascii=False, indent=1))
