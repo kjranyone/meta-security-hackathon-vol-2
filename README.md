@@ -197,6 +197,24 @@ uv run python -m terrarium.runner.compare_policies --preset default --nation SAH
 - 36ヶ月の最終指標では手調整heuristicと**互角**（崩壊率0%を維持）— RLはドクトリンを書かずに同等性能へ到達
 - ハイブリッド実走行の思考例: 「半導体を交渉カードにエネルギー供給源を分散確保。備蓄最優先の防衛態勢」（LLM戦略）×「予算=stockpile」（RL戦術）
 
+### 自己対戦（マルチエージェントRL）
+
+`--nation` にカンマ区切りを渡すと**複数国家の戦術層が同一世界内で同学習**します
+（他方の学習者は自分の環境の一部 → 固定heuristic相手への過適合を避けた戦術の共進化）:
+
+```bash
+# 米中の戦術層をホルムズ封鎖下で自己対戦学習
+uv run python -m terrarium.rl.train --preset earth --nation USA,CHN \
+    --scenario scenarios/earth_hormuz.yaml --episodes 1500 --out models/selfplay_earth
+# → models/selfplay_earth_USA.npz / _CHN.npz / selfplay_earth.curve.json
+
+# 学習済み自己対戦ペアでシミュレーション（両国ともRL戦術）
+uv run python -m terrarium.runner.headless --preset earth --policy rl \
+    --rl-nation USA,CHN \
+    --rl-weights models/selfplay_earth_USA.npz,models/selfplay_earth_CHN.npz \
+    --scenario scenarios/earth_hormuz.yaml
+```
+
 ## 神の玉座: リアルタイム介入UI（FastAPI + WebSocket）
 
 ヘッドレス解析だけでなく、**プレイ中に神として介入できるライブUI**:

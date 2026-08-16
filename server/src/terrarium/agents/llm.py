@@ -140,35 +140,51 @@ class MockLLMPolicy:
         return d
 
 
+def _parse_rl_slots(rl_nation: str | None, rl_weights: str | None) -> dict[str, str | None]:
+    """Parse --rl-nation/--rl-weights into {nation_id: weights_path}.
+
+    Accepts single or comma-separated values on both sides; weights may be
+    omitted (None -> per-nation default models/rl_<nation>.npz).
+    """
+    if not rl_nation:
+        return {}
+    nids = [n.strip() for n in rl_nation.split(",") if n.strip()]
+    ws = [w.strip() for w in rl_weights.split(",")] if rl_weights else []
+    if len(ws) == 1 and len(nids) > 1:
+        raise ValueError(f"multiple --rl-nation ({rl_nation}) needs matching comma-list --rl-weights")
+    if len(ws) > 1 and len(ws) != len(nids):
+        raise ValueError("--rl-nation and --rl-weights lists must have the same length")
+    return {nid: (ws[i] if i < len(ws) else None) for i, nid in enumerate(nids)}
+
+
 def make_policy_factory(mode: str, seed: int = 0, rl_nation: str | None = None,
                         rl_weights: str | None = None):
     """mode: heuristic | mock_llm | llm | rl | hybrid -> callable(NationSpec) -> Policy
 
-    rl / hybrid install the special policy only for rl_nation; all other
-    nations (and any missing weights) fall back to heuristic."""
+    rl / hybrid install the special policy for each rl_nation (comma-list
+    supported, e.g. self-play weights); all other nations fall back to heuristic."""
     if mode == "heuristic":
         return lambda spec: HeuristicPolicy()
     if mode == "mock_llm":
         return lambda spec: MockLLMPolicy(spec.id, spec.persona, seed=seed)
     if mode == "llm":
         return lambda spec: ZaiLLMPolicy(spec.id, spec.persona)
-    if mode == "rl":
-        if not rl_nation:
-            raise ValueError("--rl-nation is required for --policy rl")
+    if mode in ("rl", "hybrid"):
+        slots = _parse_rl_slots(rl_nation, rl_weights)
+        if not slots:
+            raise ValueError(f"--rl-nation is required for --policy {mode}")
         from .rl_policy import RLPolicy
 
-        rl = RLPolicy(rl_nation, rl_weights)
-        return lambda spec: rl if spec.id == rl_nation else HeuristicPolicy()
-    if mode == "hybrid":
-        if not rl_nation:
-            raise ValueError("--rl-nation is required for --policy hybrid")
+        rls = {nid: RLPolicy(nid, w) for nid, w in slots.items()}
+        if mode == "rl":
+            return lambda spec: rls[spec.id] if spec.id in rls else HeuristicPolicy()
+
         from .heuristic import HeuristicPolicy as _H
         from .hybrid import HybridPolicy
-        from .rl_policy import RLPolicy
 
         def make_hybrid(spec):
-            if spec.id == rl_nation:
-                return HybridPolicy(ZaiLLMPolicy(spec.id, spec.persona), RLPolicy(rl_nation, rl_weights))
+            if spec.id in rls:
+                return HybridPolicy(ZaiLLMPolicy(spec.id, spec.persona), rls[spec.id])
             return _H()
         return make_hybrid
     raise ValueError(f"unknown policy mode: {mode}")

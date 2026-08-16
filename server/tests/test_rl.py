@@ -4,10 +4,11 @@ import numpy as np
 import pytest
 
 from terrarium.agents.base import Decisions
+from terrarium.agents.llm import make_policy_factory
 from terrarium.agents.rl_policy import RLPolicy
-from terrarium.rl.env import OBS_DIM, NationEnv, obs_from_view
+from terrarium.rl.env import OBS_DIM, NationEnv, SelfPlayEnv, obs_from_view
 from terrarium.rl.nets import BUDGET_PRESETS, PolicyNet
-from terrarium.rl.train import evaluate, run_episode
+from terrarium.rl.train import evaluate, run_episode, run_selfplay_episode
 from terrarium.sim.interventions import load_scenario
 
 
@@ -85,3 +86,51 @@ def test_budget_presets_valid():
     for preset in BUDGET_PRESETS:
         assert abs(sum(preset.values()) - 1.0) < 1e-6
         assert all(v >= 0 for v in preset.values())
+
+
+def test_selfplay_env_step_shapes():
+    env = SelfPlayEnv("default", ["VLT", "SAH"], seed=2, horizon=6)
+    obs_d = env.reset()
+    assert set(obs_d) == {"VLT", "SAH"}
+    assert all(o.shape == (OBS_DIM,) and np.all(np.isfinite(o)) for o in obs_d.values())
+    nets = {nid: PolicyNet(obs_dim=OBS_DIM, seed=10 + i) for i, nid in enumerate(env.nation_ids)}
+    acts = {nid: net.act(obs_d[nid], deterministic=True) for nid, net in nets.items()}
+    nxt_d, rew_d, done, info = env.step(acts)
+    assert set(rew_d) == {"VLT", "SAH"}
+    assert all(isinstance(r, float) for r in rew_d.values())
+    assert np.all(np.isfinite(nxt_d["VLT"]))
+
+
+def test_selfplay_episode_deterministic_and_learns():
+    """Two learners in one world: identical seeds give identical totals, and
+    a short run produces finite gradients (training loop executes)."""
+    def rollout():
+        env = SelfPlayEnv("default", ["VLT", "SAH"], seed=4, horizon=10)
+        nets = {nid: PolicyNet(obs_dim=OBS_DIM, seed=40 + i) for i, nid in enumerate(env.nation_ids)}
+        totals = run_selfplay_episode(env, nets, train=True, lr=1e-3)
+        return totals
+
+    t1, t2 = rollout(), rollout()
+    assert t1 == t2
+    assert all(np.isfinite(v) for v in t1.values())
+
+
+def test_factory_accepts_multi_rl_nations(tmp_path):
+    paths = {}
+    for nid in ("VLT", "SAH"):
+        p = tmp_path / f"sp_{nid}.npz"
+        PolicyNet(obs_dim=OBS_DIM, seed=1).save(p)
+        paths[nid] = p
+    factory = make_policy_factory("rl", rl_nation="VLT,SAH",
+                                  rl_weights=f"{paths['VLT']},{paths['SAH']}")
+
+    class Spec:
+        pass
+
+    s_vlt, s_sah, s_other = Spec(), Spec(), Spec()
+    s_vlt.id, s_sah.id, s_other.id = "VLT", "SAH", "GRN"
+    assert isinstance(factory(s_vlt), RLPolicy)
+    assert isinstance(factory(s_sah), RLPolicy)
+    assert not isinstance(factory(s_other), RLPolicy)
+    with pytest.raises(ValueError):
+        make_policy_factory("rl", rl_nation="VLT,SAH", rl_weights=str(paths["VLT"]))

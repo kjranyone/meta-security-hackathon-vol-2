@@ -29,8 +29,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--ticks", type=int, default=36)
     ap.add_argument("--policy", default="heuristic",
                     choices=["heuristic", "mock_llm", "llm", "rl", "hybrid"])
-    ap.add_argument("--rl-nation", default=None, help="nation id controlled by rl/hybrid policy")
-    ap.add_argument("--rl-weights", default=None, help="path to trained .npz weights")
+    ap.add_argument("--rl-nation", default=None,
+                    help="nation id(s) controlled by rl/hybrid policy (comma-list for self-play weights)")
+    ap.add_argument("--rl-weights", default=None,
+                    help="path(s) to trained .npz weights, comma-list matching --rl-nation")
     ap.add_argument("--scenario", default=None, help="scenario YAML with god interventions")
     ap.add_argument("--out", default=None, help="output dir (default logs/<name>)")
     ap.add_argument("--name", default=None)

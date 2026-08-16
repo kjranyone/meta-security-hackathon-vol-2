@@ -80,6 +80,36 @@ def action_to_decisions(action: dict) -> Decisions:
     )
 
 
+def reward_snapshot(eng: Engine, nation_id: str) -> dict:
+    nat = eng.nations[nation_id]
+    return {
+        "log_gdp": float(np.log(max(nat.gdp, 0.1))),
+        "stability": nat.stability,
+        "approval": nat.approval,
+        "war": len(nat.at_war_with),
+        "collapsed": nat.collapsed,
+        "min_stock": min(nat.stocks.values()),
+    }
+
+
+def tick_reward(eng: Engine, nation_id: str, prev: dict) -> float:
+    """Per-tick shaping reward for one nation (shared by single- and multi-agent)."""
+    cur = reward_snapshot(eng, nation_id)
+    r = 0.0
+    r += 20.0 * (cur["log_gdp"] - prev["log_gdp"])
+    r += 0.30 * (cur["stability"] - prev["stability"])
+    r += 0.10 * (cur["approval"] - prev["approval"])
+    r -= 0.40 * cur["war"]
+    # shortage events hitting this nation this tick (dominant penalty:
+    # rationing/hoarding only matter insofar as they prevent these)
+    for rec in eng.event_log.records:
+        if rec.tick == eng.tick_no and rec.type == "shortage" and (rec.actor == nation_id or nation_id in rec.targets):
+            r -= 2.0
+    if cur["collapsed"] and not prev["collapsed"]:
+        r -= 8.0
+    return float(r)
+
+
 class NationEnv:
     """gym-style single-agent env over the engine (1 tick = 1 step)."""
 
@@ -106,7 +136,7 @@ class NationEnv:
     def reset(self) -> np.ndarray:
         self._ep += 1
         self.eng = self._build()
-        self._prev = self._snapshot_reward_state()
+        self._prev = reward_snapshot(self.eng, self.nation_id)
         return obs_from_view(self.eng.nation_view(self.nation_id))
 
     def step(self, action: dict):
@@ -119,38 +149,65 @@ class NationEnv:
                 eng.apply_intervention(iv)
         eng.step()
         obs = obs_from_view(eng.nation_view(self.nation_id))
-        reward = self._reward()
+        reward = tick_reward(eng, self.nation_id, self._prev)
         nat = eng.nations[self.nation_id]
         done = eng.tick_no >= self.horizon - 1 or nat.collapsed
         info = {"tick": eng.tick_no, "collapsed": nat.collapsed}
-        self._prev = self._snapshot_reward_state()
+        self._prev = reward_snapshot(eng, self.nation_id)
         return obs, reward, done, info
 
-    # ---------------------------------------------------------------- reward
-    def _snapshot_reward_state(self) -> dict:
-        nat = self.eng.nations[self.nation_id]
-        return {
-            "log_gdp": float(np.log(max(nat.gdp, 0.1))),
-            "stability": nat.stability,
-            "approval": nat.approval,
-            "war": len(nat.at_war_with),
-            "collapsed": nat.collapsed,
-            "min_stock": min(nat.stocks.values()),
-        }
 
-    def _reward(self) -> float:
-        nat = self.eng.nations[self.nation_id]
-        cur = self._snapshot_reward_state()
-        r = 0.0
-        r += 20.0 * (cur["log_gdp"] - self._prev["log_gdp"])
-        r += 0.30 * (cur["stability"] - self._prev["stability"])
-        r += 0.10 * (cur["approval"] - self._prev["approval"])
-        r -= 0.40 * cur["war"]
-        # shortage events hitting this nation this tick (dominant penalty:
-        # rationing/hoarding only matter insofar as they prevent these)
-        for rec in self.eng.event_log.records:
-            if rec.tick == self.eng.tick_no and rec.type == "shortage" and (rec.actor == self.nation_id or self.nation_id in rec.targets):
-                r -= 2.0
-        if cur["collapsed"] and not self._prev["collapsed"]:
-            r -= 8.0
-        return float(r)
+class SelfPlayEnv:
+    """Multi-agent env: several learner nations in ONE engine (self-play).
+
+    Every learner acts each tick from its own observation; the remaining
+    nations run the heuristic. step() takes {nation_id: action} and returns
+    per-nation observation/reward dicts — each net trains against the others,
+    so tactics co-evolve instead of overfitting to fixed heuristic opponents.
+    """
+
+    def __init__(self, preset: str, nation_ids: list[str], seed: int = 0,
+                 horizon: int = 24, scenario: Optional[Scenario] = None):
+        self.preset = preset
+        self.nation_ids = list(nation_ids)
+        self.seed = seed
+        self.horizon = horizon
+        self.scenario = scenario or Scenario()
+        self._ep = 0
+        self.learners = {nid: ExternalPolicy() for nid in self.nation_ids}
+        self.eng: Optional[Engine] = None
+        self._prev: dict = {}
+
+    def _build(self) -> Engine:
+        spec = load_preset(self.preset)
+        policies = {ns.id: HeuristicPolicy() for ns in spec.nations}
+        for nid in self.nation_ids:
+            policies[nid] = self.learners[nid]
+        eng = Engine(spec, policies, seed=self.seed * 100003 + self._ep, out_dir=None)
+        return eng
+
+    # ------------------------------------------------------------------ api
+    def reset(self) -> dict[str, np.ndarray]:
+        self._ep += 1
+        self.eng = self._build()
+        self._prev = {nid: reward_snapshot(self.eng, nid) for nid in self.nation_ids}
+        return {nid: obs_from_view(self.eng.nation_view(nid)) for nid in self.nation_ids}
+
+    def step(self, actions: dict[str, dict]):
+        eng = self.eng
+        for nid, act in actions.items():
+            self.learners[nid].pending = action_to_decisions(act)
+        eng.tick_no = eng.snapshots[-1]["tick"] + 1 if eng.snapshots else 0
+        for iv in self.scenario.interventions:
+            if iv.tick == eng.tick_no:
+                eng.apply_intervention(iv)
+        eng.step()
+        obs = {nid: obs_from_view(eng.nation_view(nid)) for nid in self.nation_ids}
+        rewards = {}
+        for nid in self.nation_ids:
+            rewards[nid] = tick_reward(eng, nid, self._prev[nid])
+            self._prev[nid] = reward_snapshot(eng, nid)
+        alive = [nid for nid in self.nation_ids if not eng.nations[nid].collapsed]
+        done = eng.tick_no >= self.horizon - 1 or not alive
+        info = {"tick": eng.tick_no, "alive": alive}
+        return obs, rewards, done, info
