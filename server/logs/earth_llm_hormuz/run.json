@@ -1,0 +1,30 @@
+{
+  "run_name": "earth_llm_hormuz",
+  "seed": 42,
+  "ticks": 14,
+  "final_metrics": {
+    "tick": 13,
+    "world_gdp": 107.3466,
+    "mean_stability": 47.28,
+    "wars": 0,
+    "collapsed": 0,
+    "price_energy": 1.4101,
+    "price_food": 1.0,
+    "price_chips": 1.069,
+    "mean_inflation": 0.05079,
+    "mean_debt_gdp": 77.6,
+    "defaults": 1
+  },
+  "event_counts": {
+    "policy_shift": 224,
+    "shortage": 129,
+    "alliance_formed": 13,
+    "tech_emergence": 4,
+    "tech_adopted": 18,
+    "god_intervention": 1,
+    "trade_throttled": 72,
+    "sovereign_default": 1,
+    "credibility_hit": 3
+  },
+  "wars": 0
+}

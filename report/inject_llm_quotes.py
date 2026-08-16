@@ -25,10 +25,12 @@ def pick_quotes() -> list[dict]:
     if not RUN.exists():
         return []
     evs = [json.loads(l) for l in RUN.read_text(encoding="utf-8").splitlines() if l.strip()]
-    shifts = [e for e in evs if e["type"] == "policy_shift" and len(e["text"]) > 90]
-    # prefer diverse nations: round-robin over distinct actors
+    # "doctrine:" marks the heuristic-fallback rationale, not LLM thinking
+    shifts = [e for e in evs if e["type"] == "policy_shift" and len(e["text"]) > 55
+              and "doctrine:" not in e["text"]]
+    # per nation keep the richest rationale (longest), then round-robin nations
     by_actor: dict[str, list[dict]] = {}
-    for e in sorted(shifts, key=lambda x: x["tick"]):
+    for e in sorted(shifts, key=lambda x: -len(x["text"])):
         by_actor.setdefault(e["actor"], []).append(e)
     picked, actors = [], sorted(by_actor)
     round_no = 0

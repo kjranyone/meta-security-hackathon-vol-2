@@ -175,10 +175,13 @@ if not llm_runs:
     print("LLM実行ログ未コミット（earth_llm_hormuz 完了後に再実行）")
 for d in llm_runs:
     evs = [json.loads(l) for l in (d / "events.jsonl").read_text().splitlines() if l.strip()]
-    rationales = [e for e in evs if e["type"] == "policy_shift" and len(e["text"]) > 80]
-    print(f"\\n### {d.name} — rationale {len(rationales)} 件")
-    for e in rationales[:6]:
-        print(f"  t{e['tick']:>2} {e['actor']}: {e['text'][len(e['actor'])+3:][:150]}")"""))
+    rationales = [e for e in evs
+                  if e["type"] == "policy_shift" and len(e["text"]) > 55
+                  and "doctrine:" not in e["text"]]
+    print(f"\\n### {d.name} — LLM rationale {len(rationales)} 件")
+    for e in sorted(rationales, key=lambda x: -len(x["text"]))[:6]:
+        body = e["text"].split(":", 1)[-1].strip()
+        print(f"  t{e['tick']:>2} {e['actor']}: {body[:150]}")"""))
 
 cells.append(md("""## まとめ: 介入点と連鎖の対応
 

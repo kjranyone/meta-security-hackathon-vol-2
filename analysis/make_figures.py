@@ -275,6 +275,13 @@ def rl_curves() -> Path | None:
     return out
 
 
+def run_ticks(run: str) -> int | None:
+    rj = LOGS / run / "run.json"
+    if not rj.exists():
+        return None
+    return json.loads(rj.read_text(encoding="utf-8")).get("ticks")
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--baseline", default="earth_baseline")
@@ -283,6 +290,11 @@ def main(argv=None) -> int:
     OUT.mkdir(parents=True, exist_ok=True)
     all_runs = sorted(p.name for p in LOGS.iterdir() if p.is_dir()) if LOGS.exists() else []
     treats = args.runs or [r for r in all_runs if r != args.baseline and r.startswith("earth")]
+    # A/B and sensitivity compare final metrics: only runs with the same
+    # horizon as the baseline are comparable (e.g. the 14-tick LLM run is
+    # excluded; its cascade graph is still generated)
+    base_ticks = run_ticks(args.baseline)
+    ab_treats = [r for r in treats if run_ticks(r) == base_ticks]
     made = []
     for r in [args.baseline] + treats:
         if (LOGS / r / "events.jsonl").exists():
@@ -292,12 +304,12 @@ def main(argv=None) -> int:
             f = cascade_bar(r)
             if f:
                 made.append(f)
-    for r in treats:
+    for r in ab_treats:
         if (LOGS / r / "series.csv").exists():
             f = ab_divergence(args.baseline, r)
             if f:
                 made.append(f)
-    f = sensitivity(args.baseline, treats)
+    f = sensitivity(args.baseline, ab_treats)
     if f:
         made.append(f)
     f = rl_curves()
