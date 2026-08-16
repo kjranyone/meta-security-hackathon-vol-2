@@ -130,7 +130,6 @@ export default function GodApp() {
 
   return (
     <div className="app">
-      <Toasts toasts={toasts} />
       <header>
         <h1>👑 Geopolitics Terrarium — 神の玉座</h1>
         <span id="conn" className={conn ? "ok" : "bad"}>{conn ? "接続中" : "切断"}</span>
@@ -147,6 +146,7 @@ export default function GodApp() {
                          onCreate={resetWorld} onClose={() => setCreateOpen(false)} />
 
       <div className="main">
+        <Toasts toasts={toasts} />
         <MapCanvas tick={tick} geo={geo} meta={meta} god
                    selectedNation={sel.kind === "nation" ? sel.id : null}
                    selectedChokepoint={sel.kind === "cp" ? sel.id : null}

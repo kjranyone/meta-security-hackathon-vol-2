@@ -119,7 +119,6 @@ export default function ViewerApp() {
 
   return (
     <div className="app">
-      <Toasts toasts={toasts} />
       <header>
         <h1>🌐 Geopolitics Terrarium — Real-World Viewer</h1>
         <span className="spacer" />
@@ -143,6 +142,7 @@ export default function ViewerApp() {
       {legendOpen && <LegendModal onClose={() => setLegendOpen(false)} />}
 
       <div className="main">
+        <Toasts toasts={toasts} />
         {tick ? (
           <>
             <MapCanvas tick={tick} geo={geo} meta={meta}
