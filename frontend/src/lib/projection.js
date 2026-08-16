@@ -11,3 +11,21 @@ export function fitView(cv) {
   VIEW.ox = (cv.width - 360 * VIEW.scale) / 2;
   VIEW.oy = (cv.height - 180 * VIEW.scale) / 2;
 }
+
+// ズーム（カーソル位置の経緯度を固定）。factor>1で拡大
+export function zoomAt(cv, factor, mx = cv.width / 2, my = cv.height / 2) {
+  const [lon, lat] = unproject(mx, my);
+  VIEW.scale = Math.max(1.2, Math.min(60, VIEW.scale * factor));
+  VIEW.ox = mx - (lon + 180) * VIEW.scale;
+  VIEW.oy = my - (90 - lat) * VIEW.scale;
+  clampView(cv);
+}
+
+// 世界bbox外に余白が出ないようパンを制限
+export function clampView(cv) {
+  const w = 360 * VIEW.scale, h = 180 * VIEW.scale;
+  VIEW.ox = w <= cv.width ? (cv.width - w) / 2 : Math.min(0, Math.max(cv.width - w, VIEW.ox));
+  VIEW.oy = h <= cv.height ? (cv.height - h) / 2 : Math.min(0, Math.max(cv.height - h, VIEW.oy));
+}
+
+export const LABEL_SCALE = 3.4;   // この倍率以上で国名ラベルを表示

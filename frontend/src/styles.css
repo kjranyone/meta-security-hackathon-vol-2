@@ -36,7 +36,14 @@ header button.on { border-color: var(--accent); color: var(--accent); }
 .main { display: flex; flex: 1; min-height: 0; }
 .mapwrap { flex: 1.5; position: relative; background: #0a0e14; min-width: 0;
            display: flex; align-items: center; justify-content: center; }
-canvas.map { cursor: crosshair; max-width: 100%; max-height: 100%; }
+canvas.map { cursor: grab; max-width: 100%; max-height: 100%; touch-action: none; }
+canvas.map.dragging { cursor: grabbing; }
+.zoomctl { position: absolute; right: 12px; bottom: 12px; z-index: 5; display: flex;
+           flex-direction: column; gap: 4px; }
+.zoomctl button { width: 34px; height: 30px; background: rgba(22,27,34,.9); border: 1px solid var(--border);
+                  color: var(--text); border-radius: 8px; cursor: pointer; font-size: 15px; }
+.zoomctl button:hover { border-color: var(--accent); }
+.zoomctl button.fit { font-size: 10.5px; }
 canvas.map.god { cursor: pointer; }
 
 .side { border-left: 1px solid var(--border); display: flex; flex-direction: column; min-height: 0; min-width: 300px; }

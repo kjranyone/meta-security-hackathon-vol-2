@@ -1,4 +1,4 @@
-import { project, unproject } from "./projection";
+import { project, unproject, VIEW, LABEL_SCALE } from "./projection";
 import { computeTrustEdges } from "./trust";
 
 export const COMMO_COLOR = {
@@ -113,9 +113,12 @@ export function renderMap(ctx, cv, tick, opts) {
       ctx.fillStyle = n.color; ctx.fill();
       ctx.strokeStyle = "rgba(255,255,255,.6)"; ctx.stroke();
     }
-    ctx.font = "600 11px sans-serif"; ctx.textAlign = "center";
-    ctx.fillStyle = "rgba(255,255,255,.9)";
-    ctx.fillText(n.name, x, y + 20);
+    if (VIEW.scale >= LABEL_SCALE) {          // 全景では国名を表示しない
+      const fs = Math.max(10, Math.min(14, VIEW.scale * 1.8));
+      ctx.font = `600 ${fs}px sans-serif`; ctx.textAlign = "center";
+      ctx.fillStyle = n.collapsed ? "rgba(139,148,158,.75)" : "rgba(255,255,255,.92)";
+      ctx.fillText(n.name, x, y + 18);
+    }
     if (selectedNation === nid) {
       ctx.beginPath(); ctx.arc(x, y, 16, 0, Math.PI * 2);
       ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.stroke(); ctx.lineWidth = 1;
@@ -127,7 +130,6 @@ export function renderMap(ctx, cv, tick, opts) {
       ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI * 2);
       ctx.strokeStyle = "#ff6b35"; ctx.lineWidth = 1.2; ctx.stroke(); ctx.lineWidth = 1;
     }
-    if (n.collapsed) ctx.fillStyle = "rgba(139,148,158,.75)";
   }
 }
 
