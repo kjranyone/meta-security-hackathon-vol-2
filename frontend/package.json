@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "rm -rf ../web/assets && vite build",
     "watch": "vite build --watch"
   },
   "dependencies": {

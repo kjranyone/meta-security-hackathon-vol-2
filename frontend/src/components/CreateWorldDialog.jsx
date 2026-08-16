@@ -16,7 +16,7 @@ export default function CreateWorldDialog({ open, preset, policy, seed, rlNation
   return (
     <div className="modal-back" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
-        <h2>🌍 世界を創る</h2>
+        <h2>世界を創る</h2>
         <label className="modalfield">世界
           <select value={preset} onChange={e => onPreset(e.target.value)}>
             <option value="earth">earth — 実世界16国</option>
@@ -45,7 +45,7 @@ export default function CreateWorldDialog({ open, preset, policy, seed, rlNation
         </div>
         <div className="modalbtns">
           <button onClick={onClose}>やめる</button>
-          <button className="go" onClick={() => { onCreate(); onClose(); }}>🌍 創造</button>
+          <button className="go" onClick={() => { onCreate(); onClose(); }}>創造</button>
         </div>
       </div>
     </div>

@@ -140,10 +140,10 @@ export default function GodApp() {
   return (
     <div className="app">
       <header>
-        <h1>👑 Geopolitics Terrarium — 神の玉座</h1>
+        <h1>Geopolitics Terrarium — 神の玉座</h1>
         <span id="conn" className={conn ? "ok" : "bad"}>{conn ? "接続中" : "切断"}</span>
         <span className="spacer" />
-        <button onClick={() => setCreateOpen(true)}>🌍 世界を創る</button>
+        <button onClick={() => setCreateOpen(true)}>世界を創る</button>
         <button className="helpbtn" onClick={() => setLegendOpen(true)}>?</button>
       </header>
 

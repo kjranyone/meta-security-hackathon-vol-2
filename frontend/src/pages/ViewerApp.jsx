@@ -122,7 +122,7 @@ export default function ViewerApp() {
   return (
     <div className="app">
       <header>
-        <h1>🌐 Geopolitics Terrarium — Real-World Viewer</h1>
+        <h1>Geopolitics Terrarium — Real-World Viewer</h1>
         <span className="spacer" />
         <input type="text" value={urlInput} onChange={e => setUrlInput(e.target.value)}
                placeholder="http://localhost:8787/server/logs/earth_hormuz/replay.jsonl" />
