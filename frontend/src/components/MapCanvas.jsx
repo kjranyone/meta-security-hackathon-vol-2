@@ -88,7 +88,7 @@ export default function MapCanvas({ tick, geo, meta, selectedNation, selectedCho
       e.preventDefault();
       const [mx, my] = pos(e);
       userView.current = true;
-      zoomAt(cv, e.deltaY < 0 ? 1.25 : 1 / 1.25, mx, my);
+      zoomAt(cv, e.deltaY < 0 ? 1.08 : 1 / 1.08, mx, my);
       draw();
     };
     cv.addEventListener("wheel", onWheel, { passive: false });
@@ -122,8 +122,8 @@ export default function MapCanvas({ tick, geo, meta, selectedNation, selectedCho
                 cvRef.current?.classList.remove("dragging");
               }} />
       <div className="zoomctl">
-        <button onClick={() => zoomBtn(1.5)}>+</button>
-        <button onClick={() => zoomBtn(1 / 1.5)}>−</button>
+        <button onClick={() => zoomBtn(1.25)}>+</button>
+        <button onClick={() => zoomBtn(1 / 1.25)}>−</button>
         <button className="fit" onClick={fitBtn}>全体</button>
       </div>
     </div>
