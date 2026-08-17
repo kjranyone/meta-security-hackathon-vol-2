@@ -33,7 +33,16 @@ header button:hover, .tlbtn:hover { border-color: var(--accent); }
 header button.on { border-color: var(--accent); color: var(--accent); }
 #conn.ok { color: var(--ok); } #conn.bad { color: var(--bad); }
 
-.main { display: flex; flex: 1; min-height: 0; }
+.main { display: flex; flex: 1; min-height: 0; position: relative; }
+
+/* ---------------- event toasts（フローティング: レイアウトに影響しない） ---------------- */
+.toasts { position: absolute; left: 12px; bottom: 76px; z-index: 70; display: flex;
+          flex-direction: column; gap: 8px; pointer-events: none; max-width: 360px; }
+.toast { background: rgba(22,27,34,.95); border: 1px solid var(--border);
+         border-left: 4px solid var(--accent); border-radius: 10px;
+         padding: 10px 14px; font-size: 13px; line-height: 1.45;
+         box-shadow: 0 8px 24px rgba(0,0,0,.5); animation: toastin .25s ease-out; }
+@keyframes toastin { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
 .mapwrap { flex: 1.5; position: relative; background: #0a0e14; min-width: 0;
            display: flex; align-items: center; justify-content: center; }
 canvas.map { cursor: grab; max-width: 100%; max-height: 100%; touch-action: none; }
