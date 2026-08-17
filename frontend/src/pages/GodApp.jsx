@@ -4,7 +4,7 @@ import StatsTable from "../components/StatsTable";
 import EventFeed from "../components/EventFeed";
 import GodBar from "../components/GodBar";
 import InterveneModal from "../components/InterveneModal";
-import NationStatus from "../components/NationStatus";
+import NationDetail from "../components/NationDetail";
 import { VSplit } from "../components/Splitter";
 import CreateWorldDialog from "../components/CreateWorldDialog";
 import DateBar from "../components/DateBar";
@@ -194,7 +194,8 @@ export default function GodApp() {
           {sideTab === "nations" && (
             <div className="pane" style={{ flex: 1, overflow: "auto" }}>
               {sel.kind === "nation" && tick?.nations?.[sel.id] && (
-                <NationStatus n={tick.nations[sel.id]} />
+                <NationDetail n={tick.nations[sel.id]} meta={meta}
+                              onSelect={nid => setSel({ kind: "nation", id: nid })} />
               )}
               <StatsTable tick={tick} selected={sel.kind === "nation" ? sel.id : null} showStocks
                           onSelect={nid => setSel(s => (s.kind === "nation" && s.id === nid) ? { kind: null, id: null } : { kind: "nation", id: nid })} />

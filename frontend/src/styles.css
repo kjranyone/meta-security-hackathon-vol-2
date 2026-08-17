@@ -207,3 +207,17 @@ label.sl output { width: 44px; text-align: right; }
 @media (max-width: 1100px) {
   .datebar { font-size: 12.5px; padding: 3px 10px; }
   }
+
+/* ---------------- nation detail ---------------- */
+.nationdetail { margin-bottom: 10px; }
+.ndgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; margin-top: 6px; }
+.ndhead { font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: .08em;
+          margin: 10px 0 4px; }
+.ndtrust { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+.trustrow { display: flex; align-items: center; gap: 6px; font-size: 12px; padding: 2px 0; cursor: pointer; }
+.trustrow:hover .trustname { color: var(--accent); }
+.trustname { width: 92px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--dim); }
+.trustbar { flex: 1; height: 8px; background: rgba(13,17,23,.8); border-radius: 4px; overflow: hidden; }
+.trustbar i { display: block; height: 100%; border-radius: 4px; }
+.trustrow b { font-variant-numeric: tabular-nums; min-width: 24px; text-align: right; }
+.chip { font-size: 10.5px; border: 1px solid; border-radius: 999px; padding: 0 8px; margin-left: 6px; }
