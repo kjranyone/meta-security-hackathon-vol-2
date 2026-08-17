@@ -334,8 +334,9 @@ uv run python -m terrarium.runner.compare_policies --preset default --nation SAH
     --scenario scenarios/drought_sahelia.yaml --seeds 5 --with-hybrid
 ```
 
-**実測**（学習曲線は `models/*.curve.json`、重みは同梱）:
-- 学習評価報酬: SAH（旱魃下）**-164.9 → -131.6 (+33.3)**、VLT **-4.3 → +7.2 (+11.5)** — 脆弱国家の生存戦略を獲得
+**実測**（学習曲線は `models/*.curve.json`、重みは同梱。観測は41次元=状態26+トレンド15）:
+- 学習評価報酬: SAH（旱魃下）**-172.3 → -137.4 (+34.9)**、VLT **-19.2 → +3.3 (+22.5)** — 脆弱国家の生存戦略を獲得
+- 自己対戦: EGY（金融危機下）**-85.7 → -45.1 (+40.6)**、USA **+6.5 → +8.3**、CHN **-0.2 → +1.1**
 - 36tickの最終指標では手調整heuristicと**互角**（崩壊率0%を維持）— RLはドクトリンを書かずに同等性能へ到達
 - ハイブリッド実走行の思考例: 「半導体を交渉カードにエネルギー供給源を分散確保。備蓄最優先の防衛態勢」（LLM戦略）×「予算=stockpile」（RL戦術）
 
@@ -359,8 +360,7 @@ uv run python -m terrarium.runner.headless --preset earth --policy rl \
 
 ### 実測: 自己対戦と「介入点の階層性」
 
-- 自己対戦学習（2000エピソード、ホルムズ封鎖下）: **EGY +13.5 / JPN +0.5 / USA +0.1 / CHN +0.5** —
-  脆弱な債務国ほど学習利得が大きく、資源豊富な大国は既に均衡近く（heuristicと同等）
+- 自己対戦学習（トレンド観測込み）: **EGY +40.6 / JPN +3.6**（金融危機下）— 脆弱な債務国ほど学習利得が大きい
 - **報酬設計も介入点**: `--default-penalty`（自国デフォルトへの報酬ペナルティ）で
   「成長最適化」vs「債務規律」の目標を切り替えられる
 - **正直な結果**（`earth_financial_crisis` 下、seed=42）: RL戦術層は予算ドクトリンを

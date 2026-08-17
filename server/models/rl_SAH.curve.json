@@ -1,50 +1,50 @@
 [
  {
   "episode": 0,
-  "eval_reward": -59.06
+  "eval_reward": -127.656
  },
  {
   "episode": 250,
-  "train_reward": -43.264,
-  "eval_reward": -42.679
+  "train_reward": -122.109,
+  "eval_reward": -115.159
  },
  {
   "episode": 500,
-  "train_reward": -43.344,
-  "eval_reward": -42.773
+  "train_reward": -118.803,
+  "eval_reward": -111.129
  },
  {
   "episode": 750,
-  "train_reward": -43.793,
-  "eval_reward": -43.206
+  "train_reward": -113.689,
+  "eval_reward": -109.169
  },
  {
   "episode": 1000,
-  "train_reward": -43.38,
-  "eval_reward": -42.473
+  "train_reward": -109.063,
+  "eval_reward": -113.667
  },
  {
   "episode": 1250,
-  "train_reward": -42.709,
-  "eval_reward": -42.714
+  "train_reward": -106.565,
+  "eval_reward": -114.168
  },
  {
   "episode": 1500,
-  "train_reward": -42.639,
-  "eval_reward": -42.633
+  "train_reward": -113.689,
+  "eval_reward": -111.716
  },
  {
   "episode": 1750,
-  "train_reward": -43.229,
-  "eval_reward": -42.767
+  "train_reward": -100.558,
+  "eval_reward": -112.124
  },
  {
   "episode": 2000,
-  "train_reward": -42.557,
-  "eval_reward": -43.102
+  "train_reward": -126.42,
+  "eval_reward": -123.483
  },
  {
   "episode": 2000,
-  "eval_reward": -43.102
+  "eval_reward": -123.483
  }
 ]

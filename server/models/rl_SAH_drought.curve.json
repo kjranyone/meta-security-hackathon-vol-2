@@ -1,30 +1,50 @@
 [
  {
   "episode": 0,
-  "eval_reward": -164.855
+  "eval_reward": -172.304
+ },
+ {
+  "episode": 250,
+  "train_reward": -137.74,
+  "eval_reward": -137.097
  },
  {
   "episode": 500,
-  "train_reward": -129.549,
-  "eval_reward": -130.842
+  "train_reward": -137.179,
+  "eval_reward": -137.267
+ },
+ {
+  "episode": 750,
+  "train_reward": -137.174,
+  "eval_reward": -137.968
  },
  {
   "episode": 1000,
-  "train_reward": -130.967,
-  "eval_reward": -130.742
+  "train_reward": -137.465,
+  "eval_reward": -137.574
+ },
+ {
+  "episode": 1250,
+  "train_reward": -136.959,
+  "eval_reward": -137.429
  },
  {
   "episode": 1500,
-  "train_reward": -130.506,
-  "eval_reward": -130.473
+  "train_reward": -139.702,
+  "eval_reward": -137.585
+ },
+ {
+  "episode": 1750,
+  "train_reward": -137.501,
+  "eval_reward": -136.885
  },
  {
   "episode": 2000,
-  "train_reward": -130.462,
-  "eval_reward": -131.599
+  "train_reward": -138.023,
+  "eval_reward": -137.392
  },
  {
   "episode": 2000,
-  "eval_reward": -131.599
+  "eval_reward": -137.392
  }
 ]

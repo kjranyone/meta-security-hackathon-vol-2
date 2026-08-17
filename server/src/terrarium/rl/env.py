@@ -25,6 +25,11 @@ OBS_DESC = [
     "price_energy", "price_food", "price_chips", "price_minerals", "price_space",
     "god_trade_eff", "god_ai_aggr",
     "mean_trust", "alliances", "sanctions_on", "techs", "tick_frac",
+    # --- トレンド観測（戦術層も時系列を見る） ---
+    "mom_energy_t3", "mom_food_t3", "mom_chips_t3", "mom_minerals_t3", "mom_space_t3",
+    "mom_energy_t12", "mom_food_t12", "mom_chips_t12", "mom_minerals_t12", "mom_space_t12",
+    "me_gdp_t12", "me_unemp_t12", "me_debt_t12", "me_fx_t12",
+    "world_gdp_t12",
 ]
 OBS_DIM = len(OBS_DESC)
 COMMODITIES = ("energy", "food", "chips", "minerals", "space")
@@ -37,6 +42,19 @@ def obs_from_view(view: NationView) -> np.ndarray:
     mean_trust = float(np.mean([r.get("trust", 0.0) for r in rels])) / 100.0 if rels else 0.0
     alliances = sum(1 for r in rels if r.get("alliance")) / max(1, len(rels))
     sanctions = sum(1 for r in rels if r.get("sanction")) / max(1, len(rels))
+    # トレンド特徴量（view.trends から。無い世界では0=変化なし）
+    tp = view.trends.get("prices", {}) if hasattr(view, "trends") else {}
+    tm = view.trends.get("me", {}) if hasattr(view, "trends") else {}
+    tw = view.trends.get("world", {}) if hasattr(view, "trends") else {}
+    mom = [float(tp.get(f"{c}_vs_t{lag}", 0.0) or 0.0) * 5.0
+           for lag in (3, 12) for c in COMMODITIES]
+    mine = [
+        float(tm.get("gdp_vs_t12", 0.0) or 0.0) * 5.0,
+        float(tm.get("unemployment_vs_t12", 0.0) or 0.0),
+        float(tm.get("debt_gdp_vs_t12", 0.0) or 0.0) * 5.0,
+        float(tm.get("fx_vs_t12", 0.0) or 0.0) * 5.0,
+        float(tw.get("world_gdp_vs_t12", 0.0) or 0.0) * 5.0,
+    ]
     obs = np.array([
         *[min(stocks.get(c, 0.0), 6.0) / 6.0 for c in COMMODITIES],
         float(np.log10(max(me.get("gdp", 0.1), 0.1))) / 2.0,
@@ -54,6 +72,8 @@ def obs_from_view(view: NationView) -> np.ndarray:
         mean_trust, alliances, sanctions,
         len(me.get("techs", [])) / 13.0,
         view.tick / 36.0,
+        *mom,
+        *mine,
     ], dtype=np.float32)
     return np.clip(obs, -5.0, 5.0)
 
