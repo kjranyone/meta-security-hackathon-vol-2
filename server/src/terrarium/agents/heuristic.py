@@ -13,6 +13,18 @@ class HeuristicPolicy:
     """Simple survival doctrine: stockpile scarce goods, punish untrusted rivals,
     rally military when threatened, ride out the rest."""
 
+    def _doctrines(self, view: NationView) -> dict:
+        """戦略因子のheuristic doctrine: 脅威を受けていれば追求、崩壊寸前なら放棄。"""
+        out = {}
+        for fid in ("nuclear",):
+            holds = fid in view.me.get("factors", [])
+            if holds:
+                out[fid] = "abandon" if view.me.get("stability", 50) < 25 else "hold"
+            else:
+                threatened = bool(view.me.get("at_war_with")) or view.me.get("stability", 50) < 40
+                out[fid] = "pursue" if threatened else "hold"
+        return out
+
     def decide(self, view: NationView) -> Decisions:
         me = view.me
         short = _shortage(view)
@@ -66,5 +78,6 @@ class HeuristicPolicy:
             military_posture=posture,
             rationing=rationing,
             propaganda=propaganda,
+            doctrines=self._doctrines(view),
             rationale=rationale,
         )

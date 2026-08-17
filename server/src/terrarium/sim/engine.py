@@ -25,6 +25,7 @@ from ..world.models import (
     WorldSpec,
     RESOURCE_TO_COMMODITY,
 )
+from ..world.factors import FACTORS_BY_ID
 from ..world.tech import CATALOG, tech_catalog_index
 from .events import EventLog
 from .interventions import Intervention, Scenario
@@ -72,6 +73,7 @@ class Engine:
         self._ca_exports: dict[str, float] = {}
         self._ca_imports: dict[str, float] = {}
         self._shortages: dict[str, float] = {}
+        self._abandon_votes: dict = {}
         self.global_co2 = 0.0
         self.prices = {c.value: 1.0 for c in Commodity}
         self.last_prices = dict(self.prices)
@@ -107,6 +109,11 @@ class Engine:
         self.news: list[str] = []
         self.out_dir = Path(out_dir) if out_dir else None
         self.event_log = EventLog(log_stream)
+        # 戦略因子の初期保有（プリセットの factor_holders。無ければ因子なし世界）
+        for fid, holders in (spec.factor_holders or {}).items():
+            for nid in holders:
+                if nid in self.nations and fid in FACTORS_BY_ID:
+                    self.nations[nid].factors.append(fid)
         self.snapshots: list[dict] = []
         self._replay: Optional[IO[str]] = None
         self.run_name = run_name
@@ -354,6 +361,7 @@ class Engine:
         self._consume(supply)
         decisions = self._decide()
         self._apply_decisions(decisions)
+        self._factor_step()
         self._conflict()
         self._macro_update()
         self._snapshot()
@@ -670,6 +678,7 @@ class Engine:
             nat, d = self.nations[nid], decisions[nid]
             nat.budget = d.budget
             nat.rationing = d.rationing
+            nat.doctrines = dict(d.doctrines or {})   # 戦略因子の自己選択を反映
             if nat.propaganda and not d.propaganda:
                 nat.propaganda = False
             elif d.propaganda:
@@ -765,6 +774,9 @@ class Engine:
                     + 0.1 * (na.paranoia + nb.paranoia)
                     + rivalry_bonus
                 )
+                det = self._deterrence(a, b) or self._deterrence(b, a)
+                if det is not None:
+                    tension *= det
                 if tension > 0.55 and self.rng.random() < (tension - 0.55):
                     self.wars.append((a, b))
                     na.at_war_with.append(b)
@@ -881,6 +893,72 @@ class Engine:
                 )
 
     # ------------------------------------------------------------- macro/cycle
+    def _factor_step(self) -> None:
+        """戦略因子の解決: policyのdoctrine表明に従い取得進捗/放棄を遷移させる。"""
+        t = self.tick_no
+        for nid in sorted(self.nations):
+            nat = self.nations[nid]
+            if nat.collapsed:
+                continue
+            for fid, spec in FACTORS_BY_ID.items():
+                holds = fid in nat.factors
+                doctrine = nat.doctrines.get(fid, "hold")
+                if not holds and doctrine == "pursue" and self._factor_prereq_ok(nid, spec):
+                    nat.factor_progress[fid] = nat.factor_progress.get(fid, 0.0) + 100.0 / spec.acquisition_ticks
+                    nat.gdp *= 1.0 - spec.pursuit_cost_gdp
+                    if nat.factor_progress[fid] >= 100.0:
+                        nat.factors.append(fid)
+                        nat.factor_progress.pop(fid, None)
+                        parents = [r.id for r in self.event_log.records[-12:]
+                                   if r.type in ("threat", "war_start", "sanction", "disinfo", "god_intervention")
+                                   and (r.actor == nid or nid in r.targets)]
+                        self.event_log.emit(
+                            t, "factor_acquired",
+                            f"{nat.name} が {spec.name} を取得（新規保有）。地域の戦略均衡が変わる",
+                            actor=nid, targets=[nid], parents=parents[-4:], data={"factor": fid},
+                        )
+                elif holds and doctrine == "abandon":
+                    key = ("abandon", nid, fid)
+                    self._abandon_votes[key] = self._abandon_votes.get(key, 0) + 1
+                    if self._abandon_votes[key] >= 3:
+                        nat.factors.remove(fid)
+                        self._abandon_votes.pop(key, None)
+                        nat.stability = max(0.0, nat.stability - spec.abandon_stability_hit)
+                        for other in sorted(self.nations):
+                            if other != nid and fid in self.nations[other].factors:
+                                self.nations[other].trust[nid] = min(100.0, self.nations[other].trust[nid] + spec.abandon_trust_gain)
+                        self.event_log.emit(
+                            t, "factor_relinquished",
+                            f"{nat.name} が {spec.name} を放棄。国内は揺れ、他国は歓迎する",
+                            actor=nid, targets=[nid], data={"factor": fid},
+                        )
+                elif holds:
+                    self._abandon_votes.pop(("abandon", nid, fid), None)
+                elif doctrine != "pursue":
+                    # 追求を止めると進捗は徐々に減る（遊離ガス）
+                    if nat.factor_progress.get(fid, 0.0) > 0:
+                        nat.factor_progress[fid] = max(0.0, nat.factor_progress[fid] - 100.0 / (spec.acquisition_ticks * 2))
+
+    def _factor_prereq_ok(self, nid: str, spec) -> bool:
+        nat = self.nations[nid]
+        for key, threshold in spec.prerequisites.items():
+            if getattr(nat, key, 0.0) < threshold:
+                return False
+        return True
+
+    def _deterrence(self, a: str, b: str) -> float | None:
+        """a→bの開戦意欲への抑止係数。None=抑止なし。"""
+        spec = FACTORS_BY_ID.get("nuclear")
+        if not spec:
+            return None
+        a_holds = "nuclear" in self.nations[a].factors
+        b_holds = "nuclear" in self.nations[b].factors
+        if a_holds and b_holds:
+            return spec.deterrence_mutual
+        if b_holds and not a_holds:
+            return spec.deterrence_vs_nonholder
+        return None
+
     def _macro_update(self) -> None:
         t = self.tick_no
         for nid in sorted(self.nations):
@@ -946,6 +1024,10 @@ class Engine:
                 nat.military = max(0.0, nat.military - 1.5)
             bud = nat.budget
             mil_mult = self._tech_military_mult(nid)
+            for fid in nat.factors:
+                fspec = FACTORS_BY_ID.get(fid)
+                if fspec:
+                    mil_mult *= fspec.military_mult
             nat.military = min(150.0, nat.military + (2.0 * bud.get("military", 0.2)) * mil_mult - (0.5 if nid in [x for w in self.wars for x in w] else 0.0))
             nat.gdp *= 1.0 + growth
             # stability & approval
@@ -1017,6 +1099,9 @@ class Engine:
                 "infra": round(nat.infra, 3),
                 "co2_cum": round(nat.co2_cum, 1),
                 "renew_eff": round(nat.renew_eff, 2),
+                "factors": list(nat.factors),
+                "factor_progress": {k: round(v, 1) for k, v in nat.factor_progress.items()},
+                "doctrines": dict(nat.doctrines),
             }
         metrics = {
             "world_gdp": round(sum(n.gdp for n in self.nations.values()), 4),

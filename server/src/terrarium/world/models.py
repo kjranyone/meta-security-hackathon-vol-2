@@ -92,6 +92,10 @@ class NationState(BaseModel):
     infra: float = 1.0                 # インフラ指数（生産力倍率）
     co2_cum: float = 0.0               # CO2累積排出（指数）
     renew_eff: float = 0.10            # 実効再生エネルギー比率
+    # --- 非決定戦略因子（核 etc.）: 保有リストと取得進捗 ---
+    factors: list[str] = []
+    factor_progress: dict[str, float] = {}
+    doctrines: dict[str, str] = {}     # factor_id -> pursue | hold | abandon
     name: str
     persona: str = ""
     color: str = "#888888"
@@ -139,6 +143,7 @@ class GodParams(BaseModel):
 
 
 class WorldSpec(BaseModel):
+    factor_holders: dict[str, list[str]] = Field(default_factory=dict)  # factor_id -> nation ids
     name: str = "default"
     nations: list[NationSpec]
     chokepoints: list[Chokepoint] = []

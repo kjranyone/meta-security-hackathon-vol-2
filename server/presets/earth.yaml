@@ -3,6 +3,9 @@
 # analytical simulation -- not precise statistics.
 name: earth
 map_geojson: world.geojson
+# 非決定戦略因子の初期保有（概算・分析目的）。NPT的な「既存保有国」のみ。
+factor_holders:
+  nuclear: [USA, RUS, CHN, EUR, IND]
 
 nations:
   - id: USA

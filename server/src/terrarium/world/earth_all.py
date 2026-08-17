@@ -245,7 +245,13 @@ def build_earth_all(seed: int = 7) -> WorldSpec:
 
     specs.sort(key=lambda s: s.id)
     _topup(rng, specs)
+    # 核保有の初期保有国（公開情報の概算。NE名→生成id）
+    by_name = {sp.name: sp.id for sp in specs}
+    nuclear_names = ["United States of America", "Russia", "China", "United Kingdom",
+                     "France", "India", "Pakistan", "Israel", "North Korea"]
+    holders = [by_name[n] for n in nuclear_names if n in by_name]
     cps = [Chokepoint(name=n, lon=lo, lat=la) for n, lo, la in REAL_CHOKEPOINTS]
     routes = _routes(rng, specs, cps)
     return WorldSpec(name="earth_all", map_geojson="world.geojson",
-                     nations=specs, chokepoints=cps, routes=routes)
+                     nations=specs, chokepoints=cps, routes=routes,
+                     factor_holders={"nuclear": holders})

@@ -28,6 +28,7 @@ SYSTEM_PROMPT = """あなたは地政学シミュレーションにおける国�
   "military_posture": "defensive|neutral|aggressive",
   "rationing": true|false,
   "propaganda": true|false,
+  "doctrines": {"nuclear": "pursue"|"hold"|"abandon"},
   "rationale": "50文字以内の方針理由"
 }}"""
 

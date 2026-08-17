@@ -19,6 +19,7 @@ class Decisions(BaseModel):
     military_posture: str = "neutral"  # defensive | neutral | aggressive
     rationing: bool = False
     propaganda: bool = False
+    doctrines: dict[str, str] = {}   # 因子 -> pursue | hold | abandon（戦略的自己選択）
     rationale: str = ""
 
 

@@ -24,11 +24,15 @@ export function beep(freq = 330, type = "sawtooth", gain = 0.12) {
 // イベント種別 → 音程
 export const MAJOR_TONES = {
   fx_crisis: 250,
+  factor_acquired: 90,
+  factor_relinquished: 330,
   sovereign_default: 220, war_start: 110, collapse: 165,
   price_spike: 440, god_intervention: 660, crash: 195,
 };
 export const MAJOR_COLOR = {
   fx_crisis: "#ffdd57",
+  factor_acquired: "#ff4d6d",
+  factor_relinquished: "#7ee787",
   sovereign_default: "#ff6b35", war_start: "#f85149", collapse: "#d29922",
   price_spike: "#e3b341", god_intervention: "#a371f7", crash: "#e5534b",
 };

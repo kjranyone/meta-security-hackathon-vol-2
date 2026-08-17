@@ -205,6 +205,37 @@ npm run build   # 変更を確定するとき: web/god.html + web/viewer.html + 
 | orbit | **宇宙資源**（軌道スロット/衛星） | 米・EU・中国のみ。**海峡を経由しない**（封鎖無効）が、喪失すると軍事力が漸減 |
 | finance | （商品なし） | GDP成長ボーナス |
 
+## 非決定戦略因子: 核保有のデータモデル（FactorSpec）
+
+「核は保有国にしか許されない」「放棄も新規保有も戦略」のような**国家AIの自己選択で動く
+離散的ケイパビリティ**は、`world/factors.py` のデータモデルで定義します（エンジン非依存）:
+
+```python
+FactorSpec(
+    id="nuclear", name="核兵器",
+    acquisition_ticks=18,               # pursue表明から取得までの期間
+    prerequisites={"military": 40, "stability": 45},   # 取得の前提
+    initial_holders=[...],              # NPT的な既存保有国（プリセットで指定）
+    deterrence_vs_nonholder=0.15,       # 非保有国→保有国への開戦意欲係数
+    deterrence_mutual=0.03,             # 保有国同士（MAD）
+    military_mult=1.15, pursuit_cost_gdp=0.002,
+    abandon_stability_hit=8.0, abandon_trust_gain=6.0,
+)
+```
+
+運用のプロトコル（全policyで共通）:
+- 国家AIは毎tick **`doctrines: {nuclear: pursue|hold|abandon}`** を意思決定に含める
+  （heuristic=脅威/体制崩壊への反応、LLM=プロンプトで選択、RL=行動空間に拡張可能）
+- エンジンは **取得進捗(0-100%)を積算**（前提を満たし追求した場合のみ）、100%で保有へ遷移し
+  `factor_acquired` イベント（因果parent付き）、**3tick継続した放棄表明**で放棄し
+  `factor_relinquished`（国内安定打撃+他保有国からの信頼回復）
+- **抑止**: 保有国への開戦意欲は×0.15、保有国同士は×0.03（MAD）
+- 神は `grant_factor`（既成事実化）も可能
+
+新しい因子（輸出規制レジーム、通貨ブロック、核傘…）は **CATALOG に FactorSpec を1つ足すだけ**。
+エンジン・UI・ログ・IF史は一切変更不要です。実測では、脅威を受け前提を満たした国が
+約18tickで取得に至り（テスト担保）、これらの離散遷移もparentリンク付きで因果グラフに乗ります。
+
 ## リアリズム層: 人口・労働・財政投資・為替・経常・CO2
 
 国家は以下の**構造パラメータ**（NationSpec、プリセットで指定）を持ち、毎tickの力学に効きます:
