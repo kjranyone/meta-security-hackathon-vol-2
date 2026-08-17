@@ -3,7 +3,8 @@ import MapCanvas from "../components/MapCanvas";
 import StatsTable from "../components/StatsTable";
 import EventFeed from "../components/EventFeed";
 import GodBar from "../components/GodBar";
-import GodCards from "../components/GodCards";
+import InterveneModal from "../components/InterveneModal";
+import NationStatus from "../components/NationStatus";
 import { VSplit } from "../components/Splitter";
 import CreateWorldDialog from "../components/CreateWorldDialog";
 import DateBar from "../components/DateBar";
@@ -25,9 +26,9 @@ export default function GodApp() {
   const [muted, setMuted] = useState(false);
   const [flash, setFlash] = useState(0);
   const [sideW, setSideW] = useState(480);
-  const [sideTab, setSideTab] = useState("cards");
+  const [sideTab, setSideTab] = useState("nations");
   const [unread, setUnread] = useState(0);
-  const sideTabRef = useRef("cards");
+  const sideTabRef = useRef("nations");
   useEffect(() => { sideTabRef.current = sideTab; }, [sideTab]);
 
   const eventLog = useMemo(() => ticks.flatMap(t => t.events || []).slice(-300), [ticks]);
@@ -38,6 +39,7 @@ export default function GodApp() {
   const [rlNation, setRlNation] = useState("");
   const [conn, setConn] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [ivModal, setIvModal] = useState(null);   // 開いている介入モーダルのaction
   const [legendOpen, setLegendOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
   const { toasts, push: pushToast } = useToasts();
@@ -131,7 +133,7 @@ export default function GodApp() {
     if (!geo || !meta) return;
     const picked = pickAt(mx, my, geo, meta);
     setSel(picked);
-    if (picked.kind) openTab("cards");
+    if (picked.kind === "nation") openTab("nations");
   }
 
   const tick = ticks[Math.min(cur, ticks.length - 1)] || null;
@@ -146,10 +148,21 @@ export default function GodApp() {
         <span id="conn" className={conn ? "ok" : "bad"} onClick={() => setStatusOpen(true)}>{conn ? "接続中" : "切断"}</span>
         <span className="spacer" />
         <button onClick={() => setCreateOpen(true)}>世界を創る</button>
+        <button onClick={() => setSel(s => (s.kind === "world" ? { kind: null, id: null } : { kind: "world", id: null }))}>世界</button>
         <button className="helpbtn" onClick={() => setLegendOpen(true)}>?</button>
       </header>
 
       {legendOpen && <LegendModal onClose={() => setLegendOpen(false)} />}
+      <InterveneModal action={ivModal}
+                      target={sel.kind === "nation" ? (meta?.geo?.nations?.[sel.id]?.name || sel.id)
+                                : sel.kind === "cp" ? sel.id : undefined}
+                      onRun={(type, params) => {
+                  if (type === "set_params") {
+                    intervene("set_param", { nation: params.nation, param: "aggression", value: params.aggression });
+                    intervene("set_param", { nation: params.nation, param: "paranoia", value: params.paranoia });
+                  } else intervene(type, params);
+                }}
+                      onClose={() => setIvModal(null)} />
       {statusOpen && (
         <StatusModal onClose={() => setStatusOpen(false)} conn={conn} status={status}
                      tick={tick} meta={meta} preset={preset} policy={policy} seed={seed} />
@@ -166,26 +179,23 @@ export default function GodApp() {
                    selectedNation={sel.kind === "nation" ? sel.id : null}
                    selectedChokepoint={sel.kind === "cp" ? sel.id : null}
                    onMapClick={onMapClick} />
-        <GodBar sel={sel} meta={meta} intervene={intervene} />
+        <GodBar sel={sel} meta={meta} intervene={intervene} onModal={setIvModal} />
 
         <VSplit
           onMove={ev => setSideW(Math.min(Math.max(window.innerWidth - ev.clientX, 320), window.innerWidth - 420))}
           onReset={() => setSideW(480)} />
         <div className="side" style={{ width: sideW }}>
           <div className="sidetabs">
-            <div className={`sidetab${sideTab === "cards" ? " on" : ""}`} onClick={() => openTab("cards")}>介入</div>
             <div className={`sidetab${sideTab === "nations" ? " on" : ""}`} onClick={() => openTab("nations")}>NATIONS</div>
             <div className={`sidetab${sideTab === "event" ? " on" : ""}`} onClick={() => openTab("event")}>
               EVENT{unread > 0 && <span className="badge">{unread}</span>}
             </div>
           </div>
-          {sideTab === "cards" && (
-            <div className="pane" style={{ flex: 1, overflow: "auto" }}>
-              <GodCards sel={sel} meta={meta} tick={tick} intervene={intervene} />
-            </div>
-          )}
           {sideTab === "nations" && (
             <div className="pane" style={{ flex: 1, overflow: "auto" }}>
+              {sel.kind === "nation" && tick?.nations?.[sel.id] && (
+                <NationStatus n={tick.nations[sel.id]} />
+              )}
               <StatsTable tick={tick} selected={sel.kind === "nation" ? sel.id : null} showStocks
                           onSelect={nid => setSel(s => (s.kind === "nation" && s.id === nid) ? { kind: null, id: null } : { kind: "nation", id: nid })} />
             </div>

@@ -3,41 +3,43 @@ export const TECHS = ["drone_swarm", "laser_defense", "cyber_arsenal", "hyperson
   "asteroid_mining", "ai_religion", "techno_nationalism"];
 export const RESOURCES = ["oil", "gas", "grain", "fab", "mineral", "orbit"];
 
-// 地図下部の神介入HUD（シミュレーターゲーム風ワンクリック操作）
-export default function GodBar({ sel, meta, intervene }) {
+// 地図下部の神介入HUD。パラメータが必要な操作は onModal(type) でモーダルへ、
+// 即時実行で良い操作は intervene を直接呼ぶ。sel.kind: "nation" | "cp" | "world"
+export default function GodBar({ sel, meta, intervene, onModal }) {
   const nation = sel.kind === "nation" ? sel.id : null;
   const cp = sel.kind === "cp" ? sel.id : null;
+  const world = sel.kind === "world";
+
+  const NATION_BTNS = [
+    { label: "救済", modal: null, act: () => intervene("bailout", { nation }) },
+    { label: "偽情報", modal: "disinfo" },
+    { label: "災害", modal: "disaster" },
+    { label: "資源の創造", modal: "create_resource" },
+    { label: "資源の消滅", modal: "destroy_resource" },
+    { label: "技術の授与", modal: "grant_tech" },
+    { label: "性格の書き換え", modal: "set_params" },
+  ];
+  const CP_BTNS = [
+    { label: "封鎖", modal: "close_chokepoint" },
+    { label: "開放", modal: null, act: () => intervene("open_chokepoint", { chokepoint: cp }) },
+  ];
+  const WORLD_BTNS = [
+    { label: "世界金利", modal: "rate_hike" },
+    { label: "世界パラメータ", modal: "global_sliders" },
+    { label: "技術の全世界禁止", modal: "ban_tech" },
+  ];
+  const btns = nation ? NATION_BTNS : cp ? CP_BTNS : world ? WORLD_BTNS : [];
+
+  if (!btns.length) return null;
   const name = nation ? (meta?.geo?.nations?.[nation]?.name || nation) : cp;
 
-  const B = [
-    { label: "封鎖", dis: !cp, act: d => intervene("close_chokepoint", { chokepoint: cp, duration: +d.dur }), title: "海峡選択時に有効" },
-    { label: "開放", dis: !cp, act: () => intervene("open_chokepoint", { chokepoint: cp }), title: "海峡選択時に有効" },
-    { label: "救済", dis: !nation, act: () => intervene("bailout", { nation }), title: "国家選択時に有効" },
-    { label: "旱魃", dis: !nation, act: () => intervene("disaster", { nation, kind: "drought" }), title: "国家選択時に有効" },
-    { label: "偽情報", dis: !nation, act: () => intervene("disinfo", { target: nation, intensity: 0.6 }), title: "国家選択時に有効" },
-    { label: "資源+2", dis: !nation, act: d => intervene("create_resource", { nation, resource: d.res, quantity: 2 }), title: "国家選択時に有効" },
-    { label: "資源消滅", dis: !nation, act: d => intervene("destroy_resource", { nation, resource: d.res }), title: "国家選択時に有効" },
-    { label: "技術授与", dis: !nation, act: d => intervene("grant_tech", { nation, tech: d.tech }), title: "国家選択時に有効" },
-    { label: "好戦↑", dis: !nation, act: () => intervene("set_param", { nation, param: "aggression", value: 0.2 }), title: "国家選択時に有効" },
-    { label: "好戦↓", dis: !nation, act: () => intervene("set_param", { nation, param: "aggression", value: -0.2 }), title: "国家選択時に有効" },
-    { label: "利上げ+5%", dis: false, act: () => intervene("rate_hike", { value: 0.05 }), title: "常時有効（全世界）" },
-    { label: "技術禁止", dis: false, act: d => intervene("ban_tech", { tech: d.tech }), title: "常時有効（全世界）" },
-  ];
-
-  if (!nation && !cp) return null;
   return (
     <div className="godbar">
       <span className="tgt">
-        {nation || cp ? <>対象: <b>{name}</b></> : "対象なし"}
+        {nation || cp ? <>対象: <b>{name}</b></> : <>対象: <b>世界</b></>}
       </span>
-      <select data-k="dur" >{[6, 12, 24, 60].map(d => <option key={d}>{d}</option>)}</select>
-      <select data-k="res" >{RESOURCES.map(r => <option key={r}>{r}</option>)}</select>
-      <select data-k="tech" >{TECHS.map(t => <option key={t}>{t}</option>)}</select>
-      {B.map((b, i) => (
-        <button key={i} disabled={b.dis}
-                onClick={e => b.act(Object.fromEntries(
-                  Array.from(e.currentTarget.parentElement.querySelectorAll("select[data-k]"))
-                    .map(s => [s.dataset.k, s.value])))}>
+      {btns.map((b, i) => (
+        <button key={i} onClick={() => (b.modal ? onModal(b.modal) : b.act())}>
           {b.label}
         </button>
       ))}
