@@ -1,5 +1,14 @@
 /* Geopolitics Terrarium — shared styles (god + viewer) */
 :root {
+  /* z-index スケール（この順序で重なる。個別の数値指定は禁止） */
+  --z-canvas: 0;      /* 地図canvas */
+  --z-split: 10;      /* パネル分割線 */
+  --z-zoomctl: 20;    /* ズームコントロール */
+  --z-hud: 30;        /* 神介入HUD */
+  --z-mapinfo: 35;    /* 地図上の小物（hover等） */
+  --z-ifpanel: 40;    /* IFパネル */
+  --z-toast: 70;      /* イベントトースト */
+  --z-modal: 80;      /* ダイアログ */
   --bg: #0d1117; --panel: #161b22; --border: #30363d;
   --text: #e6edf3; --dim: #8b949e; --accent: #58a6ff;
   --god: #a371f7; --ok: #3fb950; --bad: #f85149;
@@ -36,7 +45,7 @@ header button.on { border-color: var(--accent); color: var(--accent); }
 .main { display: flex; flex: 1; min-height: 0; position: relative; }
 
 /* ---------------- event toasts（フローティング: レイアウトに影響しない） ---------------- */
-.toasts { position: absolute; left: 12px; bottom: 76px; z-index: 70; display: flex;
+.toasts { position: absolute; left: 12px; bottom: 76px; z-index: var(--z-toast); display: flex;
           flex-direction: column; gap: 8px; pointer-events: none; max-width: 360px; }
 .toast { background: rgba(22,27,34,.95); border: 1px solid var(--border);
          border-left: 4px solid var(--accent); border-radius: 10px;
@@ -47,7 +56,7 @@ header button.on { border-color: var(--accent); color: var(--accent); }
            display: flex; align-items: center; justify-content: center; }
 canvas.map { cursor: grab; max-width: 100%; max-height: 100%; touch-action: none; }
 canvas.map.dragging { cursor: grabbing; }
-.zoomctl { position: absolute; right: 12px; bottom: 12px; z-index: 5; display: flex;
+.zoomctl { position: absolute; right: 12px; bottom: 12px; z-index: var(--z-zoomctl); display: flex;
            flex-direction: column; gap: 4px; }
 .zoomctl button { width: 34px; height: 30px; background: rgba(22,27,34,.9); border: 1px solid var(--border);
                   color: var(--text); border-radius: 8px; cursor: pointer; font-size: 15px; }
@@ -118,12 +127,12 @@ input[type=range] { accent-color: var(--accent); }
              padding: 4px 12px; }
 .datechip small { color: var(--dim); font-size: 11.5px; margin-left: 4px; }
 .hover { position: absolute; pointer-events: none; background: rgba(22,27,34,.95); border: 1px solid var(--border);
-         border-radius: 6px; padding: 6px 10px; font-size: 12px; display: none; z-index: 5; max-width: 280px; }
+         border-radius: 6px; padding: 6px 10px; font-size: 12px; display: none; z-index: var(--z-mapinfo); max-width: 280px; }
 .drophint { color: var(--dim); padding: 40px; text-align: center; }
 code { background: #1c2129; padding: 1px 4px; border-radius: 4px; }
 
 /* ---------------- god HUD bar ---------------- */
-.godbar { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 4;
+.godbar { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: var(--z-hud);
           display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center;
           background: rgba(13,17,23,.88); border: 1px solid var(--border); border-radius: 12px;
           padding: 7px 10px; max-width: calc(100% - 24px); box-shadow: 0 6px 24px rgba(0,0,0,.45);
@@ -159,7 +168,7 @@ label.sl output { width: 44px; text-align: right; }
 .card button.godbtn:hover { background: rgba(163,113,247,.15); }
 
 /* ---------------- splitters ---------------- */
-.vsplit { flex: 0 0 7px; cursor: col-resize; background: var(--border); position: relative; z-index: 1; }
+.vsplit { flex: 0 0 7px; cursor: col-resize; background: var(--border); position: relative; z-index: var(--z-split); }
 .vsplit::before { content: ""; position: absolute; inset: 0 -8px; }
 .vsplit::after { content: "⇔"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
                  color: var(--dim); font-size: 11px; opacity: 0; transition: opacity .15s; }
@@ -174,7 +183,7 @@ label.sl output { width: 44px; text-align: right; }
 
 
 /* ---------------- modal dialogs ---------------- */
-.modal-back { position: fixed; inset: 0; background: rgba(4,8,14,.72); z-index: 80;
+.modal-back { position: fixed; inset: 0; background: rgba(4,8,14,.72); z-index: var(--z-modal);
               display: flex; align-items: center; justify-content: center; }
 .modal { background: var(--panel); border: 1px solid var(--god); border-radius: 14px;
          width: min(620px, 92vw); max-height: 86vh; overflow: auto; padding: 22px 26px;
@@ -192,7 +201,7 @@ label.sl output { width: 44px; text-align: right; }
 .modalbtns button.go:hover { background: rgba(163,113,247,.15); }
 .ifpanel { position: fixed; top: 60px; right: 16px; width: 380px; max-height: 80vh; overflow: auto;
            background: var(--panel); border: 1px solid var(--accent); border-radius: 10px;
-           padding: 14px 16px; z-index: 40; font-size: 13px; box-shadow: 0 8px 30px rgba(0,0,0,.5); }
+           padding: 14px 16px; z-index: var(--z-ifpanel); font-size: 13px; box-shadow: 0 8px 30px rgba(0,0,0,.5); }
 .ifpanel h3 { margin: 0 0 8px; font-size: 13px; }
 .ifpanel label { color: var(--dim); font-size: 11.5px; display: block; margin: 8px 0 2px; }
 .ifpanel select, .ifpanel input { background: var(--bg); border: 1px solid var(--border); color: var(--text);
