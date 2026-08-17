@@ -24,7 +24,12 @@ class Decisions(BaseModel):
 
 
 class NationView(BaseModel):
-    """What one nation can see when deciding (prompt-ready serialization)."""
+    """What one nation can see when deciding (prompt-ready serialization).
+
+    戦略推論の入力は「渡せるもの全部」: 現在値に加えて時系列トレンド・貿易構造
+    （海峡曝露）・世界情勢・観測可能な他国概要・自分の直前の意思決定（記憶）・
+    tick付きのイベント系列を含む。
+    """
     tick: int
     me: dict
     prices: dict[str, float]
@@ -32,6 +37,10 @@ class NationView(BaseModel):
     relations: dict[str, dict]          # trust/alliance/war per other nation
     market_news: list[str] = []
     recent_events: list[str] = []
+    trends: dict = {}                   # 価格/自国指標の時系列モメンタム
+    world: dict = {}                    # 世界情勢の要約とトレンド
+    trade: dict = {}                    # 輸入依存・海峡曝露・輸出国構造
+    last_decision: dict = {}            # 自分の直前の政策（無記憶AIへの記憶供給）
 
 
 class Policy(Protocol):

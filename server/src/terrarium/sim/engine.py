@@ -74,6 +74,7 @@ class Engine:
         self._ca_imports: dict[str, float] = {}
         self._shortages: dict[str, float] = {}
         self._abandon_votes: dict = {}
+        self._last_decision: dict[str, dict] = {}
         self.global_co2 = 0.0
         self.prices = {c.value: 1.0 for c in Commodity}
         self.last_prices = dict(self.prices)
@@ -641,27 +642,116 @@ class Engine:
 
     # --------------------------------------------------------------- decisions
     def nation_view(self, nid: str) -> NationView:
-        """Single nation's observation of the world (shared by policies & RL)."""
+        """Single nation's observation of the world (shared by policies & RL).
+
+        戦略推論に渡せるものは全部渡す: 時系列トレンド・貿易構造・世界情勢・
+        他国の観測可能な概要・直前の自分の意思決定・tick付きイベント系列。
+        """
         nat = self.nations[nid]
         me_view = dict(nat.view())
         me_view["techs"] = self._techs_of(nid)
-        recent = [r.text for r in self.event_log.records[-8:]]
+
+        # --- 時系列トレンド（snapshotsからlag特徴量を計算） ---
+        hist = self.snapshots[-13:]
+        trends: dict = {"prices": {}, "me": {}}
+        for c in self.prices:
+            cur = self.prices[c]
+            for lag in (1, 3, 6, 12):
+                if len(hist) > lag:
+                    old = hist[-1 - lag]["prices"].get(c, cur)
+                    trends["prices"][f"{c}_vs_t{lag}"] = round(cur / max(0.01, old) - 1.0, 3)
+        for key in ("gdp", "stability", "unemployment", "debt_gdp", "fx", "fx_reserves"):
+            for lag in (3, 12):
+                if len(hist) > lag:
+                    old = hist[-1 - lag]["nations"].get(nid, {}).get(key)
+                    if old is not None and old != 0:
+                        trends["me"][f"{key}_vs_t{lag}"] = round(
+                            (me_view.get(key, 0) - old) / abs(old), 3)
+        # 信頼の変化（上位の関係者について）
+        if len(hist) > 6:
+            old_trust = hist[-7]["nations"].get(nid, {}).get("trust", {})
+            deltas = []
+            for o, v in nat.trust.items():
+                d = v - old_trust.get(o, v)
+                if abs(d) >= 3.0:
+                    deltas.append({"nation": o, "delta": round(d, 1), "now": round(v, 1)})
+            deltas.sort(key=lambda x: -abs(x["delta"]))
+            trends["trust_changes"] = deltas[:6]
+
+        # --- 世界情勢 ---
+        m = hist[-1]["metrics"] if hist else {}
+        world = {
+            "world_gdp": m.get("world_gdp"),
+            "world_gdp_vs_t12": None,
+            "mean_unemployment": m.get("mean_unemployment"),
+            "global_co2": m.get("global_co2"),
+            "ongoing_wars": [list(w) for w in self.wars],
+            "nuclear_holders": sorted(o for o, on in self.nations.items() if "nuclear" in on.factors),
+        }
+        if len(hist) > 12:
+            old_m = hist[-13]["metrics"]
+            if old_m.get("world_gdp"):
+                world["world_gdp_vs_t12"] = round(m["world_gdp"] / old_m["world_gdp"] - 1.0, 3)
+
+        # --- 貿易構造: 輸入依存と海峡曝露 ---
+        dep = {c.value: 0.0 for c in Commodity}
+        cp_exposure: dict[str, float] = {}
+        suppliers: dict[str, dict[str, float]] = {}
+        customers: dict[str, float] = {}
+        for r in self.spec.routes:
+            if r.importer == nid:
+                dep[r.commodity.value] = min(1.0, dep[r.commodity.value] + r.share)
+                suppliers.setdefault(r.commodity.value, {})
+                suppliers[r.commodity.value][r.exporter] = round(
+                    suppliers[r.commodity.value].get(r.exporter, 0.0) + r.share, 2)
+                for cpn in r.chokepoints:
+                    cp_exposure[cpn] = round(cp_exposure.get(cpn, 0.0) + r.share, 2)
+            elif r.exporter == nid:
+                customers[r.importer] = round(customers.get(r.importer, 0.0) + r.share, 2)
+        trade = {
+            "import_dependency": {k: round(v, 2) for k, v in dep.items() if v > 0},
+            "chokepoint_exposure": dict(sorted(cp_exposure.items(), key=lambda x: -x[1])),
+            "key_suppliers": suppliers,
+            "key_customers": dict(sorted(customers.items(), key=lambda x: -x[1])[:6]),
+        }
+
+        # --- 他国の観測可能な概要（全員に近い相手上位。16国以下の世界では全員） ---
+        others = sorted(self.nations.items())
+        rel_full = {
+            o: {
+                "trust": round(onat.trust.get(nid, 0.0), 1),
+                "alliance": o in nat.alliances,
+                "war": o in nat.at_war_with,
+                "sanction": o in nat.sanctions_on,
+                "gdp": round(onat.gdp, 1),
+                "military": round(onat.military, 0),
+                "stability": round(onat.stability, 0),
+                "nuclear": "nuclear" in onat.factors,
+            }
+            for o, onat in others if o != nid
+        }
+        if len(rel_full) > 30:
+            # 大世界では関連上位のみ（戦争・同盟・制裁・信頼両極端）
+            ranked = sorted(
+                rel_full.items(),
+                key=lambda kv: (kv[1]["war"], kv[1]["alliance"], kv[1]["sanction"],
+                                abs(kv[1]["trust"] - 20.0), kv[1]["gdp"]),
+                reverse=True)
+            rel_full = dict(ranked[:30])
+
+        recent = [f"t{r.tick}: {r.text}" for r in self.event_log.records[-16:]]
         return NationView(
             tick=self.tick_no,
             me=me_view,
             prices=dict(self.prices),
             god_params=self.god.model_dump(),
-            relations={
-                o: {
-                    "trust": round(onat.trust.get(nid, 0.0), 1),
-                    "alliance": o in nat.alliances,
-                    "war": o in nat.at_war_with,
-                    "sanction": o in nat.sanctions_on,
-                }
-                for o, onat in sorted(self.nations.items()) if o != nid
-            },
+            relations=rel_full,
             market_news=[f"{k} price {v:.2f}" for k, v in self.prices.items()],
             recent_events=recent,
+            trends=trends,
+            world=world,
+            trade=trade,
+            last_decision=self._last_decision.get(nid, {}),
         )
 
     def _decide(self) -> dict[str, Decisions]:
@@ -679,6 +769,12 @@ class Engine:
             nat.budget = d.budget
             nat.rationing = d.rationing
             nat.doctrines = dict(d.doctrines or {})   # 戦略因子の自己選択を反映
+            self._last_decision[nid] = {
+                "budget": {k: round(v, 2) for k, v in (d.budget or {}).items()},
+                "posture": d.military_posture,
+                "rationing": d.rationing,
+                "doctrines": dict(d.doctrines or {}),
+            }
             if nat.propaganda and not d.propaganda:
                 nat.propaganda = False
             elif d.propaganda:

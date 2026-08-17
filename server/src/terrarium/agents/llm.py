@@ -38,9 +38,13 @@ def build_user_prompt(nation_persona: str, view: NationView) -> str:
         {
             "あなたの国家": {"persona": nation_persona, **view.me},
             "国際市場価格": view.prices,
+            "価格・自国指標のトレンド": view.trends,
+            "世界情勢": view.world,
+            "貿易構造（輸入依存・海峡曝露・主要供給国/顧客）": view.trade,
             "世界パラメータ": view.god_params,
-            "他国関係": view.relations,
-            "最近の出来事": view.recent_events[-5:],
+            "他国（観測可能な概要つき）": view.relations,
+            "最近の出来事": view.recent_events[-16:],
+            "あなたの前月の決定": view.last_decision,
         },
         ensure_ascii=False,
     )
