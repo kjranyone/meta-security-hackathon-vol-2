@@ -228,12 +228,19 @@ def build_earth_all(seed: int = 7) -> WorldSpec:
             while nid in used_ids:
                 nid += "X"
         used_ids.add(nid)
+        # 社会・エネルギーパラメータは経済規模と資源構造から決定論的に導出
+        fossil = any(r in (ResourceKind.OIL, ResourceKind.GAS) for r in res)
+        education = round(min(0.92, 0.38 + 0.30 * min(1.0, gdp / 2.0) + 0.08 * (len(res) >= 4)), 2)
+        gini = round(min(0.60, 0.33 + 0.18 * max(0.0, 1.0 - gdp / 2.0) + (0.05 if fossil else 0.0)), 2)
+        renew = round(max(0.02, min(0.60, 0.08 + (0.22 if not fossil else 0.0) + min(0.18, gdp * 0.012))), 2)
+        popg = round(min(0.025, max(-0.004, 0.018 - gdp * 0.002)), 3)
         specs.append(NationSpec(
             id=nid, name=admin, persona=_persona_for(res, gdp),
             color=f"hsl({(len(specs) * 137.508) % 360:.0f}, 52%, 50%)",
             centroid=ctr, geo_ids=[admin], population_m=pop,
             gdp_t=gdp, military=mil, stability=stab, approval=50.0,
             aggression=aggr, paranoia=para, resources=res, debt_gdp=debt,
+            population_growth=popg, education=education, gini=gini, energy_renew=renew,
         ))
 
     specs.sort(key=lambda s: s.id)

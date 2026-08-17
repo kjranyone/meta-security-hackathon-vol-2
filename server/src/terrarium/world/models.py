@@ -74,11 +74,24 @@ class NationSpec(BaseModel):
     paranoia: float = 0.3
     resources: list[ResourceKind] = []
     debt_gdp: float = 60.0            # sovereign debt as % of GDP at t0
+    population_growth: float = 0.008   # 年率人口成長
+    education: float = 0.5             # 教育水準 0-1（研究吸収・安定に寄与）
+    gini: float = 0.38                 # 所得不平等（安定・支持に影響）
+    energy_renew: float = 0.10         # 再生エネルギー比率 0-1（CO2に反映）
     stockpile_months: dict[str, float] = Field(default_factory=lambda: {"energy": 3.0, "food": 4.0, "chips": 2.0})
 
 
 class NationState(BaseModel):
     id: str
+    # --- realism layer ---
+    population_m: float = 50.0         # 人口（百万人）
+    unemployment: float = 6.0          # 失業率 %
+    fx: float = 1.0                    # 為替指数（初期1.0、下落=通貨安）
+    fx_reserves: float = 8.0           # 外貨準備（輸入月数）
+    ca_last: float = 0.0               # 直近tickの経常収支（フロー値）
+    infra: float = 1.0                 # インフラ指数（生産力倍率）
+    co2_cum: float = 0.0               # CO2累積排出（指数）
+    renew_eff: float = 0.10            # 実効再生エネルギー比率
     name: str
     persona: str = ""
     color: str = "#888888"

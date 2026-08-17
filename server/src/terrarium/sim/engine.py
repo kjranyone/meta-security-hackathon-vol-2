@@ -68,6 +68,11 @@ class Engine:
         # the exact (preset, policy, scenario) that produced this history
         self.run_config = run_config or {}
         self.chokepoints = {cp.name: cp for cp in spec.chokepoints}
+        self._specs = {ns.id: ns for ns in spec.nations}
+        self._ca_exports: dict[str, float] = {}
+        self._ca_imports: dict[str, float] = {}
+        self._shortages: dict[str, float] = {}
+        self.global_co2 = 0.0
         self.prices = {c.value: 1.0 for c in Commodity}
         self.last_prices = dict(self.prices)
         self.nations: dict[str, NationState] = {}
@@ -86,6 +91,7 @@ class Engine:
                 paranoia=ns.paranoia,
                 stocks={**DEFAULT_STOCKS, **ns.stockpile_months},
                 debt_gdp=ns.debt_gdp,
+                renew_eff=ns.energy_renew,
                 credibility=min(ns.stability, 90.0),
                 base_aggression=ns.aggression,
                 base_paranoia=ns.paranoia,
@@ -325,6 +331,9 @@ class Engine:
 
     # -------------------------------------------------------------- one tick
     def step(self) -> None:
+        self._ca_exports = {}
+        self._ca_imports = {}
+        self._shortages = {}
         t = self.tick_no
         # reopen scheduled chokepoints
         for name, reopen_at in list(self._pending_reopen.items()):
@@ -426,6 +435,9 @@ class Engine:
                 a += tech.approval_drift
         return s, a
 
+    def _edu_factor(self, nid: str) -> float:
+        return 0.6 + 0.8 * self._specs[nid].education
+
     def _techs_of(self, nid: str) -> list[str]:
         return sorted(tid for tid, owners in self.tech_adopted.items() if nid in owners)
 
@@ -459,8 +471,11 @@ class Engine:
                 dom[commodity] += YIELD_PER_UNIT * slider * mult
             # emerging techs: unconditional flat supply then multipliers
             t_mult, t_flat = self._tech_factors(nid)
+            climate_food = 1.0 - min(0.15, self.global_co2 / 800.0)   # CO2蓄積→食料減産
             for c in dom:
-                dom[c] = dom[c] * t_mult[c] + t_flat[c]
+                dom[c] = dom[c] * t_mult[c] * nat.infra + t_flat[c]
+                if c == "food":
+                    dom[c] *= climate_food
             supply[nid] = dom
         return supply
 
@@ -534,6 +549,9 @@ class Engine:
             revenue = 0.01 * flow * self.prices[route.commodity.value] * 12
             exp.gdp += revenue
             imp.stocks[route.commodity.value] += flow
+            flow_val = flow * self.prices[route.commodity.value]
+            self._ca_exports[route.exporter] = self._ca_exports.get(route.exporter, 0.0) + flow_val
+            self._ca_imports[route.importer] = self._ca_imports.get(route.importer, 0.0) + flow_val
             failed = max(0.0, want - flow)
             if failed > 0:
                 unmet[route.commodity.value] += failed
@@ -603,6 +621,7 @@ class Engine:
                     severity = min(1.0, -nat.stocks[c.value])
                     nat.stocks[c.value] = 0.0
                     nat.stability -= SHORTAGE_STABILITY_HIT[c.value] * severity
+                    self._shortages[nid] = self._shortages.get(nid, 0.0) + severity
                     if severity > 0.3:
                         self.event_log.emit(
                             t, "shortage",
@@ -829,6 +848,8 @@ class Engine:
         nat.defaults += 1
         nat.default_cooldown = 12                        # restructuring moratorium
         nat.inflation = min(1.0, nat.inflation + 0.15)   # currency crash
+        nat.fx = max(0.3, nat.fx * 0.70)                 # 為替暴落
+        nat.fx_reserves *= 0.6                           # 準備防衛で消耗
         nat.stability = max(0.0, nat.stability - 8.0)
         nat.credibility = 5.0
         nat.debt_gdp *= 0.50                              # restructuring haircut
@@ -866,15 +887,57 @@ class Engine:
             nat = self.nations[nid]
             if nat.collapsed:
                 continue
-            # inflation from import price exposure
+            spec = self._specs[nid]
+            at_war_now = bool(nat.at_war_with)
+            # inflation from import price exposure（通貨安は輸入インフレを増幅）
             infl_delta = 0.0
             for c in Commodity:
                 dep = self._import_dependency(nid, c)
                 infl_delta += dep * 0.25 * (self.prices[c.value] / max(0.01, self.last_prices[c.value]) - 1.0)
+            infl_delta *= 1.0 / max(0.5, nat.fx)
             nat.inflation = max(-0.05, min(1.0, 0.85 * nat.inflation + 0.15 * 0.02 + infl_delta))
             # growth
             finance_units = sum(1 for r in self.nation_resources[nid] if r is ResourceKind.FINANCE)
             growth = 0.02 + 0.002 * finance_units - nat.inflation * 0.6
+            # --- 労働: 失業率（生産ギャップ・戦争・福祉が決める） ---
+            welfare_share = bud0 = nat.budget.get("welfare", 0.3)
+            shortage_hits = self._shortages.get(nid, 0.0)
+            u_target = (5.0 + max(0.0, 0.02 - growth) * 160.0 + (8.0 if at_war_now else 0.0)
+                        + 5.0 * min(1.5, shortage_hits / 2.0)
+                        - min(4.0, 6.0 * welfare_share))
+            nat.unemployment = min(45.0, max(2.0, nat.unemployment + (u_target - nat.unemployment) * 0.25))
+            growth -= max(0.0, nat.unemployment - 10.0) * 0.001          # 失業は生産を蝕む
+            # --- 人口 ---
+            nat.population_m *= 1.0 + spec.population_growth / 12.0 - (0.001 if at_war_now else 0.0)
+            # --- インフラ投資（補助金シェアが蓄積、戦争は毀損） ---
+            nat.infra = min(1.25, max(0.5, nat.infra + 0.004 * (nat.budget.get("subsidy", 0.25) * 2.2 - 0.7) - (0.006 if at_war_now else 0.0)))
+            # --- 為替: インフレ差で調整、債務不履行で暴落（_sovereign_default参照） ---
+            world_inf = sum(o.inflation for o in self.nations.values()) / len(self.nations)
+            nat.fx = min(3.0, max(0.3, nat.fx * (1.0 + 0.6 * (world_inf - nat.inflation) / 12.0)))
+            # --- 経常収支と外貨準備 ---
+            exp_val = self._ca_exports.get(nid, 0.0)
+            imp_val = self._ca_imports.get(nid, 0.0)
+            nat.ca_last = exp_val - imp_val
+            nat.fx_reserves = min(36.0, max(0.0, nat.fx_reserves + (exp_val - imp_val) * 0.02))
+            if nat.fx_reserves < 1.0:
+                # 外貨準備枯渇: 輸入能力が落ち、スタグフレーションと政治的圧力
+                growth -= 0.01
+                nat.stability = max(0.0, nat.stability - 1.5)
+                if int(nat.fx_reserves * 10) % 12 == 0:
+                    self.event_log.emit(
+                        t, "fx_crisis",
+                        f"{nat.name} の外貨準備が枯渇（{nat.fx_reserves:.1f}ヶ月分）。輸入が絞られる",
+                        actor=nid, targets=[nid], data={"reserves": round(nat.fx_reserves, 2)},
+                    )
+            # --- CO2: 化石エネルギー生産 × (1-実効再生比率) ---
+            techs = self._techs_of(nid)
+            renew = max(spec.energy_renew,
+                        0.50 if "fusion" in techs else 0.35 if "space_solar" in techs else spec.energy_renew)
+            nat.renew_eff = renew
+            fossil_units = sum(1 for r in self.nation_resources[nid] if r in (ResourceKind.OIL, ResourceKind.GAS))
+            co2_flow = fossil_units * (1.0 - renew)
+            nat.co2_cum += co2_flow
+            self.global_co2 += co2_flow
             if nat.stocks["chips"] <= 0.05:
                 growth -= 0.01
                 nat.military = max(0.0, nat.military - 1.0)
@@ -889,8 +952,11 @@ class Engine:
             t_stab, t_appr = self._tech_socio_drifts(nid)
             drift = 0.25 * (55.0 - nat.stability)
             welfare = 3.0 * bud.get("welfare", 0.3)
-            nat.stability = max(0.0, min(100.0, nat.stability + drift + welfare - nat.inflation * 25.0 - nat.war_exhaustion * 0.05 + t_stab))
-            nat.approval = max(0.0, min(100.0, nat.approval + 0.2 * (50.0 - nat.approval) + (1.0 if bud.get("welfare", 0) > 0.35 else -0.5) + t_appr))
+            gini_drag = max(0.0, spec.gini - 0.40) * 30.0     # 高不平等は社会を疲弊させる
+            edu_lift = (spec.education - 0.5) * 0.8
+            unemp_drag = max(0.0, nat.unemployment - 8.0) * 0.15
+            nat.stability = max(0.0, min(100.0, nat.stability + drift + welfare - nat.inflation * 25.0 - nat.war_exhaustion * 0.05 - gini_drag - unemp_drag + t_stab))
+            nat.approval = max(0.0, min(100.0, nat.approval + 0.2 * (50.0 - nat.approval) + (1.0 if bud.get("welfare", 0) > 0.35 else -0.5) - unemp_drag * 0.5 + edu_lift + t_appr))
             nat.war_exhaustion = max(0.0, nat.war_exhaustion - 0.5)
             # ---------------------------------------------------- fiscal block
             self._fiscal_step(nid, nat)
@@ -943,6 +1009,14 @@ class Engine:
                 "defaults": nat.defaults,
                 # friendly度グラフ用: 他国への信頼度(0-100)。形式追加のみで挙動には影響しない
                 "trust": {o: round(v, 1) for o, v in sorted(nat.trust.items())},
+                "population_m": round(nat.population_m, 1),
+                "unemployment": round(nat.unemployment, 2),
+                "fx": round(nat.fx, 3),
+                "fx_reserves": round(nat.fx_reserves, 1),
+                "ca_last": round(nat.ca_last, 2),
+                "infra": round(nat.infra, 3),
+                "co2_cum": round(nat.co2_cum, 1),
+                "renew_eff": round(nat.renew_eff, 2),
             }
         metrics = {
             "world_gdp": round(sum(n.gdp for n in self.nations.values()), 4),
@@ -955,6 +1029,8 @@ class Engine:
             "mean_inflation": round(sum(n.inflation for n in self.nations.values()) / len(self.nations), 5),
             "mean_debt_gdp": round(sum(n.debt_gdp for n in self.nations.values()) / len(self.nations), 1),
             "defaults": sum(n.defaults for n in self.nations.values()),
+            "mean_unemployment": round(sum(n.unemployment for n in self.nations.values()) / len(self.nations), 2),
+            "global_co2": round(self.global_co2, 1),
         }
         snap = {
             "type": "tick", "tick": t, "nations": nations_out,

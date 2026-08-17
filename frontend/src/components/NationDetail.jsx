@@ -54,6 +54,18 @@ export default function NationDetail({ n, meta, onSelect }) {
                v={`${st.energy?.toFixed(1) ?? "-"} / ${st.food?.toFixed(1) ?? "-"} / ${st.chips?.toFixed(1) ?? "-"} / ${st.minerals?.toFixed(1) ?? "-"} / ${st.space?.toFixed(1) ?? "-"}`} />
           <Row k="技術" v={(n.techs || []).length ? (n.techs || []).join(", ") : "—"} />
         </div>
+        <div>
+          <Row k="人口" v={`${(n.population_m ?? 0).toFixed(0)}百万人`} />
+          <Row k="失業率" v={`${(n.unemployment ?? 0).toFixed(1)}%`} />
+          <Row k="為替" v={(n.fx ?? 1).toFixed(2)} />
+          <Row k="外貨準備" v={`${(n.fx_reserves ?? 0).toFixed(1)}ヶ月分`} />
+        </div>
+        <div>
+          <Row k="経常収支" v={`${(n.ca_last ?? 0) >= 0 ? "+" : ""}${(n.ca_last ?? 0).toFixed(1)}`} />
+          <Row k="インフラ" v={(n.infra ?? 1).toFixed(2)} />
+          <Row k="CO2累積" v={(n.co2_cum ?? 0).toFixed(0)} />
+          <Row k="再生エネルギー" v={`${Math.round((n.renew_eff ?? 0) * 100)}%`} />
+        </div>
       </div>
 
       <h4 className="ndhead">友好度</h4>

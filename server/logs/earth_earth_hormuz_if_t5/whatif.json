@@ -14,10 +14,10 @@
   ],
   "first_divergence_tick": 5,
   "final_metric_deltas": {
-    "world_gdp": 0.6034,
-    "mean_stability": 0.7,
+    "world_gdp": 3.1708,
+    "mean_stability": 2.39,
     "wars": 0.0,
-    "mean_debt_gdp": 5.2,
+    "mean_debt_gdp": 4.9,
     "defaults": -1.0
   },
   "only_in_fork": [
@@ -35,7 +35,7 @@
     },
     {
       "type": "sovereign_default",
-      "tick": 30,
+      "tick": 21,
       "actor": "JPN"
     },
     {

@@ -20,6 +20,10 @@ nations:
     paranoia: 0.40
     resources: [oil, gas, grain, grain, grain, fab, finance, finance, orbit, orbit, mineral]
     debt_gdp: 122
+    population_growth: 0.005
+    education: 0.85
+    gini: 0.41
+    energy_renew: 0.22
     stockpile_months: {energy: 6.0, food: 6.0, chips: 3.0}
 
   - id: EUR
@@ -37,6 +41,10 @@ nations:
     paranoia: 0.35
     resources: [grain, grain, fab, finance, finance, orbit]
     debt_gdp: 88
+    population_growth: 0.001
+    education: 0.88
+    gini: 0.31
+    energy_renew: 0.24
     stockpile_months: {energy: 3.0, food: 3.5, chips: 3.0}
 
   - id: CHN
@@ -54,6 +62,10 @@ nations:
     paranoia: 0.45
     resources: [oil, grain, fab, mineral, mineral, mineral, mineral, orbit]
     debt_gdp: 83
+    population_growth: -0.001
+    education: 0.72
+    gini: 0.42
+    energy_renew: 0.3
     stockpile_months: {energy: 3.0, food: 3.0, chips: 3.0}
 
   - id: JPN
@@ -71,6 +83,10 @@ nations:
     paranoia: 0.35
     resources: []
     debt_gdp: 252
+    population_growth: -0.004
+    education: 0.9
+    gini: 0.33
+    energy_renew: 0.24
     stockpile_months: {energy: 2.0, food: 2.5, chips: 3.0}
 
   - id: KOR
@@ -88,6 +104,10 @@ nations:
     paranoia: 0.55
     resources: [fab, fab]
     debt_gdp: 48
+    population_growth: 0.001
+    education: 0.9
+    gini: 0.33
+    energy_renew: 0.15
     stockpile_months: {energy: 2.0, food: 2.5, chips: 5.0}
 
   - id: TWN
@@ -105,6 +125,10 @@ nations:
     paranoia: 0.60
     resources: [fab, fab, fab]
     debt_gdp: 31
+    population_growth: -0.002
+    education: 0.88
+    gini: 0.34
+    energy_renew: 0.15
     stockpile_months: {energy: 2.0, food: 2.0, chips: 6.0}
 
   - id: IND
@@ -122,6 +146,10 @@ nations:
     paranoia: 0.35
     resources: [grain]
     debt_gdp: 82
+    population_growth: 0.011
+    education: 0.55
+    gini: 0.36
+    energy_renew: 0.2
     stockpile_months: {energy: 2.0, food: 3.0, chips: 2.0}
 
   - id: RUS
@@ -139,6 +167,10 @@ nations:
     paranoia: 0.55
     resources: [oil, oil, oil, gas, gas, grain, grain, mineral]
     debt_gdp: 21
+    population_growth: -0.003
+    education: 0.75
+    gini: 0.37
+    energy_renew: 0.18
     stockpile_months: {energy: 8.0, food: 4.0, chips: 1.5}
 
   - id: SAU
@@ -156,6 +188,10 @@ nations:
     paranoia: 0.40
     resources: [oil, oil, oil, oil, oil, finance]
     debt_gdp: 26
+    population_growth: 0.015
+    education: 0.62
+    gini: 0.36
+    energy_renew: 0.02
     stockpile_months: {energy: 8.0, food: 2.5, chips: 1.5}
 
   - id: IRN
@@ -173,6 +209,10 @@ nations:
     paranoia: 0.60
     resources: [oil, oil, gas]
     debt_gdp: 44
+    population_growth: 0.008
+    education: 0.65
+    gini: 0.4
+    energy_renew: 0.06
     stockpile_months: {energy: 7.0, food: 2.0, chips: 1.0}
 
   - id: BRA
@@ -190,6 +230,10 @@ nations:
     paranoia: 0.25
     resources: [grain, grain, grain, oil, mineral]
     debt_gdp: 87
+    population_growth: 0.005
+    education: 0.6
+    gini: 0.53
+    energy_renew: 0.45
     stockpile_months: {energy: 4.5, food: 8.0, chips: 1.5}
 
   - id: AUS
@@ -207,6 +251,10 @@ nations:
     paranoia: 0.25
     resources: [gas, gas, grain, grain, mineral, mineral]
     debt_gdp: 49
+    population_growth: 0.01
+    education: 0.86
+    gini: 0.34
+    energy_renew: 0.35
     stockpile_months: {energy: 5.0, food: 8.0, chips: 2.0}
 
   - id: CAN
@@ -224,6 +272,10 @@ nations:
     paranoia: 0.20
     resources: [oil, gas, grain, grain]
     debt_gdp: 107
+    population_growth: 0.008
+    education: 0.87
+    gini: 0.33
+    energy_renew: 0.35
     stockpile_months: {energy: 6.0, food: 8.0, chips: 2.0}
 
   - id: IDN
@@ -241,6 +293,10 @@ nations:
     paranoia: 0.30
     resources: [gas, grain]
     debt_gdp: 39
+    population_growth: 0.008
+    education: 0.58
+    gini: 0.38
+    energy_renew: 0.15
     stockpile_months: {energy: 4.0, food: 4.0, chips: 1.0}
 
   - id: TUR
@@ -258,6 +314,10 @@ nations:
     paranoia: 0.45
     resources: [grain]
     debt_gdp: 71
+    population_growth: 0.007
+    education: 0.66
+    gini: 0.41
+    energy_renew: 0.3
     stockpile_months: {energy: 2.0, food: 2.5, chips: 1.5}
 
   - id: EGY
@@ -275,6 +335,10 @@ nations:
     paranoia: 0.40
     resources: []
     debt_gdp: 93
+    population_growth: 0.016
+    education: 0.52
+    gini: 0.32
+    energy_renew: 0.05
     stockpile_months: {energy: 2.0, food: 2.0, chips: 1.0}
 
 chokepoints:

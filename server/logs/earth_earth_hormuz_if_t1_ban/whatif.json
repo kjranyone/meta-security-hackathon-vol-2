@@ -1,0 +1,36 @@
+{
+  "base_run": "earth_earth_hormuz",
+  "fork_run": "earth_earth_hormuz_if_t1_ban",
+  "fork_tick": 1,
+  "interventions": [
+    {
+      "tick": 1,
+      "type": "ban_tech",
+      "params": {
+        "tech": "fusion"
+      }
+    }
+  ],
+  "first_divergence_tick": 21,
+  "final_metric_deltas": {
+    "world_gdp": 2.1004,
+    "mean_stability": 0.11,
+    "wars": 0.0,
+    "mean_debt_gdp": -0.5,
+    "defaults": 0.0
+  },
+  "only_in_fork": [
+    {
+      "type": "sovereign_default",
+      "tick": 34,
+      "actor": "JPN"
+    }
+  ],
+  "only_in_base": [
+    {
+      "type": "sovereign_default",
+      "tick": 21,
+      "actor": "JPN"
+    }
+  ]
+}
