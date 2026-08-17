@@ -1,4 +1,5 @@
 import { useState } from "react";
+import NationStatus from "./NationStatus";
 import { TECHS, RESOURCES } from "./GodBar";
 
 const SLIDERS = ["trade_efficiency", "food_yield", "energy_yield", "chips_yield",
@@ -86,6 +87,7 @@ export default function GodCards({ sel, meta, tick, intervene }) {
         <span className="tdot" style={{ background: tick?.nations?.[nid]?.color || "#e6edf3" }} />
         {name}
       </div>
+      <NationStatus n={tick?.nations?.[nid]} />
       <div className="cardrow">
         <div className="card"><b>偽情報</b>
           <div className="cardrow">
@@ -150,11 +152,7 @@ export default function GodCards({ sel, meta, tick, intervene }) {
           </div>
         </div>
       </div>
-      {n && (
-        <div className="hint">
-          現況: GDP {n.gdp.toFixed(1)}兆$ / 債務 {n.debt_gdp.toFixed(0)}% / 信用 {n.credibility.toFixed(0)} / 安定 {n.stability.toFixed(0)} / 破綻 {n.defaults}回
-        </div>
-      )}
+
     </>
   );
 }

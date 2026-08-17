@@ -186,7 +186,7 @@ export default function GodApp() {
           )}
           {sideTab === "nations" && (
             <div className="pane" style={{ flex: 1, overflow: "auto" }}>
-              <StatsTable tick={tick} selected={sel.kind === "nation" ? sel.id : null}
+              <StatsTable tick={tick} selected={sel.kind === "nation" ? sel.id : null} showStocks
                           onSelect={nid => setSel(s => (s.kind === "nation" && s.id === nid) ? { kind: null, id: null } : { kind: "nation", id: nid })} />
             </div>
           )}
