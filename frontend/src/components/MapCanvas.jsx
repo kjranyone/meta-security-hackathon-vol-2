@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { renderMap } from "../lib/renderMap";
 import { VIEW, fitView, clampView, zoomAt } from "../lib/projection";
 
@@ -10,6 +10,12 @@ export default function MapCanvas({ tick, geo, meta, selectedNation, selectedCho
   const cvRef = useRef(null);
   const userView = useRef(false);   // ズーム/パン済みならリサイズで自動フィットしない
   const drag = useRef(null);
+  const [zoomPct, setZoomPct] = useState(100);
+
+  function updateZoomPct(cv) {
+    const base = Math.min(cv.width / 366, cv.height / 186);
+    setZoomPct(Math.round((VIEW.scale / base) * 100));
+  }
 
   useEffect(() => {
     const wrap = wrapRef.current, cv = cvRef.current;
@@ -21,6 +27,7 @@ export default function MapCanvas({ tick, geo, meta, selectedNation, selectedCho
       if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
       if (userView.current) clampView(cv);
       else fitView(cv);
+      updateZoomPct(cv);
       draw();
     };
     const ro = new ResizeObserver(fit);
@@ -89,6 +96,7 @@ export default function MapCanvas({ tick, geo, meta, selectedNation, selectedCho
       const [mx, my] = pos(e);
       userView.current = true;
       zoomAt(cv, e.deltaY < 0 ? 1.08 : 1 / 1.08, mx, my);
+      updateZoomPct(cv);
       draw();
     };
     cv.addEventListener("wheel", onWheel, { passive: false });
@@ -101,6 +109,7 @@ export default function MapCanvas({ tick, geo, meta, selectedNation, selectedCho
     if (!cv) return;
     userView.current = true;
     zoomAt(cv, factor);
+    updateZoomPct(cv);
     draw();
   }
 
@@ -125,6 +134,7 @@ export default function MapCanvas({ tick, geo, meta, selectedNation, selectedCho
         <button onClick={() => zoomBtn(1.25)}>+</button>
         <button onClick={() => zoomBtn(1 / 1.25)}>−</button>
         <button className="fit" onClick={fitBtn}>全体</button>
+        <span className="zoompct">{zoomPct}%</span>
       </div>
     </div>
   );

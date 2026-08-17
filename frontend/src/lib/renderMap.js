@@ -12,8 +12,21 @@ const COMMO_CLOSED = "rgba(248,81,73,.65)";
 export function renderMap(ctx, cv, tick, opts) {
   const { geo, meta, selectedNation, selectedChokepoint, showRoutes = true } = opts;
   ctx.clearRect(0, 0, cv.width, cv.height);
-  ctx.fillStyle = "#0e2233";
+  ctx.fillStyle = "#16293d";
   ctx.fillRect(0, 0, cv.width, cv.height);
+  // 経緯線（15°間隔。ズーム時にやや強く）— 海原でも位置感覚を保つ
+  if (geo || meta?.geo) {
+    ctx.strokeStyle = VIEW.scale >= LABEL_SCALE ? "rgba(120,160,200,.14)" : "rgba(120,160,200,.07)";
+    ctx.lineWidth = 1;
+    for (let lon = -180; lon <= 180; lon += 15) {
+      const [x1, y1] = project(lon, 90), [x2, y2] = project(lon, -90);
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    }
+    for (let lat = -75; lat <= 75; lat += 15) {
+      const [x1, y1] = project(-180, lat), [x2, y2] = project(180, lat);
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    }
+  }
   if (!geo || !meta?.geo) return;
 
   const nations = tick.nations;
