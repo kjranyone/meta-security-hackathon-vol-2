@@ -1,15 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 import { renderMap } from "../lib/renderMap";
-import { VIEW, fitView, clampView, zoomAt } from "../lib/projection";
+import { VIEW, fitView, clampVals, unprojectWith } from "../lib/projection";
 
-// 地図canvas。ズーム(+/−/ホイール)・ドラッグパン・クリック選択。
-// 国名ラベルは LABEL_SCALE 以上のズームでのみ表示（renderMap側で判定）。
+const MIN_SCALE = 1.2, MAX_SCALE = 60;
+// ホイール速度: 1ノッチ(deltaY≈±100)あたり約5%の指数カーブ（トラックパッドの連続deltaにも自然対応）
+const WHEEL_K = 0.0005;
+const EASE = 0.22;                    // フレーム毎の補間率（イージング）
+
+// 地図canvas。Google Maps風のスムーズズーム（目標ビューへ補間）・ドラッグパン・クリック選択。
 export default function MapCanvas({ tick, geo, meta, selectedNation, selectedChokepoint,
                                     showRoutes = true, god = false, onMapClick }) {
   const wrapRef = useRef(null);
   const cvRef = useRef(null);
   const userView = useRef(false);   // ズーム/パン済みならリサイズで自動フィットしない
   const drag = useRef(null);
+  const target = useRef(null);      // アニメーション目標 {scale, ox, oy}
+  const raf = useRef(0);
   const [zoomPct, setZoomPct] = useState(100);
 
   function updateZoomPct(cv) {
@@ -25,8 +31,8 @@ export default function MapCanvas({ tick, geo, meta, selectedNation, selectedCho
       const w = Math.max(320, Math.floor(box.width) - 8);
       const h = Math.max(240, Math.floor(box.height) - 8);
       if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
-      if (userView.current) clampView(cv);
-      else fitView(cv);
+      if (!userView.current) fitView(cv);
+      else if (!target.current) { const c = clampVals(cv, VIEW.scale, VIEW.ox, VIEW.oy); VIEW.ox = c.ox; VIEW.oy = c.oy; }
       updateZoomPct(cv);
       draw();
     };
@@ -39,12 +45,52 @@ export default function MapCanvas({ tick, geo, meta, selectedNation, selectedCho
   }, [wrapRef, cvRef, tick != null]);
 
   useEffect(() => { draw(); });
+  useEffect(() => () => cancelAnimationFrame(raf.current), []);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   function draw() {
     const cv = cvRef.current;
     if (!cv || !tick) return;
     renderMap(cv.getContext("2d"), cv, tick,
               { geo, meta, selectedNation, selectedChokepoint, showRoutes });
+  }
+
+  // 目標ビューへイージング補間（連続ホイールで目標を上書き=地図アプリの挙動）
+  function animateTo(cv) {
+    cancelAnimationFrame(raf.current);
+    const step = () => {
+      const t = target.current;
+      if (!t) return;
+      VIEW.scale += (t.scale - VIEW.scale) * EASE;
+      VIEW.ox += (t.ox - VIEW.ox) * EASE;
+      VIEW.oy += (t.oy - VIEW.oy) * EASE;
+      const c = clampVals(cv, VIEW.scale, VIEW.ox, VIEW.oy);
+      VIEW.ox = c.ox; VIEW.oy = c.oy;
+      updateZoomPct(cv);
+      draw();
+      if (Math.abs(t.scale - VIEW.scale) > 0.003 ||
+          Math.abs(t.ox - VIEW.ox) > 0.4 || Math.abs(t.oy - VIEW.oy) > 0.4) {
+        raf.current = requestAnimationFrame(step);
+      } else {
+        VIEW.scale = t.scale; VIEW.ox = t.ox; VIEW.oy = t.oy;
+        const c2 = clampVals(cv, VIEW.scale, VIEW.ox, VIEW.oy);
+        VIEW.ox = c2.ox; VIEW.oy = c2.oy;
+        updateZoomPct(cv);
+        draw();
+        target.current = null;
+      }
+    };
+    raf.current = requestAnimationFrame(step);
+  }
+
+  // 現在の目標（無ければ実ビュー）を基準に、カーソル位置を固定した新しい目標を作る
+  function retarget(cv, factor, mx = cv.width / 2, my = cv.height / 2) {
+    const base = target.current || { scale: VIEW.scale, ox: VIEW.ox, oy: VIEW.oy };
+    const [lon, lat] = unprojectWith(base, mx, my);
+    const scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, base.scale * factor));
+    const c = clampVals(cv, scale, mx - (lon + 180) * scale, my - (90 - lat) * scale);
+    target.current = { scale, ox: c.ox, oy: c.oy };
+    userView.current = true;
+    animateTo(cv);
   }
 
   function pos(ev) {
@@ -72,9 +118,11 @@ export default function MapCanvas({ tick, geo, meta, selectedNation, selectedCho
       cv.classList.add("dragging");
     }
     userView.current = true;
+    target.current = null;             // パン中のズーム目標は破棄
     VIEW.ox = d.base.ox + dx;
     VIEW.oy = d.base.oy + dy;
-    clampView(cv);
+    const c = clampVals(cv, VIEW.scale, VIEW.ox, VIEW.oy);
+    VIEW.ox = c.ox; VIEW.oy = c.oy;
     draw();
   }
 
@@ -87,38 +135,29 @@ export default function MapCanvas({ tick, geo, meta, selectedNation, selectedCho
     onMapClick(mx, my);
   }
 
-  // ホイールズームは passive:false が必要なので手動登録
+  // ホイールズーム（passive:falseでpreventDefault）
   useEffect(() => {
     const cv = cvRef.current;
     if (!cv) return;
     const onWheel = e => {
       e.preventDefault();
       const [mx, my] = pos(e);
-      userView.current = true;
-      zoomAt(cv, e.deltaY < 0 ? 1.08 : 1 / 1.08, mx, my);
-      updateZoomPct(cv);
-      draw();
+      retarget(cv, Math.exp(-e.deltaY * WHEEL_K), mx, my);
     };
     cv.addEventListener("wheel", onWheel, { passive: false });
     return () => cv.removeEventListener("wheel", onWheel);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tick != null]);
 
-  function zoomBtn(factor) {
-    const cv = cvRef.current;
-    if (!cv) return;
-    userView.current = true;
-    zoomAt(cv, factor);
-    updateZoomPct(cv);
-    draw();
-  }
-
   function fitBtn() {
     const cv = cvRef.current;
     if (!cv) return;
+    const base = Math.min(cv.width / 366, cv.height / 186);
+    target.current = { scale: base,
+                       ox: (cv.width - 360 * base) / 2,
+                       oy: (cv.height - 180 * base) / 2 };
     userView.current = false;
-    fitView(cv);
-    draw();
+    animateTo(cv);
   }
 
   if (!tick) return <div ref={wrapRef} className="mapwrap"><div className="drophint">—</div></div>;
@@ -131,8 +170,8 @@ export default function MapCanvas({ tick, geo, meta, selectedNation, selectedCho
                 cvRef.current?.classList.remove("dragging");
               }} />
       <div className="zoomctl">
-        <button onClick={() => zoomBtn(1.25)}>+</button>
-        <button onClick={() => zoomBtn(1 / 1.25)}>−</button>
+        <button onClick={() => retarget(cvRef.current, 1.25)}>+</button>
+        <button onClick={() => retarget(cvRef.current, 1 / 1.25)}>−</button>
         <button className="fit" onClick={fitBtn}>全体</button>
         <span className="zoompct">{zoomPct}%</span>
       </div>
