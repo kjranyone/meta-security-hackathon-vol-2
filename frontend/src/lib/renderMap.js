@@ -70,7 +70,8 @@ export function renderMap(ctx, cv, tick, opts) {
       const [x1, y1] = project(...exp.centroid), [x2, y2] = project(...imp.centroid);
       const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
       const lift = Math.min(60, Math.hypot(x2 - x1, y2 - y1) * 0.18);
-      const sign = my < cv.height / 2 ? -1 : 1;
+      // 湾曲は常に極側へ（中間点の緯度で決定）— パン/ズームで反転しない
+      const sign = (imp.centroid[1] + exp.centroid[1]) / 2 >= 0 ? -1 : 1;
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.quadraticCurveTo(mx, my + lift * sign, x2, y2);

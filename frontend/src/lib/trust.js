@@ -9,6 +9,26 @@ export function trustColor(t) {
   return `hsla(${hue}, ${sat}%, ${light}%, ${Math.min(0.9, 0.25 + Math.abs(d) / 90)})`;
 }
 
+// 未選択時の上位/下位ペアはtickごとに固定 → ズーム/パン中の再計算を避けるためキャッシュ
+let pairCache = { tick: null, top: [], rival: [] };
+function cachedPairs(tick, geoNations) {
+  if (pairCache.tick === tick) return pairCache;
+  const nations = tick.nations;
+  const pos = {};
+  for (const [nid, info] of Object.entries(geoNations))
+    if (nations[nid] && !nations[nid].collapsed) pos[nid] = info.centroid;
+  const pairs = [];
+  for (const a of Object.keys(pos)) {
+    const tr = nations[a].trust || {};
+    for (const b of Object.keys(tr))
+      if (a < b && pos[b])
+        pairs.push({ a, b, mean: (tr[b] + (nations[b].trust?.[a] ?? 20)) / 2 });
+  }
+  pairs.sort((x, y) => y.mean - x.mean);
+  pairCache = { tick, top: pairs.slice(0, 6), rival: pairs.slice(-6).filter(p => p.mean < 20) };
+  return pairCache;
+}
+
 // 描画用エッジリストを計算（renderMap が弧を引く）
 // selected: 国家ID | null。未選択なら主要な友好・対抗関係のみ。
 export function computeTrustEdges(tick, geoNations, selected) {
@@ -25,18 +45,9 @@ export function computeTrustEdges(tick, geoNations, selected) {
         out.push({ a: selected, b: oid, color: trustColor(t), width: 0.8 + Math.abs(t - 20) / 45 });
     return out;
   }
-  const pairs = [];
-  for (const a of Object.keys(pos)) {
-    const tr = nations[a].trust || {};
-    for (const b of Object.keys(tr))
-      if (a < b && pos[b])
-        pairs.push({ a, b, mean: (tr[b] + (nations[b].trust?.[a] ?? 20)) / 2 });
-  }
-  pairs.sort((x, y) => y.mean - x.mean);
-  for (const p of pairs.slice(0, 6))
-    out.push({ ...p, color: trustColor(p.mean), width: 2.2, dash: [7, 5] });
-  for (const p of pairs.slice(-6))
-    if (p.mean < 20) out.push({ ...p, color: trustColor(p.mean), width: 2.2 });
+  const { top, rival } = cachedPairs(tick, geoNations);
+  for (const p of [...top, ...rival])
+    out.push({ ...p, color: trustColor(p.mean), width: 2.2, dash: p.mean >= 20 ? [7, 5] : undefined });
   return out.filter(e => pos[e.a] && pos[e.b]).map(e => ({
     ...e, a: pos[e.a], b: pos[e.b],
   }));
