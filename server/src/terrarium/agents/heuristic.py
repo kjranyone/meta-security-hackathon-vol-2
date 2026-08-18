@@ -16,13 +16,26 @@ class HeuristicPolicy:
     def _doctrines(self, view: NationView) -> dict:
         """戦略因子のheuristic doctrine: 脅威を受けていれば追求、崩壊寸前なら放棄。"""
         out = {}
-        for fid in ("nuclear", "export_control"):
+        allied_nuclear = any(r.get("alliance") and r.get("nuclear")
+                             for r in view.relations.values())
+        at_war_nuclear = any(r.get("war") and r.get("nuclear")
+                             for r in view.relations.values())
+        for fid in ("nuclear", "export_control", "nuclear_umbrella", "currency_bloc"):
             holds = fid in view.me.get("factors", [])
             if holds:
-                out[fid] = "abandon" if view.me.get("stability", 50) < 25 else "hold"
+                if fid == "nuclear_umbrella":
+                    out[fid] = "abandon" if at_war_nuclear else "hold"
+                else:
+                    out[fid] = "abandon" if view.me.get("stability", 50) < 25 else "hold"
             elif fid == "nuclear":
                 threatened = bool(view.me.get("at_war_with")) or view.me.get("stability", 50) < 40
                 out[fid] = "pursue" if threatened else "hold"
+            elif fid == "nuclear_umbrella":
+                out[fid] = "pursue" if allied_nuclear else "hold"
+            elif fid == "currency_bloc":
+                big = view.me.get("gdp", 0.0) > 0.8
+                strained = view.me.get("fx_reserves", 8.0) < 2.0
+                out[fid] = "pursue" if (big or strained) else "hold"
             else:  # export_control: 製裁を受けている・大国・戦時は加盟へ
                 sanctioned = any(r.get("sanction") for r in view.relations.values())
                 big = view.me.get("gdp", 0.0) > 1.0

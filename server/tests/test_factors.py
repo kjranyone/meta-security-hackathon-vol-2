@@ -90,3 +90,33 @@ def test_export_control_collective_sanction():
     assert "IRN" in eng.nations["CHN"].sanctions_on
     evs = [r for r in eng.event_log.records if r.type == "collective_sanction"]
     assert evs and evs[0].targets[0] == "IRN"
+
+
+def test_umbrella_partial_deterrence_and_prereq():
+    eng, _ = _engine()
+    eng.run(1, Scenario())
+    # 前提: 核保有国と同盟が必要
+    assert not eng._factor_prereq_ok("KOR", FACTORS_BY_ID["nuclear_umbrella"])
+    eng.nations["KOR"].alliances.append("USA")
+    assert eng._factor_prereq_ok("KOR", FACTORS_BY_ID["nuclear_umbrella"])
+    eng.nations["KOR"].factors.append("nuclear_umbrella")
+    det = eng._deterrence("IRN", "KOR")
+    assert det is not None and det > FACTORS_BY_ID["nuclear"].deterrence_mutual
+    assert det < FACTORS_BY_ID["nuclear"].deterrence_vs_nonholder
+
+
+def test_currency_bloc_stabilizes_fx():
+    import random as _r
+    eng, _ = _engine()
+    eng.nations["IRN"].inflation = 0.30
+    eng.run(3, Scenario())
+    fx_without = eng.nations["IRN"].fx
+    eng2, _ = _engine()
+    eng2.nations["IRN"].inflation = 0.30
+    eng2.nations["IRN"].factors.append("currency_bloc")
+    eng2.run(3, Scenario())
+    fx_with = eng2.nations["IRN"].fx
+    assert fx_with > fx_without, "bloc member must depreciate less under inflation"
+
+
+from terrarium.world.factors import FACTORS_BY_ID  # noqa: E402

@@ -1073,6 +1073,11 @@ class Engine:
     def _factor_prereq_ok(self, nid: str, spec) -> bool:
         nat = self.nations[nid]
         for key, threshold in spec.prerequisites.items():
+            if key == "allied_with_factor":
+                if not any(o in nat.alliances and threshold in self.nations[o].factors
+                           for o in self.nations):
+                    return False
+                continue
             if getattr(nat, key, 0.0) < threshold:
                 return False
         return True
@@ -1088,6 +1093,10 @@ class Engine:
             return spec.deterrence_mutual
         if b_holds and not a_holds:
             return spec.deterrence_vs_nonholder
+        # 核傘: 保護国の抑止を係数付きで継承する
+        umb = FACTORS_BY_ID.get("nuclear_umbrella")
+        if umb and "nuclear_umbrella" in self.nations[b].factors and not a_holds:
+            return spec.deterrence_vs_nonholder * (1.0 + umb.umbrella_deterrence) / 2.0
         return None
 
     def _macro_update(self) -> None:
@@ -1122,12 +1131,19 @@ class Engine:
             nat.infra = min(1.25, max(0.5, nat.infra + 0.004 * (nat.budget.get("subsidy", 0.25) * 2.2 - 0.7) - (0.006 if at_war_now else 0.0)))
             # --- 為替: インフレ差で調整、債務不履行で暴落（_sovereign_default参照） ---
             world_inf = sum(o.inflation for o in self.nations.values()) / len(self.nations)
-            nat.fx = min(3.0, max(0.3, nat.fx * (1.0 + 0.6 * (world_inf - nat.inflation) / 12.0)))
+            fx_sens = 0.6
+            drain_mult = 1.0
+            for fid in nat.factors:
+                fs = FACTORS_BY_ID.get(fid)
+                if fs:
+                    fx_sens *= fs.fx_stabilize
+                    drain_mult *= fs.reserves_drain_mult
+            nat.fx = min(3.0, max(0.3, nat.fx * (1.0 + fx_sens * (world_inf - nat.inflation) / 12.0)))
             # --- 経常収支と外貨準備 ---
             exp_val = self._ca_exports.get(nid, 0.0)
             imp_val = self._ca_imports.get(nid, 0.0)
             nat.ca_last = exp_val - imp_val
-            nat.fx_reserves = min(36.0, max(0.0, nat.fx_reserves + (exp_val - imp_val) * 0.02))
+            nat.fx_reserves = min(36.0, max(0.0, nat.fx_reserves + (exp_val - imp_val) * 0.02 * drain_mult))
             if nat.fx_reserves < 1.0:
                 # 外貨準備枯渇: 輸入能力が落ち、スタグフレーションと政治的圧力
                 growth -= 0.01

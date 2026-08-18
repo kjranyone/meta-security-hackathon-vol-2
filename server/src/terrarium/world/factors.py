@@ -36,6 +36,10 @@ class FactorSpec(BaseModel):
     abandon_stability_hit: float = 8.0      # 放棄時の国内安定打撃
     abandon_trust_gain: float = 6.0         # 放棄時のレジーム参加国からの信頼回復
     collective_sanction: bool = False       # 加盟国の制裁をレジーム全体へ伝播するか
+    umbrella_of: str = ""                   # この因子が指すケイパビリティ（核傘）
+    umbrella_deterrence: float = 0.5        # 元の抑止に掛ける係数
+    fx_stabilize: float = 1.0               # 為替感応度の係数（<1で安定化）
+    reserves_drain_mult: float = 1.0        # 準備流出の係数
 
 
 CATALOG: list[FactorSpec] = [
@@ -45,6 +49,26 @@ CATALOG: list[FactorSpec] = [
         acquisition_ticks=18,
         prerequisites={"military": 40.0, "stability": 45.0},
         initial_holders=[],            # プリセット側で指定（earth: 実情を反映）
+    ),
+    FactorSpec(
+        id="nuclear_umbrella",
+        name="核傘",
+        acquisition_ticks=2,
+        prerequisites={"allied_with_factor": "nuclear"},   # 特殊前提: 核保有国と同盟
+        umbrella_of="nuclear",
+        umbrella_deterrence=0.5,
+        abandon_stability_hit=2.0,
+        abandon_trust_gain=1.0,
+    ),
+    FactorSpec(
+        id="currency_bloc",
+        name="通貨ブロック",
+        acquisition_ticks=6,
+        prerequisites={"stability": 40.0},
+        fx_stabilize=0.5,          # ブロック内で為替変動が半減
+        reserves_drain_mult=0.7,   # 決済網で準備流出が軽減
+        abandon_stability_hit=3.0,
+        abandon_trust_gain=1.0,
     ),
     FactorSpec(
         id="export_control",

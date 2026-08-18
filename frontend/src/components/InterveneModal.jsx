@@ -68,8 +68,10 @@ const ACTIONS = {
   grant_factor: {
     title: "因子の授与", sub: t => `${t} に既成事実として与える因子`,
     fields: [
-      { k: "factor", label: "因子", type: "select", options: ["nuclear", "export_control"],
-        optionLabel: v => ({ nuclear: "核兵器", export_control: "輸出規制レジーム" }[v]) },
+      { k: "factor", label: "因子", type: "select",
+        options: ["nuclear", "nuclear_umbrella", "export_control", "currency_bloc"],
+        optionLabel: v => ({ nuclear: "核兵器", nuclear_umbrella: "核傘",
+                             export_control: "輸出規制レジーム", currency_bloc: "通貨ブロック" }[v]) },
     ],
     build: (v, ctx) => ({ nation: ctx, factor: v.factor }),
   },
