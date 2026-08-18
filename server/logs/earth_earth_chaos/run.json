@@ -1,0 +1,43 @@
+{
+  "run_name": "earth_earth_chaos",
+  "seed": 42,
+  "ticks": 24,
+  "final_metrics": {
+    "tick": 23,
+    "world_gdp": 148.9547,
+    "mean_stability": 46.93,
+    "wars": 4,
+    "collapsed": 0,
+    "price_energy": 1.0981,
+    "price_food": 1.0,
+    "price_chips": 1.0,
+    "mean_inflation": 0.02312,
+    "mean_debt_gdp": 92.5,
+    "defaults": 0,
+    "mean_unemployment": 8.87,
+    "global_co2": 425.0
+  },
+  "event_counts": {
+    "policy_shift": 384,
+    "god_intervention": 2,
+    "disinfo": 1,
+    "shortage": 231,
+    "factor_acquired": 28,
+    "tech_emergence": 10,
+    "tech_adopted": 83,
+    "war_start": 10,
+    "war_end": 6,
+    "sanction": 6,
+    "collective_sanction": 6
+  },
+  "wars": 4,
+  "config": {
+    "preset": "earth",
+    "gen_seed": null,
+    "gen_nations": 8,
+    "policy": "mock_llm",
+    "rl_nation": null,
+    "rl_weights": null,
+    "scenario": "scenarios/earth_chaos.yaml"
+  }
+}

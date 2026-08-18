@@ -1,0 +1,12 @@
+name: earth_chaos
+description: "好戦性を底上げした混沌世界。緊張が臨界を超え複数の戦争が勃発する（抑止実験の基線）。"
+interventions:
+  - tick: 2
+    type: global_slider
+    params: {param: ai_aggression, value: 1.6}
+  - tick: 2
+    type: disinfo
+    params: {target: SAU, intensity: 2.5}
+  - tick: 2
+    type: set_param
+    params: {nation: IRN, param: aggression, value: 0.9}

@@ -1,0 +1,62 @@
+{
+  "base_run": "earth_earth_chaos",
+  "fork_run": "earth_earth_chaos_if_nuke",
+  "fork_tick": 1,
+  "interventions": [
+    {
+      "tick": 1,
+      "type": "grant_factor",
+      "params": {
+        "nation": "IRN",
+        "factor": "nuclear"
+      }
+    }
+  ],
+  "first_divergence_tick": 6,
+  "final_metric_deltas": {
+    "world_gdp": 5.904,
+    "mean_stability": 2.98,
+    "wars": -4.0,
+    "mean_debt_gdp": -10.5,
+    "defaults": 1.0
+  },
+  "only_in_fork": [
+    {
+      "type": "sovereign_default",
+      "tick": 19,
+      "actor": "JPN"
+    }
+  ],
+  "only_in_base": [
+    {
+      "type": "war_start",
+      "tick": 9,
+      "actor": null
+    },
+    {
+      "type": "war_start",
+      "tick": 10,
+      "actor": null
+    },
+    {
+      "type": "war_start",
+      "tick": 20,
+      "actor": null
+    },
+    {
+      "type": "war_start",
+      "tick": 21,
+      "actor": null
+    },
+    {
+      "type": "war_start",
+      "tick": 22,
+      "actor": null
+    },
+    {
+      "type": "war_start",
+      "tick": 23,
+      "actor": null
+    }
+  ]
+}
