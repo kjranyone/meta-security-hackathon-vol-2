@@ -51,6 +51,7 @@ export default function LegendModal({ onClose }) {
             <div><Ring color="#ffffff" />選択中</div>
             <div><Ring color="#f85149" />戦争中</div>
             <div><Ring color="#ff6b35" />債務不履行</div>
+            <div><span className="glyph glyph-nuke" />核保有</div>
             <div><span className="glyph glyph-dark" />崩壊（領土暗転）</div>
           </div>
           <div className="legsec">

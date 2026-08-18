@@ -1,0 +1,38 @@
+{
+  "run_name": "earth_all_baseline",
+  "seed": 42,
+  "ticks": 24,
+  "final_metrics": {
+    "tick": 23,
+    "world_gdp": 1589.8226,
+    "mean_stability": 46.85,
+    "wars": 0,
+    "collapsed": 0,
+    "price_energy": 1.0799,
+    "price_food": 1.2084,
+    "price_chips": 1.0466,
+    "mean_inflation": -0.00776,
+    "mean_debt_gdp": 89.6,
+    "defaults": 5,
+    "mean_unemployment": 4.52,
+    "global_co2": 2610.7
+  },
+  "event_counts": {
+    "policy_shift": 4224,
+    "sovereign_default": 5,
+    "credibility_hit": 128,
+    "factor_acquired": 115,
+    "tech_emergence": 10,
+    "tech_adopted": 845
+  },
+  "wars": 0,
+  "config": {
+    "preset": "earth_all",
+    "gen_seed": null,
+    "gen_nations": 8,
+    "policy": "mock_llm",
+    "rl_nation": null,
+    "rl_weights": null,
+    "scenario": null
+  }
+}

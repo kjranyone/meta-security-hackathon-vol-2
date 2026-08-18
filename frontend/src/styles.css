@@ -230,3 +230,6 @@ label.sl output { width: 44px; text-align: right; }
 .trustbar i { display: block; height: 100%; border-radius: 4px; }
 .trustrow b { font-variant-numeric: tabular-nums; min-width: 24px; text-align: right; }
 .chip { font-size: 10.5px; border: 1px solid; border-radius: 999px; padding: 0 8px; margin-left: 6px; }
+
+.glyph-nuke { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 8px;
+              vertical-align: middle; background: #ffd75e; border: 1px solid rgba(0,0,0,.5); }

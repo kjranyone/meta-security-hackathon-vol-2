@@ -144,6 +144,11 @@ export function renderMap(ctx, cv, tick, opts) {
       ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI * 2);
       ctx.strokeStyle = "#ff6b35"; ctx.lineWidth = 1.2; ctx.stroke(); ctx.lineWidth = 1;
     }
+    if ((n.factors || []).includes("nuclear")) {
+      ctx.beginPath(); ctx.arc(x, y, 4.5, 0, Math.PI * 2);
+      ctx.fillStyle = "#ffd75e"; ctx.fill();                 // 核保有 = 金の点
+      ctx.strokeStyle = "rgba(0,0,0,.5)"; ctx.stroke();
+    }
   }
 }
 

@@ -1,0 +1,6 @@
+name: earth_all_hormuz
+description: "全世界176カ国AIの下でのホルムズ海峡封鎖。全国家シミュレーターとしての規模検証。"
+interventions:
+  - tick: 6
+    type: close_chokepoint
+    params: {chokepoint: "Strait of Hormuz", duration: 18}
