@@ -32,6 +32,7 @@ GOD_CARD_TYPES = {
     "disaster",           # {nation: str, kind: drought|earthquake|epidemic}
     "disinfo",            # {target: str, origin: str|None, intensity: float}
     "set_param",          # {nation: str, param: aggression|paranoia, value: float}
+    "grant_factor",       # {nation: str, factor: str}  神が因子を既成事実化する
     "global_slider",      # {param: trade_efficiency|food_yield|..., value: float}
 }
 

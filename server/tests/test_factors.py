@@ -67,3 +67,26 @@ def test_determinism_with_factors():
     b, _ = _engine()
     b.run(10, Scenario())
     assert a.series[-1] == b.series[-1]
+
+
+def test_god_grant_factor_creates_fact():
+    eng, _ = _engine()
+    from terrarium.sim.interventions import Intervention
+    eng.tick_no = 1
+    eng.apply_intervention(Intervention(tick=1, type="grant_factor",
+                                        params={"nation": "IRN", "factor": "nuclear"}))
+    assert "nuclear" in eng.nations["IRN"].factors
+    evs = [r for r in eng.event_log.records if r.type == "god_intervention" and r.data.get("factor") == "nuclear"]
+    assert evs
+
+
+def test_export_control_collective_sanction():
+    eng, _ = _engine()
+    # USA/CHNを加盟させ、USAがIRNを制裁 → CHNにも伝播する
+    eng.nations["USA"].factors.append("export_control")
+    eng.nations["CHN"].factors.append("export_control")
+    eng.nations["USA"].sanctions_on.append("IRN")
+    eng.run(2, Scenario())
+    assert "IRN" in eng.nations["CHN"].sanctions_on
+    evs = [r for r in eng.event_log.records if r.type == "collective_sanction"]
+    assert evs and evs[0].targets[0] == "IRN"

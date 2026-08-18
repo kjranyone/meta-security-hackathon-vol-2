@@ -35,6 +35,7 @@ class FactorSpec(BaseModel):
     pursuit_cost_gdp: float = 0.002         # 追求中の毎tickの経済コスト
     abandon_stability_hit: float = 8.0      # 放棄時の国内安定打撃
     abandon_trust_gain: float = 6.0         # 放棄時のレジーム参加国からの信頼回復
+    collective_sanction: bool = False       # 加盟国の制裁をレジーム全体へ伝播するか
 
 
 CATALOG: list[FactorSpec] = [
@@ -44,6 +45,16 @@ CATALOG: list[FactorSpec] = [
         acquisition_ticks=18,
         prerequisites={"military": 40.0, "stability": 45.0},
         initial_holders=[],            # プリセット側で指定（earth: 実情を反映）
+    ),
+    FactorSpec(
+        id="export_control",
+        name="輸出規制レジーム",
+        acquisition_ticks=4,            # 加盟は早い（制度的参加）
+        prerequisites={"stability": 40.0},
+        initial_holders=[],
+        collective_sanction=True,       # 加盟国の制裁は全加盟国へ伝播
+        abandon_stability_hit=2.0,
+        abandon_trust_gain=2.0,
     ),
 ]
 

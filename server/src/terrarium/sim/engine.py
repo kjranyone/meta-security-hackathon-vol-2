@@ -336,6 +336,20 @@ class Engine:
                 self.tick_no, "god_intervention", f"神が世界パラメータ {p['param']} を {p['value']} にした",
                 actor="GOD", data=p,
             )
+        elif iv.type == "grant_factor":
+            nid = self._nation_by_ref(p["nation"])
+            fid = p.get("factor", "nuclear")
+            if nid is None or fid not in FACTORS_BY_ID:
+                return
+            fspec = FACTORS_BY_ID[fid]
+            if fid not in self.nations[nid].factors:
+                self.nations[nid].factors.append(fid)
+                self.nations[nid].factor_progress.pop(fid, None)
+                self.event_log.emit(
+                    self.tick_no, "god_intervention",
+                    f"神が {self.nations[nid].name} に {fspec.name} を授けた（既成事実化）",
+                    actor="GOD", targets=[nid], data={"nation": nid, "factor": fid},
+                )
 
     # -------------------------------------------------------------- one tick
     def step(self) -> None:
@@ -1034,6 +1048,27 @@ class Engine:
                     # 追求を止めると進捗は徐々に減る（遊離ガス）
                     if nat.factor_progress.get(fid, 0.0) > 0:
                         nat.factor_progress[fid] = max(0.0, nat.factor_progress[fid] - 100.0 / (spec.acquisition_ticks * 2))
+                # 集団制裁レジーム: 加盟国の制裁対象をレジーム全体へ伝播
+                if spec.collective_sanction and fid in nat.factors and nat.sanctions_on:
+                    members = [o for o, on in sorted(self.nations.items())
+                               if o != nid and fid in on.factors]
+                    for target in list(nat.sanctions_on):
+                        joined = [o for o in members if target not in self.nations[o].sanctions_on]
+                        for o in joined:
+                            self.nations[o].sanctions_on.append(target)
+                        if joined:
+                            self.event_log.emit(
+                                t, "collective_sanction",
+                                f"{self._fspec_name(fid)}: {self.nations[nid].name} の制裁に {len(joined)} 加盟国が同調（対象 {self.nations.get(target).name if target in self.nations else target}）",
+                                actor=nid, targets=[target, *joined],
+                                parents=[r.id for r in self.event_log.records[-6:] if r.type == "sanction" and r.actor == nid][-1:],
+                                data={"factor": fid, "target": target, "joined": joined},
+                            )
+
+    @staticmethod
+    def _fspec_name(fid: str) -> str:
+        fs = FACTORS_BY_ID.get(fid)
+        return fs.name if fs else fid
 
     def _factor_prereq_ok(self, nid: str, spec) -> bool:
         nat = self.nations[nid]

@@ -67,6 +67,8 @@ export default function NationDetail({ n, meta, onSelect }) {
           <Row k="再生エネルギー" v={`${Math.round((n.renew_eff ?? 0) * 100)}%`} />
           <Row k="核" v={(n.factors || []).includes("nuclear") ? "保有"
             : (n.factor_progress || {}).nuclear ? `追求中 ${(n.factor_progress.nuclear).toFixed(0)}%` : "—"} />
+          <Row k="輸出規制" v={(n.factors || []).includes("export_control") ? "加盟"
+            : (n.factor_progress || {}).export_control ? "加盟交渉中" : "—"} />
         </div>
       </div>
 

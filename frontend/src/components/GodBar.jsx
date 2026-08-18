@@ -18,6 +18,7 @@ export default function GodBar({ sel, meta, intervene, onModal }) {
     { label: "資源の消滅", modal: "destroy_resource" },
     { label: "技術の授与", modal: "grant_tech" },
     { label: "性格の書き換え", modal: "set_params" },
+    { label: "因子の授与", modal: "grant_factor" },
   ];
   const CP_BTNS = [
     { label: "封鎖", modal: "close_chokepoint" },

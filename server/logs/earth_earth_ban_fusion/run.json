@@ -4,28 +4,29 @@
   "ticks": 36,
   "final_metrics": {
     "tick": 35,
-    "world_gdp": 154.0728,
-    "mean_stability": 47.87,
+    "world_gdp": 153.7117,
+    "mean_stability": 48.34,
     "wars": 0,
     "collapsed": 0,
-    "price_energy": 1.3385,
+    "price_energy": 1.3882,
     "price_food": 1.0,
     "price_chips": 1.0819,
-    "mean_inflation": 0.02864,
-    "mean_debt_gdp": 82.6,
-    "defaults": 2,
-    "mean_unemployment": 7.87,
-    "global_co2": 632.6
+    "mean_inflation": 0.02523,
+    "mean_debt_gdp": 88.5,
+    "defaults": 1,
+    "mean_unemployment": 7.74,
+    "global_co2": 630.7
   },
   "event_counts": {
     "policy_shift": 576,
     "shortage": 403,
     "god_intervention": 2,
+    "factor_acquired": 14,
     "tech_emergence": 13,
-    "tech_adopted": 133,
+    "tech_adopted": 134,
     "trade_throttled": 180,
-    "sovereign_default": 2,
-    "credibility_hit": 6
+    "sovereign_default": 1,
+    "credibility_hit": 3
   },
   "wars": 0,
   "config": {

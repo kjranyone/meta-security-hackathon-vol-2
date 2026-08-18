@@ -16,13 +16,18 @@ class HeuristicPolicy:
     def _doctrines(self, view: NationView) -> dict:
         """戦略因子のheuristic doctrine: 脅威を受けていれば追求、崩壊寸前なら放棄。"""
         out = {}
-        for fid in ("nuclear",):
+        for fid in ("nuclear", "export_control"):
             holds = fid in view.me.get("factors", [])
             if holds:
                 out[fid] = "abandon" if view.me.get("stability", 50) < 25 else "hold"
-            else:
+            elif fid == "nuclear":
                 threatened = bool(view.me.get("at_war_with")) or view.me.get("stability", 50) < 40
                 out[fid] = "pursue" if threatened else "hold"
+            else:  # export_control: 製裁を受けている・大国・戦時は加盟へ
+                sanctioned = any(r.get("sanction") for r in view.relations.values())
+                big = view.me.get("gdp", 0.0) > 1.0
+                war = bool(view.me.get("at_war_with"))
+                out[fid] = "pursue" if (sanctioned or big or war) else "hold"
         return out
 
     def decide(self, view: NationView) -> Decisions:
