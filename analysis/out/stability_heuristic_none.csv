@@ -1,0 +1,11 @@
+policy,deterrence,seed,ticks,wars_started,first_war_tick,wars_with_nuclear_side,defaults,gdp_delta_pct,mean_unemployment
+heuristic,none,0,24,28,4,0,1,62.75,9.76
+heuristic,none,1,24,27,2,0,1,63.17,8.34
+heuristic,none,2,24,12,4,0,1,68.94,8.45
+heuristic,none,3,24,23,2,0,1,61.89,9.05
+heuristic,none,4,24,21,4,0,1,63.57,9.19
+heuristic,none,5,24,32,2,0,1,60.09,9.59
+heuristic,none,6,24,25,2,0,1,61.27,9.25
+heuristic,none,7,24,23,2,0,0,67.53,8.69
+heuristic,none,8,24,16,3,0,0,68.11,7.9
+heuristic,none,9,24,27,3,0,0,60.25,8.74

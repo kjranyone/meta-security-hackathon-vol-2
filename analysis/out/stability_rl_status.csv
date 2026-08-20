@@ -1,0 +1,11 @@
+policy,deterrence,seed,ticks,wars_started,first_war_tick,wars_with_nuclear_side,defaults,gdp_delta_pct,mean_unemployment
+rl,status,0,24,7,8,0,1,72.88,8.42
+rl,status,1,24,12,8,0,0,73.95,9.16
+rl,status,2,24,9,2,0,1,72.0,8.25
+rl,status,3,24,9,3,0,1,73.98,8.22
+rl,status,4,24,6,8,0,0,74.06,8.01
+rl,status,5,24,8,3,0,1,73.52,7.94
+rl,status,6,24,9,3,0,1,73.08,8.82
+rl,status,7,24,9,2,0,1,73.94,8.2
+rl,status,8,24,7,2,0,1,74.32,7.98
+rl,status,9,24,10,2,0,1,75.07,8.45
