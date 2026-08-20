@@ -45,6 +45,8 @@ class Session:
         self.task: Optional[asyncio.Task] = None
         self.scenario_schedule: list[Intervention] = []
         self.t: int = 0
+        self.apocalypse = False
+        self._destructor = None
 
     # ------------------------------------------------------------- lifecycle
     def build(self, preset: str = "earth", policy: str = "heuristic", seed: int = 42,
@@ -56,7 +58,7 @@ class Session:
         else:
             spec = load_preset(preset)
         if policy == "rl" and not rl_nation:
-            # 学習AI: 学習済み重み（selfplay_*_<NATION>.npz）を自動適用
+            # 学習AI: 個別学習済み国 + 汎用ポリシー(generalist)で全国家を賄う
             import glob
             import re as _re
             models_dir = Path(__file__).resolve().parents[3] / "models"
@@ -66,8 +68,12 @@ class Session:
                 nid = m.group(1) if m else None
                 if nid:
                     found[nid] = f
+            gen = models_dir / "generalist.npz"
             in_world = {ns.id for ns in spec.nations}
             found = {k: v for k, v in found.items() if k in in_world}
+            if gen.exists():
+                for nid in sorted(in_world - set(found)):
+                    found[nid] = str(gen)
             if found:
                 rl_nation = ",".join(found)
                 rl_weights = ",".join(found.values())
@@ -104,7 +110,27 @@ class Session:
 
     def status(self) -> dict:
         return {"running": self.running, "speed_ms": self.speed_ms,
-                "tick": self.t, "max_ticks": self.max_ticks}
+                "tick": self.t, "max_ticks": self.max_ticks,
+                "apocalypse": self.apocalypse}
+
+    def destructor_step(self) -> None:
+        """終末モード: 訓練済み破壊AIが神カードを選んで打つ（broadcastはloop側で）。"""
+        if not self.apocalypse or self.engine is None:
+            return
+        if self._destructor is None:
+            from ..rl.destructor import DestructorNet
+            weights = Path(__file__).resolve().parents[3] / "models" / "destructor.npz"
+            if not weights.exists():
+                return
+            self._destructor = DestructorNet.load(weights)
+        from ..rl.destructor import card_to_intervention, obs_of
+        eng = self.engine
+        act = self._destructor.act(obs_of(eng), deterministic=True)
+        iv = card_to_intervention(eng, act["card"])
+        if iv:
+            eng.apply_intervention(iv)
+            self._last_apocalypse_event = eng.event_log.records[-1] if eng.event_log.records else None
+
 
     async def broadcast(self, message: dict) -> None:
         dead = []
@@ -126,6 +152,11 @@ class Session:
                 due = [iv for iv in self.scenario_schedule if iv.tick == self.t]
                 for iv in due:
                     eng.apply_intervention(iv)
+                if self.apocalypse:
+                    self.destructor_step()
+                    ev = getattr(self, "_last_apocalypse_event", None)
+                    if ev:
+                        await self.broadcast({"type": "god", "event": ev.model_dump()})
                 eng.tick_no = self.t
                 if self.t >= self.max_ticks:
                     self.running = False
@@ -178,6 +209,13 @@ async def reset(payload: dict) -> dict:
         )
         session.running = bool(payload.get("autoplay", True))
     await session.broadcast(session.meta())
+    return session.status()
+
+
+@app.post("/api/apocalypse")
+async def apocalypse(payload: dict) -> dict:
+    session.apocalypse = bool(payload.get("on", False))
+    await session.broadcast({"type": "status", **session.status()})
     return session.status()
 
 

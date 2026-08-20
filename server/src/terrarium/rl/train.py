@@ -18,6 +18,7 @@ from pathlib import Path
 
 import numpy as np
 
+from ..world.presets import load_preset
 from .env import OBS_DIM, NationEnv
 from .nets import PolicyNet
 
@@ -90,6 +91,50 @@ def evaluate(env: NationEnv, net: PolicyNet, seeds: list[int], horizon: int) -> 
         rewards.append(run_episode(env, net, train=False))
     env._ep = saved_ep
     return float(np.mean(rewards))
+
+
+def _train_generalist(args, train_scenario) -> int:
+    """全国家を学習者として巡回しつつ重みを共有する汎用戦術AI。
+    どの国に載せても動く単一ポリシー（LLM無しで全国家AIをRL化）。"""
+    from .env import NationEnv
+
+    out = Path(args.out) if args.out else SERVER_ROOT / "models" / "generalist.npz"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    spec = load_preset(args.preset)
+    nids = sorted(ns.id for ns in spec.nations)
+    envs = {nid: NationEnv(args.preset, nid, seed=args.seed,
+                           horizon=args.horizon, scenario=train_scenario)
+            for nid in nids}
+    net = PolicyNet(obs_dim=OBS_DIM, seed=args.seed)
+    eval_seeds = [101, 202, 303]
+    t0 = time.time()
+
+    def evaluate() -> float:
+        vals = []
+        saved = {nid: env._ep for env in envs.values() for nid in [None]}
+        for s in eval_seeds:
+            for nid in nids[:: max(1, len(nids) // 6)]:   # 代表6カ国
+                env = envs[nid]
+                env.seed, env.horizon = s, args.horizon
+                vals.append(run_episode(env, net, train=False))
+        return float(np.mean(vals))
+
+    base = evaluate()
+    print(f"[gen] episode 0 eval={base:.2f}")
+    for ep in range(1, args.episodes + 1):
+        nid = nids[(ep - 1) % len(nids)]
+        env = envs[nid]
+        env.seed = args.seed * 1000 + ((ep // len(nids)) % 8) + 1
+        run_episode(env, net, train=True, lr=args.lr, entropy_coef=args.entropy)
+        if ep % args.eval_every == 0:
+            print(f"[gen] episode {ep} eval={evaluate():.2f} elapsed={time.time()-t0:.0f}s")
+    net.save(out)
+    final = evaluate()
+    (out.with_suffix(".curve.json")).write_text(json.dumps(
+        [{"episode": 0, "eval_reward": round(base, 3)},
+         {"episode": args.episodes, "eval_reward": round(final, 3)}], indent=1), encoding="utf-8")
+    print(f"[gen] saved {out} | eval {base:.2f} -> {final:.2f} ({final-base:+.2f})")
+    return 0
 
 
 def _train_selfplay(args, nation_ids: list[str], train_scenario) -> int:
@@ -177,6 +222,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if selfplay:
         return _train_selfplay(args, nation_ids, train_scenario)
+    if args.nation == "ALL":
+        return _train_generalist(args, train_scenario)
 
     out = Path(args.out) if args.out else SERVER_ROOT / "models" / f"rl_{args.nation}.npz"
     out.parent.mkdir(parents=True, exist_ok=True)

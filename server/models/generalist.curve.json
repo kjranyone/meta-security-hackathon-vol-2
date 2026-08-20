@@ -1,0 +1,10 @@
+[
+ {
+  "episode": 0,
+  "eval_reward": -59.866
+ },
+ {
+  "episode": 960,
+  "eval_reward": -50.457
+ }
+]
