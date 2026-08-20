@@ -151,7 +151,18 @@ export default function GodApp() {
         <button className="helpbtn" onClick={() => setLegendOpen(true)}>?</button>
       </header>
 
-      {legendOpen && <LegendModal onClose={() => setLegendOpen(false)} />}
+
+
+      <div className="main">
+        <Toasts toasts={toasts} />
+        <MapCanvas tick={tick} geo={geo} meta={meta} god
+                   selectedNation={sel.kind === "nation" ? sel.id : null}
+                   selectedChokepoint={sel.kind === "cp" ? sel.id : null}
+                   onMapClick={onMapClick}>
+      <CreateWorldDialog open={createOpen} preset={preset} policy={policy} seed={seed}
+                         rlNation={rlNation} onPreset={setPreset} onPolicy={setPolicy}
+                         onSeed={setSeed} onRlNation={setRlNation}
+                         onCreate={resetWorld} onClose={() => setCreateOpen(false)} />
       <InterveneModal action={ivModal}
                       target={sel.kind === "nation" ? (meta?.geo?.nations?.[sel.id]?.name || sel.id)
                                 : sel.kind === "cp" ? sel.id : undefined}
@@ -162,22 +173,12 @@ export default function GodApp() {
                   } else intervene(type, params);
                 }}
                       onClose={() => setIvModal(null)} />
+      {legendOpen && <LegendModal onClose={() => setLegendOpen(false)} />}
       {statusOpen && (
         <StatusModal onClose={() => setStatusOpen(false)} conn={conn} status={status}
                      tick={tick} meta={meta} preset={preset} policy={policy} seed={seed} />
       )}
-
-      <CreateWorldDialog open={createOpen} preset={preset} policy={policy} seed={seed}
-                         rlNation={rlNation} onPreset={setPreset} onPolicy={setPolicy}
-                         onSeed={setSeed} onRlNation={setRlNation}
-                         onCreate={resetWorld} onClose={() => setCreateOpen(false)} />
-
-      <div className="main">
-        <Toasts toasts={toasts} />
-        <MapCanvas tick={tick} geo={geo} meta={meta} god
-                   selectedNation={sel.kind === "nation" ? sel.id : null}
-                   selectedChokepoint={sel.kind === "cp" ? sel.id : null}
-                   onMapClick={onMapClick} />
+        </MapCanvas>
         <GodBar sel={sel} meta={meta} intervene={intervene} onModal={setIvModal} />
 
         <VSplit

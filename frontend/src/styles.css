@@ -183,10 +183,10 @@ label.sl output { width: 44px; text-align: right; }
 
 
 /* ---------------- modal dialogs ---------------- */
-.modal-back { position: fixed; inset: 0; background: rgba(4,8,14,.72); z-index: var(--z-modal);
+.modal-back { position: absolute; inset: 0; background: rgba(4,8,14,.72); z-index: var(--z-modal);
               display: flex; align-items: center; justify-content: center; }
 .modal { background: var(--panel); border: 1px solid var(--god); border-radius: 14px;
-         width: min(620px, 92vw); max-height: 86vh; overflow: auto; padding: 22px 26px;
+         width: min(560px, 92%); max-height: 84%; overflow: auto; padding: 22px 26px;
          box-shadow: 0 20px 60px rgba(0,0,0,.6); }
 .modal h2 { font-size: 19px; margin-bottom: 8px; color: var(--text); }
 .modalfield { display: block; font-size: 12px; color: var(--dim); margin: 10px 0 2px; }
@@ -199,7 +199,7 @@ label.sl output { width: 44px; text-align: right; }
   border-radius: 8px; padding: 8px 18px; cursor: pointer; font-size: 14px; }
 .modalbtns button.go { border-color: var(--god); color: var(--god); font-weight: 600; }
 .modalbtns button.go:hover { background: rgba(163,113,247,.15); }
-.ifpanel { position: fixed; top: 60px; right: 16px; width: 380px; max-height: 80vh; overflow: auto;
+.ifpanel { position: absolute; top: 10px; right: 10px; width: min(380px, 60%); max-height: calc(100% - 96px); overflow: auto;
            background: var(--panel); border: 1px solid var(--accent); border-radius: 10px;
            padding: 14px 16px; z-index: var(--z-ifpanel); font-size: 13px; box-shadow: 0 8px 30px rgba(0,0,0,.5); }
 .ifpanel h3 { margin: 0 0 8px; font-size: 13px; }

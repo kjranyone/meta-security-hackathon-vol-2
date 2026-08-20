@@ -141,14 +141,24 @@ export default function ViewerApp() {
         <button className="helpbtn" onClick={() => setLegendOpen(true)}>?</button>
       </header>
 
-      {legendOpen && <LegendModal onClose={() => setLegendOpen(false)} />}
 
       <div className="main">
         <Toasts toasts={toasts} />
         {tick ? (
           <>
             <MapCanvas tick={tick} geo={geo} meta={meta}
-                       selectedNation={selected} showRoutes={showRoutes} />
+                       selectedNation={selected} showRoutes={showRoutes}>
+      {legendOpen && <LegendModal onClose={() => setLegendOpen(false)} />}
+
+      <IfPanel
+        open={ifOpen}
+        onClose={() => setIfOpen(false)}
+        baseDefault={baseName}
+        tickDefault={tick?.tick ?? 0}
+        meta={meta}
+        onLoadReplay={url => loadUrl(url)}
+      />
+            </MapCanvas>
           </>
         ) : (
           <div className="mapwrap">
@@ -198,14 +208,7 @@ export default function ViewerApp() {
         flashCount={flash} clockFrac={clockFrac}
       />
 
-      <IfPanel
-        open={ifOpen}
-        onClose={() => setIfOpen(false)}
-        baseDefault={baseName}
-        tickDefault={tick?.tick ?? 0}
-        meta={meta}
-        onLoadReplay={url => loadUrl(url)}
-      />
+
     </div>
   );
 }

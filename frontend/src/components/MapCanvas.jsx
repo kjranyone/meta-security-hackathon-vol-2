@@ -9,7 +9,7 @@ const EASE = 0.22;                    // フレーム毎の補間率（イージ
 
 // 地図canvas。Google Maps風のスムーズズーム（目標ビューへ補間）・ドラッグパン・クリック選択。
 export default function MapCanvas({ tick, geo, meta, selectedNation, selectedChokepoint,
-                                    showRoutes = true, god = false, onMapClick }) {
+                                    showRoutes = true, god = false, onMapClick, children }) {
   const wrapRef = useRef(null);
   const cvRef = useRef(null);
   const userView = useRef(false);   // ズーム/パン済みならリサイズで自動フィットしない
@@ -175,6 +175,7 @@ export default function MapCanvas({ tick, geo, meta, selectedNation, selectedCho
         <button className="fit" onClick={fitBtn}>全体</button>
         <span className="zoompct">{zoomPct}%</span>
       </div>
+      {children}
     </div>
   );
 }
