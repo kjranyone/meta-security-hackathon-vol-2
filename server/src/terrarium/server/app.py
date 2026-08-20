@@ -48,7 +48,7 @@ class Session:
 
 
     # ------------------------------------------------------------- lifecycle
-    def build(self, preset: str = "earth", policy: str = "heuristic", seed: int = 42,
+    def build(self, preset: str = "earth_all", policy: str = "heuristic", seed: int = 42,
               ticks: int = 60, gen_seed: Optional[int] = None,
               rl_nation: Optional[str] = None, rl_weights: Optional[str] = None,
               scenario: Optional[str] = None) -> None:

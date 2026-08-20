@@ -20,7 +20,6 @@ export default function CreateWorldDialog({ open, preset, policy, seed, rlNation
         <h2>世界を創る</h2>
         <label className="modalfield">世界
           <select value={preset} onChange={e => onPreset(e.target.value)}>
-            <option value="earth">earth — 実世界16国</option>
             <option value="earth_all">earth_all — 全世界176カ国</option>
             <option value="default">default — 架空8国</option>
             <option value="gen">gen — 自動生成 seed=7</option>
