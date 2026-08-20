@@ -47,7 +47,7 @@ class Session:
         self.t: int = 0
 
     # ------------------------------------------------------------- lifecycle
-    def build(self, preset: str = "earth", policy: str = "mock_llm", seed: int = 42,
+    def build(self, preset: str = "earth", policy: str = "heuristic", seed: int = 42,
               ticks: int = 60, gen_seed: Optional[int] = None,
               rl_nation: Optional[str] = None, rl_weights: Optional[str] = None,
               scenario: Optional[str] = None) -> None:
@@ -55,6 +55,22 @@ class Session:
             spec = generate_world(GenParams(seed=gen_seed))
         else:
             spec = load_preset(preset)
+        if policy == "rl" and not rl_nation:
+            # 学習AI: 学習済み重み（selfplay_*_<NATION>.npz）を自動適用
+            import glob
+            import re as _re
+            models_dir = Path(__file__).resolve().parents[3] / "models"
+            found: dict[str, str] = {}
+            for f in sorted(glob.glob(str(models_dir / "selfplay_*_*.npz"))):
+                m = _re.search(r"selfplay_[A-Za-z0-9]+_([A-Z]{2,4})\.npz$", f)
+                nid = m.group(1) if m else None
+                if nid:
+                    found[nid] = f
+            in_world = {ns.id for ns in spec.nations}
+            found = {k: v for k, v in found.items() if k in in_world}
+            if found:
+                rl_nation = ",".join(found)
+                rl_weights = ",".join(found.values())
         factory = make_policy_factory(policy, seed=seed, rl_nation=rl_nation, rl_weights=rl_weights)
         policies = {ns.id: factory(ns) for ns in spec.nations}
         self.engine = Engine(spec, policies, seed=seed, out_dir=None)

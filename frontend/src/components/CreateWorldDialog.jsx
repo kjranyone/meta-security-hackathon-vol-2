@@ -33,17 +33,9 @@ export default function CreateWorldDialog({ open, preset, policy, seed, rlNation
             ))}
           </select>
         </label>
-        <div className="modalrow">
-          <label className="modalfield" style={{ flex: 1 }}>seed
-            <input type="number" value={seed} onChange={e => onSeed(e.target.value)} />
-          </label>
-          {policy === "rl" && (
-            <label className="modalfield" style={{ flex: 1 }}>学習AIを載せる国
-              <input type="text" value={rlNation} onChange={e => onRlNation(e.target.value)}
-                     placeholder="JPN,EGY" />
-            </label>
-          )}
-        </div>
+        <label className="modalfield">seed
+          <input type="number" value={seed} onChange={e => onSeed(e.target.value)} />
+        </label>
         <div className="modalbtns">
           <button onClick={onClose}>やめる</button>
           <button className="go" onClick={() => { onCreate(); onClose(); }}>創造</button>

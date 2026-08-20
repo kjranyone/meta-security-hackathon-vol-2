@@ -34,7 +34,7 @@ export default function GodApp() {
   const eventLog = useMemo(() => ticks.flatMap(t => t.events || []).slice(-300), [ticks]);
   const openTab = t => { setSideTab(t); if (t === "event") setUnread(0); };
   const [preset, setPreset] = useState("earth");
-  const [policy, setPolicy] = useState("mock_llm");
+  const [policy, setPolicy] = useState("heuristic");
   const [seed, setSeed] = useState(42);
   const [rlNation, setRlNation] = useState("");
   const [conn, setConn] = useState(false);
@@ -121,7 +121,6 @@ export default function GodApp() {
       seed: +seed || 42, ticks: 60,
     };
     if (preset === "gen") body.gen_seed = 7;
-    if (rlNation.trim()) body.rl_nation = rlNation.trim();
     await fetch("/api/reset", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
