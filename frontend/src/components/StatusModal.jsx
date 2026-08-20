@@ -1,4 +1,5 @@
 import { simDate } from "../lib/calendar";
+import { policyLabel } from "../lib/policies";
 
 // 現在のセッション状態モーダル（タイトル/接続チップから開く。純粋な状態値のみ）
 export default function StatusModal({ onClose, conn, status, tick, meta,
@@ -9,7 +10,7 @@ export default function StatusModal({ onClose, conn, status, tick, meta,
     ["サーバ", `ws://${location.host}/ws`],
     ["世界", preset === "gen" ? "gen（自動生成 seed=7）" : preset],
     ["seed", seed],
-    ["国家AI", policy],
+    ["国家AI", policyLabel(policy)],
     ["進行", `tick ${status.tick} / ${status.max_ticks} ${status.running ? "▶" : "⏸"}`],
     ["暦", tick ? simDate(tick.tick) : "—"],
     ["主体", nations ?? meta?.geo?.nations ? `${Object.keys(meta?.geo?.nations || {}).length}カ国` : "—"],

@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { POLICY_LABELS } from "../lib/policies";
 // 「世界を創る」ダイアログ（新規ゲーム画面風・説明文なし）
 export default function CreateWorldDialog({ open, preset, policy, seed, rlNation,
                                             onPreset, onPolicy, onSeed, onRlNation,
@@ -25,12 +26,11 @@ export default function CreateWorldDialog({ open, preset, policy, seed, rlNation
             <option value="gen">gen — 自動生成 seed=7</option>
           </select>
         </label>
-        <label className="modalfield">国家AI
+        <label className="modalfield">国家AIの頭脳
           <select value={policy} onChange={e => onPolicy(e.target.value)}>
-            <option value="mock_llm">mock_llm — オフライン</option>
-            <option value="heuristic">heuristic</option>
-            <option value="llm">llm — z.ai GLM</option>
-            <option value="rl">rl — 強化学習</option>
+            {Object.entries(POLICY_LABELS).map(([v, label]) => (
+              <option key={v} value={v}>{label}</option>
+            ))}
           </select>
         </label>
         <div className="modalrow">
@@ -38,7 +38,7 @@ export default function CreateWorldDialog({ open, preset, policy, seed, rlNation
             <input type="number" value={seed} onChange={e => onSeed(e.target.value)} />
           </label>
           {policy === "rl" && (
-            <label className="modalfield" style={{ flex: 1 }}>RL国
+            <label className="modalfield" style={{ flex: 1 }}>学習AIを載せる国
               <input type="text" value={rlNation} onChange={e => onRlNation(e.target.value)}
                      placeholder="JPN,EGY" />
             </label>
