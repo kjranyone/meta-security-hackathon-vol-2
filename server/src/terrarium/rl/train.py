@@ -119,7 +119,9 @@ def _train_generalist(args, train_scenario) -> int:
                 vals.append(run_episode(env, net, train=False))
         return float(np.mean(vals))
 
+    curve = []
     base = evaluate()
+    curve.append({"episode": 0, "eval_reward": round(base, 3)})
     print(f"[gen] episode 0 eval={base:.2f}")
     for ep in range(1, args.episodes + 1):
         nid = nids[(ep - 1) % len(nids)]
@@ -127,12 +129,13 @@ def _train_generalist(args, train_scenario) -> int:
         env.seed = args.seed * 1000 + ((ep // len(nids)) % 8) + 1
         run_episode(env, net, train=True, lr=args.lr, entropy_coef=args.entropy)
         if ep % args.eval_every == 0:
-            print(f"[gen] episode {ep} eval={evaluate():.2f} elapsed={time.time()-t0:.0f}s")
+            ev = evaluate()
+            curve.append({"episode": ep, "eval_reward": round(ev, 3)})
+            print(f"[gen] episode {ep} eval={ev:.2f} elapsed={time.time()-t0:.0f}s")
     net.save(out)
     final = evaluate()
-    (out.with_suffix(".curve.json")).write_text(json.dumps(
-        [{"episode": 0, "eval_reward": round(base, 3)},
-         {"episode": args.episodes, "eval_reward": round(final, 3)}], indent=1), encoding="utf-8")
+    curve.append({"episode": args.episodes, "eval_reward": round(final, 3)})
+    (out.with_suffix(".curve.json")).write_text(json.dumps(curve, indent=1), encoding="utf-8")
     print(f"[gen] saved {out} | eval {base:.2f} -> {final:.2f} ({final-base:+.2f})")
     return 0
 

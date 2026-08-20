@@ -114,21 +114,6 @@ export default function GodApp() {
     return () => document.removeEventListener("click", once);
   }, []);
 
-  // イースターエッグ: "hakai" とタイプすると 破壊AIが神権を握る
-  useEffect(() => {
-    let buf = "";
-    const onKey = e => {
-      if (e.key.length !== 1) return;
-      buf = (buf + e.key.toLowerCase()).slice(-5);
-      if (buf === "hakai") {
-        buf = "";
-        fetch("/api/apocalypse", { method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ on: !statusRef.current.apocalypse }) });
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
 
   // ライブシミュレーション: 常に最新tickを表示
   useEffect(() => { setCur(ticks.length - 1); }, [ticks.length]);
@@ -163,7 +148,7 @@ export default function GodApp() {
       <header>
         <h1 onClick={() => setStatusOpen(true)}>Geopolitics Terrarium — 神の玉座</h1>
         <span id="conn" className={conn ? "ok" : "bad"} onClick={() => setStatusOpen(true)}>{conn ? "接続中" : "切断"}</span>
-        {status.apocalypse && <span className="apoc-chip">終末</span>}
+
         <span className="spacer" />
         <button onClick={() => setCreateOpen(true)}>世界を創る</button>
         <button onClick={() => setSel(s => (s.kind === "world" ? { kind: null, id: null } : { kind: "world", id: null }))}>世界</button>

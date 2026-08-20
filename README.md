@@ -258,7 +258,7 @@ FactorSpec(
 エンジン・UI・ログ・IF史は一切変更不要です。実測では、脅威を受け前提を満たした国が
 約18tickで取得に至り（テスト担保）、これらの離散遷移もparentリンク付きで因果グラフに乗ります。
 
-## 汎用戦術AIと破壊神（イースターエッグ）
+## 汎用戦術AI（全国家RL化）
 
 **汎用戦術AI**（`generalist.npz`）: 全国家を学習者として巡回しつつ**重みを共有**して訓練した
 単一ポリシー。どの国に載せても動くため、**学習AIを選ぶだけでLLM無しで全世界がRL駆動**になる
@@ -268,14 +268,6 @@ FactorSpec(
 uv run python -m terrarium.rl.train --preset earth --nation ALL     --scenario scenarios/earth_hormuz.yaml --episodes 960 --seed 3   # → models/generalist.npz
 ```
 
-**破壊神AI**（`destructor.npz`）: 神の玉座で **`hakai` とタイプ**してみてください。
-訓練済みの破壊AIが神権を握り、毎tick 世界に最もダメージを与える介入を選び続けます
-（報酬=GDP下落+デフォルト+開戦+崩壊）。ヘッダーに「終末」チップが点灯し、
-もう一度タイプすると神に返還されます。
-
-```bash
-uv run python -m terrarium.rl.destructor --episodes 1200   # → models/destructor.npz
-```
 
 ## リアリズム層: 人口・労働・財政投資・為替・経常・CO2
 
