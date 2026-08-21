@@ -14,28 +14,63 @@
   ],
   "first_divergence_tick": 6,
   "final_metric_deltas": {
-    "world_gdp": 5.904,
-    "mean_stability": 2.98,
-    "wars": -4.0,
-    "mean_debt_gdp": -10.5,
-    "defaults": 1.0
+    "world_gdp": -6.2744,
+    "mean_stability": -0.35,
+    "wars": 1.0,
+    "mean_debt_gdp": -0.6,
+    "defaults": 0.0
   },
   "only_in_fork": [
     {
       "type": "sovereign_default",
-      "tick": 19,
+      "tick": 18,
       "actor": "JPN"
+    },
+    {
+      "type": "war_start",
+      "tick": 33,
+      "actor": null
     }
   ],
   "only_in_base": [
     {
+      "type": "collapse",
+      "tick": 29,
+      "actor": "IRN"
+    },
+    {
+      "type": "sovereign_default",
+      "tick": 20,
+      "actor": "JPN"
+    },
+    {
       "type": "war_start",
-      "tick": 9,
+      "tick": 7,
+      "actor": null
+    },
+    {
+      "type": "war_start",
+      "tick": 8,
       "actor": null
     },
     {
       "type": "war_start",
       "tick": 10,
+      "actor": null
+    },
+    {
+      "type": "war_start",
+      "tick": 13,
+      "actor": null
+    },
+    {
+      "type": "war_start",
+      "tick": 17,
+      "actor": null
+    },
+    {
+      "type": "war_start",
+      "tick": 19,
       "actor": null
     },
     {
@@ -56,6 +91,16 @@
     {
       "type": "war_start",
       "tick": 23,
+      "actor": null
+    },
+    {
+      "type": "war_start",
+      "tick": 24,
+      "actor": null
+    },
+    {
+      "type": "war_start",
+      "tick": 25,
       "actor": null
     }
   ]

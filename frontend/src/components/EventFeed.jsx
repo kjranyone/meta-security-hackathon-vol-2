@@ -2,7 +2,7 @@ const EV_CLS = {
   war_start: "ev-war", war_end: "ev-war", collapse: "ev-collapse",
   god_intervention: "ev-god", shortage: "ev-shortage", sanction: "ev-sanction",
   threat: "ev-sanction", alliance_formed: "ev-alliance", price_spike: "ev-price",
-  disinfo: "ev-disinfo", trade_throttled: "ev-trade", sovereign_default: "ev-default", fx_crisis: "ev-price", factor_acquired: "ev-war", factor_relinquished: "ev-alliance", collective_sanction: "ev-sanction",
+  disinfo: "ev-disinfo", trade_throttled: "ev-trade", sovereign_default: "ev-default", fx_crisis: "ev-price", factor_acquired: "ev-war", factor_relinquished: "ev-alliance", collective_sanction: "ev-sanction", alliance_activation: "ev-alliance",
   credibility_hit: "ev-credhit", tech_emergence: "ev-tech", tech_adopted: "ev-tech2",
 };
 

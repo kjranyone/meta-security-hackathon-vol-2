@@ -27,6 +27,7 @@ export const MAJOR_TONES = {
   factor_acquired: 90,
   factor_relinquished: 330,
   collective_sanction: 196,
+  alliance_activation: 392,
   sovereign_default: 220, war_start: 110, collapse: 165,
   price_spike: 440, god_intervention: 660, crash: 195,
 };
@@ -35,6 +36,7 @@ export const MAJOR_COLOR = {
   factor_acquired: "#ff4d6d",
   factor_relinquished: "#7ee787",
   collective_sanction: "#e3b341",
+  alliance_activation: "#7ee787",
   sovereign_default: "#ff6b35", war_start: "#f85149", collapse: "#d29922",
   price_spike: "#e3b341", god_intervention: "#a371f7", crash: "#e5534b",
 };

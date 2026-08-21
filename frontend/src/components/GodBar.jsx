@@ -26,6 +26,7 @@ export default function GodBar({ sel, meta, intervene, onModal }) {
   ];
   const WORLD_BTNS = [
     { label: "世界金利", modal: "rate_hike" },
+    { label: "霧", modal: "fog" },
     { label: "世界パラメータ", modal: "global_sliders" },
     { label: "技術の全世界禁止", modal: "ban_tech" },
   ];

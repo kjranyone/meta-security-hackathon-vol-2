@@ -731,9 +731,10 @@ class Engine:
 
         # --- 他国の観測可能な概要（全員に近い相手上位。16国以下の世界では全員） ---
         others = sorted(self.nations.items())
+        fog = getattr(self.god, "fog_of_war", 0.0)
         rel_full = {
             o: {
-                "trust": round(onat.trust.get(nid, 0.0), 1),
+                "trust": round(onat.trust.get(nid, 0.0) + fog * (20.0 - onat.trust.get(nid, 0.0)), 1),
                 "alliance": o in nat.alliances,
                 "war": o in nat.at_war_with,
                 "sanction": o in nat.sanctions_on,
@@ -899,17 +900,10 @@ class Engine:
                         targets=[a, b], parents=parents,
                         data={"tension": round(tension, 3)},
                     )
-                    # alliance chain-in
-                    for ally in list(na.alliances):
-                        al = self.nations.get(ally)
-                        if al and b not in al.at_war_with and self.rng.random() < al.trust.get(a, 0.0) / 120.0:
-                            self.wars.append((ally, b))
-                            al.at_war_with.append(b)
-                            nb.at_war_with.append(ally)
-                            self.event_log.emit(
-                                t, "war_start", f"同盟の連鎖: {al.name} が {nb.name} に参戦",
-                                targets=[ally, b], parents=[self.event_log.records[-1].id],
-                            )
+                    # 相互防衛: 両側の同盟国が条約を履行するか（新イベント種で因果追跡）
+                    wev = self.event_log.records[-1]
+                    self._alliance_activation(b, a, wev)
+                    self._alliance_activation(a, b, wev)
                     break
 
     def _resource_dispute(self, a: str, b: str) -> bool:
@@ -1000,6 +994,29 @@ class Engine:
                     f"{onat.name} の金融機関が {nat.name} の債務で損失。信用が毀損し感染の火種に",
                     actor=other, targets=[other], parents=[ev.id],
                     data={"exposure": finance_units},
+                )
+
+    def _alliance_activation(self, a: str, b: str, war_ev) -> None:
+        """相互防衛: bの同盟国が信頼に応じて参戦する（連鎖の深さは1に制限）。"""
+        t = self.tick_no
+        for x in sorted(self.nations):
+            if x in (a, b) or a in self.nations[x].at_war_with:
+                continue
+            xnat = self.nations[x]
+            if b not in xnat.alliances or xnat.collapsed:
+                continue
+            trust = xnat.trust.get(b, 0.0)
+            if trust < 35.0:
+                continue
+            if self.rng.random() < 0.4 * (trust / 100.0):
+                self.wars.append((x, a))
+                xnat.at_war_with.append(a)
+                self.nations[a].at_war_with.append(x)
+                self.event_log.emit(
+                    t, "alliance_activation",
+                    f"{xnat.name} は同盟条約を履行し {self.nations[b].name} 側に参戦",
+                    actor=x, targets=[a, b], parents=[war_ev.id],
+                    data={"ally": b, "enemy": a, "trust": round(trust, 1)},
                 )
 
     # ------------------------------------------------------------- macro/cycle
@@ -1154,6 +1171,16 @@ class Engine:
                         f"{nat.name} の外貨準備が枯渇（{nat.fx_reserves:.1f}ヶ月分）。輸入が絞られる",
                         actor=nid, targets=[nid], data={"reserves": round(nat.fx_reserves, 2)},
                     )
+            # --- 安全保障ジレンマ: 信頼の低い大国の軍事優位が攻撃性を煽る ---
+            rival_max = 0.0
+            for o, onat in self.nations.items():
+                if o == nid or onat.collapsed or nat.trust.get(o, 20.0) >= 15.0:
+                    continue
+                rival_max = max(rival_max, onat.military)
+            if rival_max > nat.military * 1.2:
+                nat.aggression = min(0.95, nat.aggression + 0.004)
+                nat.paranoia = min(0.95, nat.paranoia + 0.003)
+
             # --- CO2: 化石エネルギー生産 × (1-実効再生比率) ---
             techs = self._techs_of(nid)
             renew = max(spec.energy_renew,

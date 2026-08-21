@@ -14,10 +14,10 @@
   ],
   "first_divergence_tick": 5,
   "final_metric_deltas": {
-    "world_gdp": 1.9042,
-    "mean_stability": 1.62,
+    "world_gdp": 1.9044,
+    "mean_stability": 1.64,
     "wars": 0.0,
-    "mean_debt_gdp": 4.9,
+    "mean_debt_gdp": 4.8,
     "defaults": -1.0
   },
   "only_in_fork": [

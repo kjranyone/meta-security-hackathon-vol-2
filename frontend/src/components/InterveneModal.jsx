@@ -75,6 +75,14 @@ const ACTIONS = {
     ],
     build: (v, ctx) => ({ nation: ctx, factor: v.factor }),
   },
+  fog: {
+    title: "霧（情報の不確実性）",
+    fields: [
+      { k: "value", label: "濃さ", type: "range", min: 0, max: 0.5, step: 0.05, def: 0,
+        fmt: v => `${Math.round(v * 200)}%` },
+    ],
+    build: v => ({ param: "fog_of_war", value: +v.value }),
+  },
   rate_hike: {
     title: "世界金利",
     fields: [

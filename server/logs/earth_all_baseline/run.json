@@ -4,17 +4,17 @@
   "ticks": 24,
   "final_metrics": {
     "tick": 23,
-    "world_gdp": 1589.8226,
-    "mean_stability": 46.85,
+    "world_gdp": 1589.7169,
+    "mean_stability": 46.84,
     "wars": 0,
     "collapsed": 0,
     "price_energy": 1.0799,
     "price_food": 1.2084,
     "price_chips": 1.0466,
     "mean_inflation": -0.00776,
-    "mean_debt_gdp": 89.6,
+    "mean_debt_gdp": 89.7,
     "defaults": 5,
-    "mean_unemployment": 4.52,
+    "mean_unemployment": 4.53,
     "global_co2": 2610.7
   },
   "event_counts": {

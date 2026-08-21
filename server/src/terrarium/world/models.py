@@ -140,6 +140,7 @@ class GodParams(BaseModel):
     ai_aggression: float = 1.0
     disinfo_intensity: float = 1.0
     world_rate_hike: float = 0.0      # god's rate hike added to every nation's rate
+    fog_of_war: float = 0.0           # 情報の霧: 相手国の信頼推定を平均へ退行させる（誤認の源）
 
 
 class WorldSpec(BaseModel):
