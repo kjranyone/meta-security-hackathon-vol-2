@@ -1,0 +1,45 @@
+{
+  "run_name": "earth_triple_crisis_v2",
+  "seed": 42,
+  "ticks": 36,
+  "final_metrics": {
+    "tick": 35,
+    "world_gdp": 70.684,
+    "mean_stability": 39.73,
+    "wars": 0,
+    "collapsed": 0,
+    "price_energy": 2.5265,
+    "price_food": 1.7762,
+    "price_chips": 1.4496,
+    "mean_inflation": 0.02687,
+    "mean_debt_gdp": 73.7,
+    "defaults": 8,
+    "mean_unemployment": 11.71,
+    "global_co2": 556.2
+  },
+  "event_counts": {
+    "policy_shift": 576,
+    "shortage": 58,
+    "factor_acquired": 29,
+    "god_intervention": 4,
+    "tech_emergence": 13,
+    "tech_adopted": 133,
+    "trade_throttled": 386,
+    "price_spike": 6,
+    "sovereign_default": 8,
+    "credibility_hit": 22,
+    "collapse": 11,
+    "factor_relinquished": 22,
+    "fx_crisis": 1
+  },
+  "wars": 0,
+  "config": {
+    "preset": "earth",
+    "gen_seed": null,
+    "gen_nations": 8,
+    "policy": "heuristic",
+    "rl_nation": null,
+    "rl_weights": null,
+    "scenario": "scenarios/earth_triple_crisis.yaml"
+  }
+}

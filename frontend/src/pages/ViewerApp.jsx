@@ -12,6 +12,7 @@ import { VSplit, HSplit } from "../components/Splitter";
 import { loadGeojson } from "../lib/geo";
 import { ingestReplay, computeMajor } from "../lib/replay";
 import { initAudio, beep, MAJOR_TONES } from "../lib/audio";
+import { setClock } from "../lib/calendar";
 
 export default function ViewerApp() {
   const [geo, setGeo] = useState(null);
@@ -44,6 +45,8 @@ export default function ViewerApp() {
     const { META, TICKS } = ingestReplay(text);
     if (!TICKS.length) { alert("replay.jsonl に tick がありません"); return; }
     setMeta(META); setTicks(TICKS); setCur(0); setSelected(null); setPlaying(false);
+    // リプレイの時計(1tick=何時間か)を暦表示に反映。旧月次リプレイは720
+    setClock(META?.spec?.hours_per_tick ?? 720);
   }, []);
 
   const loadUrl = useCallback(async url => {

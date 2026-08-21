@@ -1,9 +1,15 @@
 """The Terrarium simulation engine.
 
-Tick pipeline (1 tick = 1 month):
+Tick pipeline:
   god interventions -> production -> trade (chokepoint-aware) -> market prices
   -> consumption/welfare -> nation decisions (policy layer) -> diplomacy
   -> conflict -> collapse checks -> snapshot & JSONL logging
+
+Clock: every dynamic is calibrated in REAL HOURS (world/clock.py) and
+advanced by spec.hours_per_tick per tick. 720h/tick reproduces the classic
+monthly-compressed clock used by experiments; 1h/tick is the live god mode
+where interventions propagate with realistic delays (markets in hours,
+shipping in weeks, GDP in quarters, mobilization in days).
 
 Everything is deterministic given (seed, spec, policies, scenario):
 no global RNG, only the seeded engine RNG, and nations/routes are iterated
@@ -12,6 +18,7 @@ in sorted order.
 from __future__ import annotations
 
 import json
+import math
 import random
 from pathlib import Path
 from typing import IO, Optional
@@ -25,6 +32,7 @@ from ..world.models import (
     WorldSpec,
     RESOURCE_TO_COMMODITY,
 )
+from ..world import clock as TC
 from ..world.factors import FACTORS_BY_ID
 from ..world.tech import CATALOG, tech_catalog_index
 from .events import EventLog
@@ -33,6 +41,7 @@ from .interventions import Intervention, Scenario
 CONSUMPTION = {"energy": 1.0, "food": 1.0, "chips": 0.5, "minerals": 0.5, "space": 0.25}
 DEFAULT_STOCKS = {"energy": 3.0, "food": 4.0, "chips": 2.0, "minerals": 2.0, "space": 1.0}
 YIELD_PER_UNIT = 1.5
+IMPORT_INFLATION_CAP = 0.35   # 輸入価格のCPIパススルーウェイト上限
 SHORTAGE_STABILITY_HIT = {"energy": 4.0, "food": 6.0, "chips": 2.0, "minerals": 3.0, "space": 0.5}
 COMMODITY_YIELD_SLIDER = {
     Commodity.ENERGY: "energy_yield",
@@ -65,9 +74,39 @@ class Engine:
         self.seed = seed
         self.tick_no = 0
         self.god = GodParams()
+        # ---- シミュレーション時計: 全動力学は実時間(時間)で校正される ----
+        self.hpt = float(getattr(spec, "hours_per_tick", 720.0) or 720.0)
+        self._dec_every = getattr(spec, "decision_every_hours", None)
+        self._cached_decisions: Optional[dict[str, Decisions]] = None
+        self._decisions_fresh = True
+        self._dec_elapsed_hours = self.hpt
+        self._last_dec_hour = 0.0
+        self._next_dec_hour = self.hpt
+        # 崩壊/回復の実時間しきい値（旧: 3/6 tick = 月次）
+        self._collapse_need_ticks = TC.ticks_for(3.0 * TC.HOURS_PER_MONTH, self.hpt)
+        self._recover_ticks = TC.ticks_for(6.0 * TC.HOURS_PER_MONTH, self.hpt)
+        # 遅延伝播キュー: 動員(開戦前のラダー)と同盟参戦協議
+        self._pending_wars: list[dict] = []
+        self._pending_alliance: list[dict] = []
+        self._seq = 0
+        # 市場: 期待(恐怖)プレミアムと価格履歴(日次急騰判定用)
+        self._fear: dict[str, float] = {c.value: 0.0 for c in Commodity}
+        self._price_hist: list[tuple[float, dict[str, float]]] = []
+        self._spike_last: dict[str, float] = {}
+        # 高頻度時計でのイベント再送抑止
+        self._tt_last: dict[tuple, float] = {}
+        self._fxwarn_last: dict[str, float] = {}
+        # 市場の裁定材料: 航路需要とその遮断率（価格シグナルの分母）
+        self._wants_total: dict[str, float] = {c.value: 0.0 for c in Commodity}
+        self._blocked_wants: dict[str, float] = {c.value: 0.0 for c in Commodity}
+        # 連続不足の深度（月換算で蓄積し、深刻度とする）
+        self._shortage_since: dict[tuple, float] = {}
+        self._last_sev: dict[tuple, float] = {}
         # provenance recorded into run.json so IF-history forks can replay
         # the exact (preset, policy, scenario) that produced this history
         self.run_config = run_config or {}
+        # 力学バージョン: v4で実時間校正（それ以前のログは月次複利の旧力学）
+        self.run_config.setdefault("engine", "v4-realtime-clock")
         self.chokepoints = {cp.name: cp for cp in spec.chokepoints}
         self._specs = {ns.id: ns for ns in spec.nations}
         self._ca_exports: dict[str, float] = {}
@@ -179,6 +218,81 @@ class Engine:
             self._replay.close()
             self._replay = None
 
+    # ----------------------------------------------------------------- clock
+    def _hours_now(self) -> float:
+        return self.tick_no * self.hpt
+
+    def _fm(self) -> float:
+        """1tick = 何ヶ月分か（月次レートのスカラー化、上限1）。"""
+        return TC.frac(self.hpt, TC.HOURS_PER_MONTH)
+
+    def _fy(self) -> float:
+        """1tick = 何年分か（年率レートの複利化用）。"""
+        return self.hpt / TC.HOURS_PER_YEAR
+
+    def _alpha(self, tau_h: float) -> float:
+        return TC.alpha(self.hpt, tau_h)
+
+    def _hazard(self, p_month: float) -> float:
+        return TC.hazard(self.hpt, p_month)
+
+    def _ticks_for(self, hours: float) -> int:
+        return TC.ticks_for(hours, self.hpt)
+
+    def _clock_step(self) -> None:
+        """実時間で走る緩和過程: 海峡スロットルと市場の恐怖プレミアム。"""
+        for cp in self.chokepoints.values():
+            target = 1.0 if cp.closed else 0.0
+            tau = TC.REROUTE_TAU if cp.closed else TC.REOPEN_TAU
+            cp.throttle += (target - cp.throttle) * self._alpha(tau)
+        decay = math.exp(-self.hpt / TC.FEAR_TAU)
+        for c in self._fear:
+            self._fear[c] *= decay
+
+    def _price_ref(self, window_h: float) -> dict[str, float]:
+        """window時間前の時点の価格（履歴から最近傍）。"""
+        now = self._hours_now()
+        ref = None
+        for hour, prices in reversed(self._price_hist):
+            if hour <= now - window_h:
+                ref = prices
+                break
+        return ref if ref is not None else (self._price_hist[0][1] if self._price_hist else dict(self.prices))
+
+    def _process_pending(self) -> None:
+        """実時間の遅延が満ちた予約（動員完了・同盟参戦）を消化する。
+        決定論のため (due, seq) の順で処理する。"""
+        t = self.tick_no
+        due_wars = sorted([p for p in self._pending_wars if p["due"] <= t],
+                          key=lambda p: (p["due"], p["seq"]))
+        if due_wars:
+            self._pending_wars = [p for p in self._pending_wars if p["due"] > t]
+        for p in due_wars:
+            a, b = p["a"], p["b"]
+            na, nb = self.nations.get(a), self.nations.get(b)
+            if na is None or nb is None or a in nb.at_war_with:
+                continue
+            if na.collapsed or nb.collapsed:
+                continue
+            tension = self._pair_tension(a, b)
+            if tension < TC.WAR_TENSION_RELAPSE:
+                self.event_log.emit(
+                    t, "stand_down",
+                    f"{na.name} と {nb.name} は緊張が退いたため動員を解除した",
+                    targets=[a, b], parents=[p["ev"]],
+                    data={"tension": round(tension, 3)},
+                )
+                continue
+            self._start_war(a, b, tension, cause=p["ev"])
+
+        due_ally = sorted([p for p in self._pending_alliance if p["due"] <= t],
+                          key=lambda p: (p["due"], p["seq"]))
+        if due_ally:
+            self._pending_alliance = [p for p in self._pending_alliance if p["due"] > t]
+        for p in due_ally:
+            self._alliance_activation(p["a"], p["b"], p["war_ev"], only=p["x"],
+                                      trust_at_decision=p.get("trust"))
+
     # -------------------------------------------------------------- god cards
     def _chokepoint_by_ref(self, ref: str):
         """Resolve a chokepoint by name or by '#N' index (sorted names) so
@@ -210,6 +324,10 @@ class Engine:
                     actor="GOD", targets=[], data={"chokepoint": cp.name},
                 )
                 self._cp_cause[cp.name] = ev.id
+                # 期待効果: 市場は物理的不足の前にニュースへ反応する
+                comms = {r.commodity.value for r in self.spec.routes if cp.name in r.chokepoints}
+                for c in comms:
+                    self._fear[c] = min(TC.FEAR_CAP, self._fear[c] + TC.FEAR_JUMP)
         elif iv.type == "open_chokepoint":
             cp = self._chokepoint_by_ref(p["chokepoint"])
             if cp and cp.closed:
@@ -239,7 +357,8 @@ class Engine:
             kind = p.get("kind", "drought")
             nat = self.nations[nid]
             if kind == "drought":
-                self.temp_effects.append(TempEffect(self.tick_no + 6, nid, "food", 0.4))
+                self.temp_effects.append(
+                    TempEffect(self.tick_no + self._ticks_for(6.0 * TC.HOURS_PER_MONTH), nid, "food", 0.4))
             elif kind == "earthquake":
                 nat.stability -= 10
                 nat.gdp *= 0.98
@@ -356,6 +475,9 @@ class Engine:
         self._ca_exports = {}
         self._ca_imports = {}
         self._shortages = {}
+        for c in self._wants_total:
+            self._wants_total[c] = 0.0
+            self._blocked_wants[c] = 0.0
         t = self.tick_no
         # reopen scheduled chokepoints
         for name, reopen_at in list(self._pending_reopen.items()):
@@ -368,6 +490,8 @@ class Engine:
         # expire temp effects
         self.temp_effects = [e for e in self.temp_effects if e.until > t]
         self._tick_throttled = []
+        self._clock_step()          # 実時間緩和: スロットル・恐怖プレミアム
+        self._process_pending()     # 動員完了・同盟参戦の遅延消化
         self._tech_step()
 
         supply = self._production()
@@ -384,10 +508,13 @@ class Engine:
     # ------------------------------------------------------------- tech layer
     def _tech_step(self) -> None:
         """Paper-level innovations mature into prototypes, then diffuse to
-        nations according to their absorptive (research) capacity."""
+        nations according to their absorptive (research) capacity).
+        カタログの unlock_tick は「月」で定義されており、実時間に換算して判定する。"""
         t = self.tick_no
+        fm = self._fm()
+        hours_now = self._hours_now()
         for tech in CATALOG:
-            if not self.tech_unlocked[tech.id] and t >= tech.unlock_tick:
+            if not self.tech_unlocked[tech.id] and hours_now >= tech.unlock_tick * TC.HOURS_PER_MONTH:
                 self.tech_unlocked[tech.id] = True
                 ev = self.event_log.emit(
                     t, "tech_emergence",
@@ -400,7 +527,7 @@ class Engine:
             for nid in sorted(self.nations):
                 if nid in self.tech_adopted[tech.id]:
                     continue
-                if self.rng.random() < 0.08 * self._research_capacity(nid):
+                if self.rng.random() < self._hazard(0.08 * self._research_capacity(nid)):
                     self._adopt_tech(nid, tech.id)
 
     def _research_capacity(self, nid: str) -> float:
@@ -504,8 +631,12 @@ class Engine:
 
     # ------------------------------------------------------------------ trade
     def _trade(self, supply: dict[str, dict[str, float]]) -> tuple[dict, dict[str, float]]:
-        """Resolve import needs through routes; chokepoint closure throttles capacity."""
+        """Resolve import needs through routes; chokepoint closure throttles capacity.
+
+        流量は月次レート×(1tickの月数)。封鎖は即時に輸送力を殺さない:
+        航行中の船はまだ到着するので throttle は REROUTE_TAU で漸増する。"""
         t = self.tick_no
+        fm = self._fm()
         flows: dict[tuple[str, str, str], float] = {}
         unmet: dict[str, float] = {c.value: 0.0 for c in Commodity}
         # exporter surpluses (months of own demand they can spare)
@@ -527,7 +658,7 @@ class Engine:
             if route.importer in exp.sanctions_on:
                 continue
             need = max(0.0, CONSUMPTION[route.commodity.value] - supply[route.importer][route.commodity.value])
-            want = need * route.share * (1.3 if imp.budget.get("stockpile", 0) > 0.3 else 1.0)
+            want = need * route.share * fm * (1.3 if imp.budget.get("stockpile", 0) > 0.3 else 1.0)
             if want <= 0:
                 continue
             wants[(route.importer, route.exporter, route.commodity.value)] = want
@@ -544,11 +675,16 @@ class Engine:
             imp, exp = self.nations[route.importer], self.nations[route.exporter]
             capacity = self.god.trade_efficiency
             blocked: list[str] = []
+            route_throttle = 0.0
             for cpn in route.chokepoints:
                 cp = self.chokepoints.get(cpn)
-                if cp and cp.closed:
-                    capacity *= 0.15
+                if cp and cp.throttle > 0.05:
+                    capacity *= 1.0 - (1.0 - TC.CHOKE_MIN_CAPACITY) * cp.throttle
+                    route_throttle = max(route_throttle, cp.throttle)
                     blocked.append(cpn)
+            # 市場の裁定材料: この航路需要の何割が封鎖に曝されているか
+            self._wants_total[route.commodity.value] += want
+            self._blocked_wants[route.commodity.value] += want * route_throttle
             avail = surplus[(route.exporter, route.commodity.value)]
             total_demand = demand_by[(route.exporter, route.commodity.value)]
             ration = min(1.0, initial_spare[(route.exporter, route.commodity.value)] / total_demand) if total_demand > 0 else 0.0
@@ -560,16 +696,10 @@ class Engine:
             surplus[(route.exporter, route.commodity.value)] -= flow
             flows[key] = flow
             if blocked:
-                ev = self.event_log.emit(
-                    t, "trade_throttled",
-                    f"{imp.name}←{exp.name} の{route.commodity.value}航路、{','.join(blocked)} 封鎖で輸送力激減",
-                    targets=[route.importer, route.exporter],
-                    parents=[self._cp_cause[n] for n in blocked if n in self._cp_cause],
-                    data={"routes": route.model_dump(), "capacity": capacity},
-                )
-                self._tick_throttled.append(ev.id)
-            # exporter earns, importer receives
-            revenue = 0.01 * flow * self.prices[route.commodity.value] * 12
+                self._tick_throttled_note(route, blocked, capacity)
+            # exporter earns, importer receives (flow already includes fm).
+            # 収益は月次レート: 旧式の×12年率化はGDPを水膨れさせていた
+            revenue = 0.01 * flow * self.prices[route.commodity.value]
             exp.gdp += revenue
             imp.stocks[route.commodity.value] += flow
             flow_val = flow * self.prices[route.commodity.value]
@@ -582,39 +712,64 @@ class Engine:
         return flows, unmet
 
     def _tick_throttled_note(self, route, blocked, capacity) -> None:
+        """封鎖された航路の通知。高頻度時計では毎時間鳴らさない（週次）。"""
+        key = (route.importer, route.exporter, route.commodity.value, tuple(blocked))
+        now = self._hours_now()
+        last = self._tt_last.get(key)
+        if last is not None and now - last < TC.EVENT_HOURLY_GATE:
+            return
+        self._tt_last[key] = now
         imp, exp = self.nations[route.importer], self.nations[route.exporter]
-        self.event_log.emit(
+        ev = self.event_log.emit(
             self.tick_no, "trade_throttled",
             f"{imp.name}←{exp.name} の{route.commodity.value}航路、{','.join(blocked)} 封鎖で輸送力激減",
             targets=[route.importer, route.exporter],
             parents=[self._cp_cause[n] for n in blocked if n in self._cp_cause],
-            data={"routes": route.model_dump(), "capacity": capacity},
+            data={"routes": route.model_dump(), "capacity": round(capacity, 3)},
         )
+        self._tick_throttled.append(ev.id)
 
     # ----------------------------------------------------------------- market
     def _market(self, supply, flows, unmet: dict[str, float]) -> None:
         t = self.tick_no
         self.last_prices = dict(self.prices)
+        ref_day = self._price_ref(TC.SPIKE_WINDOW_H)
+        a_price = self._alpha(TC.PRICE_TAU)
         for c in Commodity:
             world_demand = len(self.nations) * CONSUMPTION[c.value]
             world_supply = sum(supply[nid][c.value] for nid in self.nations)
             scarcity = max(0.0, world_demand - world_supply) / world_demand      # persistent level
-            shock = min(1.0, unmet[c.value] / world_demand)                       # acute failed flows
-            target = 1.0 + 1.5 * scarcity + 2.0 * shock
+            # 遮断の強度は「航路需要に対するfailure率」で測る。世界需要で割ると
+            # 地域危機が全部薄まってしまう（16カ国でも176カ国でも同じ問題）。
+            routed = self._wants_total[c.value]
+            shock = min(1.0, unmet[c.value] / routed) if routed > 1e-9 else 0.0
+            block_share = min(1.0, self._blocked_wants[c.value] / routed) if routed > 1e-9 else 0.0
+            # 期待効果: 封鎖が続く限りリスクプレミアムは床を持つ
+            fear_eff = max(self._fear[c.value], TC.FEAR_JUMP * block_share)
+            target = (1.0 + 1.5 * scarcity + 2.0 * shock) * (1.0 + fear_eff)
             if self.wars and c is Commodity.ENERGY:
                 target *= 1.15
-            self.prices[c.value] = min(4.0, max(0.5, 0.80 * self.prices[c.value] + 0.20 * target))
-            if self.prices[c.value] / self.last_prices[c.value] > 1.12:
+            self.prices[c.value] = min(4.0, max(0.5, (1.0 - a_price) * self.prices[c.value] + a_price * target))
+            # 急騰判定は「1日前比」で（高頻度時計で毎tick鳴らさない）
+            ref = ref_day.get(c.value, self.last_prices[c.value])
+            now = self._hours_now()
+            if (self.prices[c.value] / max(0.01, ref) > TC.SPIKE_RATIO
+                    and now - self._spike_last.get(c.value, -1e9) >= TC.SPIKE_WINDOW_H):
+                self._spike_last[c.value] = now
                 self.event_log.emit(
                     t, "price_spike",
-                    f"{c.value} の国際価格が急騰 ({self.last_prices[c.value]:.2f}→{self.prices[c.value]:.2f})",
+                    f"{c.value} の国際価格が急騰 ({ref:.2f}→{self.prices[c.value]:.2f})",
                     parents=list(self._tick_throttled),
-                    data={"commodity": c.value, "from": self.last_prices[c.value], "to": self.prices[c.value]},
+                    data={"commodity": c.value, "from": round(ref, 3), "to": self.prices[c.value]},
                 )
+        self._price_hist.append((self._hours_now(), dict(self.prices)))
+        if len(self._price_hist) > 4000:
+            del self._price_hist[:2000]
 
     # ------------------------------------------------------------- consumption
     CAUSAL_TYPES = ("trade_throttled", "disinfo", "god_intervention", "sanction",
-                    "threat", "war_start", "price_spike", "shortage")
+                    "threat", "war_start", "price_spike", "shortage",
+                    "mobilization", "stand_down")
 
     def _causal_parents(self, nid: str, window: int = 14) -> list[str]:
         """Event ids in recent history that touched this nation (its upstream causes)."""
@@ -628,6 +783,7 @@ class Engine:
 
     def _consume(self, supply) -> None:
         t = self.tick_no
+        fm = self._fm()
         for nid in sorted(self.nations):
             nat = self.nations[nid]
             if nat.collapsed:
@@ -637,22 +793,34 @@ class Engine:
                     nat.stability = 35.0
                 continue
             for c in Commodity:
-                nat.stocks[c.value] += supply[nid][c.value]
-                use = CONSUMPTION[c.value] * (0.85 if (nat.rationing and c is Commodity.FOOD) else 1.0)
+                nat.stocks[c.value] += supply[nid][c.value] * fm
+                use = CONSUMPTION[c.value] * fm * (0.85 if (nat.rationing and c is Commodity.FOOD) else 1.0)
                 nat.stocks[c.value] -= use
                 if nat.stocks[c.value] < 0:
-                    severity = min(1.0, -nat.stocks[c.value])
+                    deficit = -nat.stocks[c.value]
                     nat.stocks[c.value] = 0.0
-                    nat.stability -= SHORTAGE_STABILITY_HIT[c.value] * severity
-                    self._shortages[nid] = self._shortages.get(nid, 0.0) + severity
-                    if severity > 0.3:
+                    # 深刻度 = max(瞬時の不足率, 慢性化ランプ(上限0.3))。
+                    # 全供給断は即座に致命的(不足率1.0)、慢性的な部分不足は
+                    # 月を重ねるほど深く刺さるが、急性と同じにはならない。
+                    key = (nid, c.value)
+                    self._shortage_since[key] = self._shortage_since.get(key, 0.0) + fm
+                    severity = max(min(1.0, deficit / max(use, 1e-9)),
+                                   min(TC.CHRONIC_SHORTAGE_CAP, self._shortage_since[key]))
+                    nat.stability -= SHORTAGE_STABILITY_HIT[c.value] * severity * fm
+                    self._shortages[nid] = self._shortages.get(nid, 0.0) + severity * fm
+                    # 0.3を上回って横切った瞬間に一度だけ通知する
+                    if severity >= 0.3 > self._last_sev.get(key, 0.0):
                         self.event_log.emit(
                             t, "shortage",
                             f"{nat.name} で {c.value} が深刻な不足。備蓄底をつき社会不安が拡大",
                             actor=nid, targets=[nid],
                             parents=self._causal_parents(nid),
-                            data={"commodity": c.value, "severity": severity},
+                            data={"commodity": c.value, "severity": round(severity, 2)},
                         )
+                    self._last_sev[key] = severity
+                elif nat.stocks[c.value] > 0.05:
+                    self._shortage_since.pop((nid, c.value), None)
+                    self._last_sev.pop((nid, c.value), None)
 
     # --------------------------------------------------------------- decisions
     def nation_view(self, nid: str) -> NationView:
@@ -770,15 +938,33 @@ class Engine:
         )
 
     def _decide(self) -> dict[str, Decisions]:
+        """国家の意思決定。decision_every_hours が設定された世界では、
+        決定点と決定点の間は前回の決定（ standing policy ）を継続適用する。
+        政府は毎時間閣議を開かない。"""
+        now = self._hours_now()
+        if self._cached_decisions is not None and self._dec_every is not None \
+                and now < self._next_dec_hour - 1e-9:
+            self._decisions_fresh = False
+            return self._cached_decisions
+        elapsed = max(self.hpt, now - self._last_dec_hour) if self._last_dec_hour > 0 else self.hpt
         out: dict[str, Decisions] = {}
         for nid in sorted(self.nations):
             policy = self.policies.get(nid) or self.policies.get("*")
             view = self.nation_view(nid)
             out[nid] = policy.decide(view)
+        self._cached_decisions = out
+        self._decisions_fresh = True
+        self._dec_elapsed_hours = elapsed
+        self._last_dec_hour = now
+        if self._dec_every:
+            self._next_dec_hour = (int(now // self._dec_every) + 1) * self._dec_every
         return out
 
     def _apply_decisions(self, decisions: dict[str, Decisions]) -> None:
         t = self.tick_no
+        # 段階的効果（信頼改善・貿易協定等）は「今回の決定周期が何ヶ月分か」で効く
+        dm = self._dec_elapsed_hours / TC.HOURS_PER_MONTH
+        fresh = self._decisions_fresh
         for nid in sorted(decisions):
             nat, d = self.nations[nid], decisions[nid]
             nat.budget = d.budget
@@ -794,17 +980,21 @@ class Engine:
                 nat.propaganda = False
             elif d.propaganda:
                 nat.propaganda = True
-                nat.approval = min(100.0, nat.approval + 3.0)
-                nat.paranoia = min(1.0, nat.paranoia + 0.01)
-            self.event_log.emit(
-                t, "policy_shift",
-                f"{nat.name}: {d.rationale}",
-                actor=nid, targets=[nid],
-                data={"posture": d.military_posture, "rationing": d.rationing,
-                      "propaganda": d.propaganda, "budget": d.budget},
-            )
+                nat.approval = min(100.0, nat.approval + 3.0 * dm)
+                nat.paranoia = min(1.0, nat.paranoia + 0.01 * dm)
+            if fresh:
+                self.event_log.emit(
+                    t, "policy_shift",
+                    f"{nat.name}: {d.rationale}",
+                    actor=nid, targets=[nid],
+                    data={"posture": d.military_posture, "rationing": d.rationing,
+                          "propaganda": d.propaganda, "budget": d.budget},
+                )
 
-        # diplomacy, in two passes so offers see a consistent world
+        # diplomacy, in two passes so offers see a consistent world.
+        # 外交行動は決定点でのみ発生する（standing policy の再適用ではない）。
+        if not fresh:
+            return
         for nid in sorted(decisions):
             nat, d = self.nations[nid], decisions[nid]
             for act in d.diplomacy:
@@ -812,8 +1002,8 @@ class Engine:
                 if other is None or other.id == nid:
                     continue
                 if act.kind == "improve":
-                    nat.trust[act.target] = min(100.0, nat.trust[act.target] + 4.0)
-                    other.trust[nid] = min(100.0, other.trust[nid] + 2.0)
+                    nat.trust[act.target] = min(100.0, nat.trust[act.target] + 4.0 * dm)
+                    other.trust[nid] = min(100.0, other.trust[nid] + 2.0 * dm)
                 elif act.kind == "sanction":
                     if act.target not in nat.sanctions_on:
                         nat.sanctions_on.append(act.target)
@@ -842,24 +1032,26 @@ class Engine:
                         actor=nid, targets=[act.target], data={},
                     )
                 elif act.kind == "trade_pact":
-                    nat.trust[act.target] = min(100.0, nat.trust[act.target] + 3.0)
-                    other.trust[nid] = min(100.0, other.trust[nid] + 3.0)
+                    nat.trust[act.target] = min(100.0, nat.trust[act.target] + 3.0 * dm)
+                    other.trust[nid] = min(100.0, other.trust[nid] + 3.0 * dm)
 
     # ---------------------------------------------------------------- conflict
     def _conflict(self) -> None:
         t = self.tick_no
-        # ongoing wars: attrition
+        fm = self._fm()
+        # ongoing wars: attrition（軍事消耗・疲弊は月次レートを実時間で）
         for a, b in list(self.wars):
             na, nb = self.nations[a], self.nations[b]
-            dmg_a = 2.0 + self.rng.random() * 3.0
-            dmg_b = 2.0 + self.rng.random() * 3.0
+            dmg_a = (2.0 + self.rng.random() * 3.0) * fm
+            dmg_b = (2.0 + self.rng.random() * 3.0) * fm
             na.military -= dmg_b
             nb.military -= dmg_a
-            na.war_exhaustion += 4.0
-            nb.war_exhaustion += 4.0
+            na.war_exhaustion += 4.0 * fm
+            nb.war_exhaustion += 4.0 * fm
             for n in (na, nb):
-                n.gdp *= 0.997
-            if na.war_exhaustion > 40 or nb.war_exhaustion > 40 or self.rng.random() < 0.05:
+                n.gdp *= 1.0 - 0.003 * fm
+            if na.war_exhaustion > 40 or nb.war_exhaustion > 40 \
+                    or self.rng.random() < self._hazard(0.05):
                 self.wars.remove((a, b))
                 na.at_war_with.remove(b)
                 nb.at_war_with.remove(a)
@@ -869,8 +1061,13 @@ class Engine:
                 )
             continue
 
-        # new skirmishes from tension
+        # new skirmishes from tension — ただし即時開戦しない:
+        # 緊張が閾値を超えると「動員」が始まり、実時間の所要時間
+        # （~4-30日、最頻10日）を経て初めて開戦判定が走る。その間に緊張が
+        # 引けば動員は解除される（stand_down）。
         ids = sorted(self.nations)
+        pending_pairs = {(p["a"], p["b"]) for p in self._pending_wars} | \
+                        {(p["b"], p["a"]) for p in self._pending_wars}
         for i, a in enumerate(ids):
             for b in ids[i + 1:]:
                 if b in self.nations[a].at_war_with:
@@ -878,33 +1075,83 @@ class Engine:
                 na, nb = self.nations[a], self.nations[b]
                 if na.collapsed or nb.collapsed:
                     continue
-                rivalry_bonus = 0.15 if self._resource_dispute(a, b) else 0.0
-                tension = (
-                    0.5 * (na.aggression + nb.aggression) * self.god.ai_aggression * 0.5
-                    + max(0.0, -na.trust.get(b, 0.0)) / 150.0
-                    + 0.1 * (na.paranoia + nb.paranoia)
-                    + rivalry_bonus
-                )
+                if (a, b) in pending_pairs:
+                    continue
+                tension = self._pair_tension(a, b)
                 det = self._deterrence(a, b) or self._deterrence(b, a)
                 if det is not None:
                     tension *= det
-                if tension > 0.55 and self.rng.random() < (tension - 0.55):
-                    self.wars.append((a, b))
-                    na.at_war_with.append(b)
-                    nb.at_war_with.append(a)
-                    parents = [r.id for r in self.event_log.records[-10:]
-                               if r.type in ("threat", "sanction", "shortage", "disinfo")
-                               and (r.actor in (a, b) or a in r.targets or b in r.targets)]
-                    self.event_log.emit(
-                        t, "war_start", f"{na.name} と {nb.name} の間で武力衝突が勃発",
-                        targets=[a, b], parents=parents,
-                        data={"tension": round(tension, 3)},
-                    )
-                    # 相互防衛: 両側の同盟国が条約を履行するか（新イベント種で因果追跡）
-                    wev = self.event_log.records[-1]
-                    self._alliance_activation(b, a, wev)
-                    self._alliance_activation(a, b, wev)
-                    break
+                if tension > 0.55 and self.rng.random() < self._hazard(tension - 0.55):
+                    self._enqueue_mobilization(a, b, tension)
+                    pending_pairs.add((a, b))
+                    pending_pairs.add((b, a))
+
+    def _pair_tension(self, a: str, b: str) -> float:
+        na, nb = self.nations[a], self.nations[b]
+        rivalry_bonus = 0.15 if self._resource_dispute(a, b) else 0.0
+        return (
+            0.5 * (na.aggression + nb.aggression) * self.god.ai_aggression * 0.5
+            + max(0.0, -na.trust.get(b, 0.0)) / 150.0
+            + 0.1 * (na.paranoia + nb.paranoia)
+            + rivalry_bonus
+        )
+
+    def _enqueue_mobilization(self, a: str, b: str, tension: float) -> None:
+        """開戦への梯子: 動員は実時間がかかる。所要時間は三角形分布で決める。"""
+        t = self.tick_no
+        hours = self.rng.triangular(TC.MOBILIZE_MIN_H, TC.MOBILIZE_MAX_H, TC.MOBILIZE_MODE_H)
+        due = t + self._ticks_for(hours)
+        na, nb = self.nations[a], self.nations[b]
+        ev = self.event_log.emit(
+            t, "mobilization",
+            f"{na.name} と {nb.name} の緊張が臨界を超え、双方が動員を開始（開戦まで最短 {TC.MOBILIZE_MIN_H:.0f}時間）",
+            targets=[a, b],
+            parents=[r.id for r in self.event_log.records[-10:]
+                     if r.type in ("threat", "sanction", "shortage", "disinfo")
+                     and (r.actor in (a, b) or a in r.targets or b in r.targets)],
+            data={"tension": round(tension, 3), "eta_hours": round(hours, 1)},
+        )
+        self._seq += 1
+        self._pending_wars.append({"a": a, "b": b, "due": due, "seq": self._seq, "ev": ev.id})
+
+    def _start_war(self, a: str, b: str, tension: float, cause: Optional[str] = None) -> None:
+        t = self.tick_no
+        na, nb = self.nations[a], self.nations[b]
+        self.wars.append((a, b))
+        na.at_war_with.append(b)
+        nb.at_war_with.append(a)
+        parents = [cause] if cause else []
+        parents += [r.id for r in self.event_log.records[-10:]
+                    if r.type in ("threat", "sanction", "shortage", "disinfo", "mobilization")
+                    and (r.actor in (a, b) or a in r.targets or b in r.targets)]
+        self.event_log.emit(
+            t, "war_start", f"{na.name} と {nb.name} の間で武力衝突が勃発",
+            targets=[a, b], parents=parents,
+            data={"tension": round(tension, 3)},
+        )
+        # 相互防衛: 両側の同盟国が協議の末、条約を履行するか（遅延あり）
+        wev = self.event_log.records[-1]
+        self._schedule_alliance(b, a, wev)
+        self._schedule_alliance(a, b, wev)
+
+    def _schedule_alliance(self, a: str, b: str, war_ev) -> None:
+        """bの同盟国は即座でなく、協議(~1日-1週間)の後に参戦を決める。"""
+        for x in sorted(self.nations):
+            if x in (a, b) or a in self.nations[x].at_war_with:
+                continue
+            xnat = self.nations[x]
+            if b not in xnat.alliances or xnat.collapsed:
+                continue
+            trust = xnat.trust.get(b, 0.0)
+            if trust < 35.0:
+                continue
+            hours = self.rng.uniform(TC.ALLIANCE_MIN_H, TC.ALLIANCE_MAX_H)
+            self._seq += 1
+            self._pending_alliance.append({
+                "a": a, "b": b, "x": x, "trust": trust,
+                "due": self.tick_no + self._ticks_for(hours),
+                "seq": self._seq, "war_ev": war_ev,
+            })
 
     def _resource_dispute(self, a: str, b: str) -> bool:
         for c in Commodity:
@@ -929,40 +1176,41 @@ class Engine:
 
     def _fiscal_step(self, nid: str, nat) -> None:
         t = self.tick_no
+        fm = self._fm()
         at_war = bool(nat.at_war_with)
         mil = nat.budget.get("military", 0.2)
         wel = nat.budget.get("welfare", 0.3)
-        # monthly flows (fraction of GDP)
-        revenue = self.TAX_RATE / 12.0
-        spending = (self.BASE_SPEND + 0.30 * mil * (2.0 if at_war else 1.0) + 0.10 * wel) / 12.0
+        # fiscal flows (fraction of GDP) — annual rates scaled by elapsed time
+        revenue = self.TAX_RATE * self._fy()
+        spending = (self.BASE_SPEND + 0.30 * mil * (2.0 if at_war else 1.0) + 0.10 * wel) * self._fy()
         rate = self._bond_rate(nat)
-        interest = (nat.debt_gdp / 100.0) * rate / 12.0
+        interest = (nat.debt_gdp / 100.0) * rate * self._fy()
         deficit = spending + interest - revenue
         nat.debt_gdp = max(0.0, nat.debt_gdp + deficit * 100.0)
 
         # credibility dynamics (high debt alone erodes credit only slowly:
         # credible high-debt states like Japan must stay serviceable)
-        nat.credibility = min(100.0, nat.credibility + 1.5)
+        nat.credibility = min(100.0, nat.credibility + 1.5 * fm)
         if nat.debt_gdp > 160.0:
-            nat.credibility -= 2.5
+            nat.credibility -= 2.5 * fm
         if nat.inflation > 0.10:
-            nat.credibility -= 2.0
+            nat.credibility -= 2.0 * fm
         nat.credibility = max(0.0, nat.credibility)
         if nat.default_cooldown > 0:
             nat.default_cooldown -= 1
             return
 
-        # sovereign default check
+        # sovereign default check（月次ハザードを実時間に変換して判定）
         if interest > self.DEFAULT_SAFE:
             forced = interest > self.DEFAULT_FORCE
             p = 1.0 if forced else 0.10 + (interest - self.DEFAULT_SAFE) * 20.0
-            if self.rng.random() < p:
+            if self.rng.random() < self._hazard(p):
                 self._sovereign_default(nid, nat, rate)
 
     def _sovereign_default(self, nid: str, nat, rate: float) -> None:
         t = self.tick_no
         nat.defaults += 1
-        nat.default_cooldown = 12                        # restructuring moratorium
+        nat.default_cooldown = self._ticks_for(12.0 * TC.HOURS_PER_MONTH)  # restructuring moratorium
         nat.inflation = min(1.0, nat.inflation + 0.15)   # currency crash
         nat.fx = max(0.3, nat.fx * 0.70)                 # 為替暴落
         nat.fx_reserves *= 0.6                           # 準備防衛で消耗
@@ -996,17 +1244,25 @@ class Engine:
                     data={"exposure": finance_units},
                 )
 
-    def _alliance_activation(self, a: str, b: str, war_ev) -> None:
-        """相互防衛: bの同盟国が信頼に応じて参戦する（連鎖の深さは1に制限）。"""
+    def _alliance_activation(self, a: str, b: str, war_ev, only: Optional[str] = None,
+                             trust_at_decision: Optional[float] = None) -> None:
+        """相互防衛: bの同盟国が信頼に応じて参戦する（連鎖の深さは1に制限）。
+        only=None なら即時に全候補を判定（互換用）。only指定ならその1国のみ。"""
         t = self.tick_no
         for x in sorted(self.nations):
+            if only is not None and x != only:
+                continue
             if x in (a, b) or a in self.nations[x].at_war_with:
                 continue
             xnat = self.nations[x]
             if b not in xnat.alliances or xnat.collapsed:
                 continue
             trust = xnat.trust.get(b, 0.0)
-            if trust < 35.0:
+            if trust_at_decision is not None:
+                # 協議時に下した判断を優先しつつ、現在の信頼も条件とする
+                if min(trust, trust_at_decision) < 35.0:
+                    continue
+            elif trust < 35.0:
                 continue
             if self.rng.random() < 0.4 * (trust / 100.0):
                 self.wars.append((x, a))
@@ -1021,8 +1277,10 @@ class Engine:
 
     # ------------------------------------------------------------- macro/cycle
     def _factor_step(self) -> None:
-        """戦略因子の解決: policyのdoctrine表明に従い取得進捗/放棄を遷移させる。"""
+        """戦略因子の解決: policyのdoctrine表明に従い取得進捗/放棄を遷移させる。
+        acquisition_ticks は「月」単位の所要期間。"""
         t = self.tick_no
+        fm = self._fm()
         for nid in sorted(self.nations):
             nat = self.nations[nid]
             if nat.collapsed:
@@ -1031,8 +1289,8 @@ class Engine:
                 holds = fid in nat.factors
                 doctrine = nat.doctrines.get(fid, "hold")
                 if not holds and doctrine == "pursue" and self._factor_prereq_ok(nid, spec):
-                    nat.factor_progress[fid] = nat.factor_progress.get(fid, 0.0) + 100.0 / spec.acquisition_ticks
-                    nat.gdp *= 1.0 - spec.pursuit_cost_gdp
+                    nat.factor_progress[fid] = nat.factor_progress.get(fid, 0.0) + 100.0 / spec.acquisition_ticks * fm
+                    nat.gdp *= 1.0 - spec.pursuit_cost_gdp * fm
                     if nat.factor_progress[fid] >= 100.0:
                         nat.factors.append(fid)
                         nat.factor_progress.pop(fid, None)
@@ -1046,8 +1304,8 @@ class Engine:
                         )
                 elif holds and doctrine == "abandon":
                     key = ("abandon", nid, fid)
-                    self._abandon_votes[key] = self._abandon_votes.get(key, 0) + 1
-                    if self._abandon_votes[key] >= 3:
+                    self._abandon_votes[key] = self._abandon_votes.get(key, 0.0) + self._dec_elapsed_hours
+                    if self._abandon_votes[key] >= 3.0 * TC.HOURS_PER_MONTH:
                         nat.factors.remove(fid)
                         self._abandon_votes.pop(key, None)
                         nat.stability = max(0.0, nat.stability - spec.abandon_stability_hit)
@@ -1064,7 +1322,7 @@ class Engine:
                 elif doctrine != "pursue":
                     # 追求を止めると進捗は徐々に減る（遊離ガス）
                     if nat.factor_progress.get(fid, 0.0) > 0:
-                        nat.factor_progress[fid] = max(0.0, nat.factor_progress[fid] - 100.0 / (spec.acquisition_ticks * 2))
+                        nat.factor_progress[fid] = max(0.0, nat.factor_progress[fid] - 100.0 / (spec.acquisition_ticks * 2) * fm)
                 # 集団制裁レジーム: 加盟国の制裁対象をレジーム全体へ伝播
                 if spec.collective_sanction and fid in nat.factors and nat.sanctions_on:
                     members = [o for o, on in sorted(self.nations.items())
@@ -1118,20 +1376,36 @@ class Engine:
 
     def _macro_update(self) -> None:
         t = self.tick_no
+        fm = self._fm()
+        fy = self._fy()
+        ref_month = self._price_ref(TC.HOURS_PER_MONTH)
         for nid in sorted(self.nations):
             nat = self.nations[nid]
             if nat.collapsed:
                 continue
             spec = self._specs[nid]
             at_war_now = bool(nat.at_war_with)
-            # inflation from import price exposure（通貨安は輸入インフレを増幅）
-            infl_delta = 0.0
+            # inflation from import price exposure（通貨安は輸入インフレを増幅）。
+            # pass-throughは「1ヶ月前の価格比」で測る（毎tick比ではない）。
+            # 輸入ウェイトは全商品の依存度の和だが、CPIに占める輸入の上限
+            # (0.35)で正規化する — 単純和は二重計上になり、食料危機が
+            # インフレ死亡らせんに化ける。
+            weights: dict[Commodity, float] = {}
             for c in Commodity:
                 dep = self._import_dependency(nid, c)
-                infl_delta += dep * 0.25 * (self.prices[c.value] / max(0.01, self.last_prices[c.value]) - 1.0)
-            infl_delta *= 1.0 / max(0.5, nat.fx)
-            nat.inflation = max(-0.05, min(1.0, 0.85 * nat.inflation + 0.15 * 0.02 + infl_delta))
-            # growth
+                if dep > 0:
+                    weights[c] = 0.25 * dep
+            wsum = sum(weights.values())
+            infl_delta = 0.0
+            if wsum > 0.0:
+                scale = min(1.0, IMPORT_INFLATION_CAP / wsum)
+                infl_delta = sum(
+                    w * scale * (self.prices[c.value] / max(0.01, ref_month.get(c.value, self.prices[c.value])) - 1.0)
+                    for c, w in weights.items())
+                infl_delta *= 1.0 / max(0.7, nat.fx)
+            a_infl = self._alpha(TC.INFLATION_TAU)
+            nat.inflation = max(-0.05, min(1.0, (1.0 - a_infl) * nat.inflation + a_infl * 0.02 + infl_delta))
+            # growth — 年率として複利で刻む
             finance_units = sum(1 for r in self.nation_resources[nid] if r is ResourceKind.FINANCE)
             growth = 0.02 + 0.002 * finance_units - nat.inflation * 0.6
             # --- 労働: 失業率（生産ギャップ・戦争・福祉が決める） ---
@@ -1140,13 +1414,14 @@ class Engine:
             u_target = (5.0 + max(0.0, 0.02 - growth) * 160.0 + (8.0 if at_war_now else 0.0)
                         + 5.0 * min(1.5, shortage_hits / 2.0)
                         - min(4.0, 6.0 * welfare_share))
-            nat.unemployment = min(45.0, max(2.0, nat.unemployment + (u_target - nat.unemployment) * 0.25))
+            a_unemp = self._alpha(TC.UNEMPLOYMENT_TAU)
+            nat.unemployment = min(45.0, max(2.0, nat.unemployment + (u_target - nat.unemployment) * a_unemp))
             growth -= max(0.0, nat.unemployment - 10.0) * 0.001          # 失業は生産を蝕む
-            # --- 人口 ---
-            nat.population_m *= 1.0 + spec.population_growth / 12.0 - (0.001 if at_war_now else 0.0)
+            # --- 人口（年率） ---
+            nat.population_m *= (1.0 + spec.population_growth) ** fy * (1.0 - (0.001 if at_war_now else 0.0) * fm)
             # --- インフラ投資（補助金シェアが蓄積、戦争は毀損） ---
-            nat.infra = min(1.25, max(0.5, nat.infra + 0.004 * (nat.budget.get("subsidy", 0.25) * 2.2 - 0.7) - (0.006 if at_war_now else 0.0)))
-            # --- 為替: インフレ差で調整、債務不履行で暴落（_sovereign_default参照） ---
+            nat.infra = min(1.25, max(0.5, nat.infra + 0.004 * (nat.budget.get("subsidy", 0.25) * 2.2 - 0.7) * fm - (0.006 * fm if at_war_now else 0.0)))
+            # --- 為替: 年率のインフレ差を実時間で ---
             world_inf = sum(o.inflation for o in self.nations.values()) / len(self.nations)
             fx_sens = 0.6
             drain_mult = 1.0
@@ -1155,17 +1430,19 @@ class Engine:
                 if fs:
                     fx_sens *= fs.fx_stabilize
                     drain_mult *= fs.reserves_drain_mult
-            nat.fx = min(3.0, max(0.3, nat.fx * (1.0 + fx_sens * (world_inf - nat.inflation) / 12.0)))
+            nat.fx = min(3.0, max(0.3, nat.fx * (1.0 + fx_sens * (world_inf - nat.inflation) * fy)))
             # --- 経常収支と外貨準備 ---
             exp_val = self._ca_exports.get(nid, 0.0)
             imp_val = self._ca_imports.get(nid, 0.0)
-            nat.ca_last = exp_val - imp_val
+            nat.ca_last = (exp_val - imp_val) / max(fy, 1e-9)   # 年率換算で見える化
             nat.fx_reserves = min(36.0, max(0.0, nat.fx_reserves + (exp_val - imp_val) * 0.02 * drain_mult))
             if nat.fx_reserves < 1.0:
                 # 外貨準備枯渇: 輸入能力が落ち、スタグフレーションと政治的圧力
                 growth -= 0.01
-                nat.stability = max(0.0, nat.stability - 1.5)
-                if int(nat.fx_reserves * 10) % 12 == 0:
+                nat.stability = max(0.0, nat.stability - 1.5 * fm)
+                now = self._hours_now()
+                if now - self._fxwarn_last.get(nid, -1e9) >= TC.HOURS_PER_MONTH:
+                    self._fxwarn_last[nid] = now
                     self.event_log.emit(
                         t, "fx_crisis",
                         f"{nat.name} の外貨準備が枯渇（{nat.fx_reserves:.1f}ヶ月分）。輸入が絞られる",
@@ -1178,8 +1455,8 @@ class Engine:
                     continue
                 rival_max = max(rival_max, onat.military)
             if rival_max > nat.military * 1.2:
-                nat.aggression = min(0.95, nat.aggression + 0.004)
-                nat.paranoia = min(0.95, nat.paranoia + 0.003)
+                nat.aggression = min(0.95, nat.aggression + 0.004 * fm)
+                nat.paranoia = min(0.95, nat.paranoia + 0.003 * fm)
 
             # --- CO2: 化石エネルギー生産 × (1-実効再生比率) ---
             techs = self._techs_of(nid)
@@ -1188,40 +1465,40 @@ class Engine:
             nat.renew_eff = renew
             fossil_units = sum(1 for r in self.nation_resources[nid] if r in (ResourceKind.OIL, ResourceKind.GAS))
             co2_flow = fossil_units * (1.0 - renew)
-            nat.co2_cum += co2_flow
-            self.global_co2 += co2_flow
+            nat.co2_cum += co2_flow * fm
+            self.global_co2 += co2_flow * fm
             if nat.stocks["chips"] <= 0.05:
                 growth -= 0.01
-                nat.military = max(0.0, nat.military - 1.0)
+                nat.military = max(0.0, nat.military - 1.0 * fm)
             if nat.stocks["space"] <= 0.05:
                 # 軌道資産を失うと偵察・通信能力が落ち、軍事力が漸減する
-                nat.military = max(0.0, nat.military - 1.5)
+                nat.military = max(0.0, nat.military - 1.5 * fm)
             bud = nat.budget
             mil_mult = self._tech_military_mult(nid)
             for fid in nat.factors:
                 fspec = FACTORS_BY_ID.get(fid)
                 if fspec:
                     mil_mult *= fspec.military_mult
-            nat.military = min(150.0, nat.military + (2.0 * bud.get("military", 0.2)) * mil_mult - (0.5 if nid in [x for w in self.wars for x in w] else 0.0))
-            nat.gdp *= 1.0 + growth
-            # stability & approval
+            nat.military = min(150.0, nat.military + (2.0 * bud.get("military", 0.2)) * mil_mult * fm - (0.5 * fm if nid in [x for w in self.wars for x in w] else 0.0))
+            nat.gdp *= (1.0 + growth) ** fy
+            # stability & approval（月次レートを実時間で）
             t_stab, t_appr = self._tech_socio_drifts(nid)
-            drift = 0.25 * (55.0 - nat.stability)
-            welfare = 3.0 * bud.get("welfare", 0.3)
-            gini_drag = max(0.0, spec.gini - 0.40) * 30.0     # 高不平等は社会を疲弊させる
-            edu_lift = (spec.education - 0.5) * 0.8
-            unemp_drag = max(0.0, nat.unemployment - 8.0) * 0.15
-            nat.stability = max(0.0, min(100.0, nat.stability + drift + welfare - nat.inflation * 25.0 - nat.war_exhaustion * 0.05 - gini_drag - unemp_drag + t_stab))
-            nat.approval = max(0.0, min(100.0, nat.approval + 0.2 * (50.0 - nat.approval) + (1.0 if bud.get("welfare", 0) > 0.35 else -0.5) - unemp_drag * 0.5 + edu_lift + t_appr))
-            nat.war_exhaustion = max(0.0, nat.war_exhaustion - 0.5)
+            drift = 0.25 * (55.0 - nat.stability) * fm
+            welfare = 3.0 * bud.get("welfare", 0.3) * fm
+            gini_drag = max(0.0, spec.gini - 0.40) * 30.0 * fm     # 高不平等は社会を疲弊させる
+            edu_lift = (spec.education - 0.5) * 0.8 * fm
+            unemp_drag = max(0.0, nat.unemployment - 8.0) * 0.15 * fm
+            nat.stability = max(0.0, min(100.0, nat.stability + drift + welfare - nat.inflation * 25.0 * fm - nat.war_exhaustion * 0.05 * fm - gini_drag - unemp_drag + t_stab * fm))
+            nat.approval = max(0.0, min(100.0, nat.approval + (0.2 * (50.0 - nat.approval) + (1.0 if bud.get("welfare", 0) > 0.35 else -0.5) - unemp_drag * 0.5 + edu_lift + t_appr) * fm))
+            nat.war_exhaustion = max(0.0, nat.war_exhaustion - 0.5 * fm)
             # ---------------------------------------------------- fiscal block
             self._fiscal_step(nid, nat)
-            # collapse check
+            # collapse check（不安定が実時間で継続した場合）
             if nat.stability < 12.0:
                 nat.collapse_ticks += 1
-                if nat.collapse_ticks >= 3 and not nat.collapsed:
+                if nat.collapse_ticks >= self._collapse_need_ticks and not nat.collapsed:
                     nat.collapsed = True
-                    nat.collapse_ticks = 6
+                    nat.collapse_ticks = self._recover_ticks
                     nat.alliances = []
                     nat.aggression = nat.base_aggression
                     nat.paranoia = nat.base_paranoia
@@ -1292,14 +1569,16 @@ class Engine:
             "global_co2": round(self.global_co2, 1),
         }
         snap = {
-            "type": "tick", "tick": t, "nations": nations_out,
+            "type": "tick", "tick": t, "hours": round((t + 1) * self.hpt, 1),
+            "nations": nations_out,
             "prices": {k: round(v, 4) for k, v in self.prices.items()},
             "chokepoints": {name: cp.closed for name, cp in sorted(self.chokepoints.items())},
             "metrics": metrics,
             "events": [e.model_dump() for e in tick_events],
             "news": [e.text for e in tick_events if e.type in
                      ("war_start", "war_end", "collapse", "sanction", "alliance_formed",
-                      "price_spike", "shortage", "disinfo", "god_intervention", "threat")],
+                      "price_spike", "shortage", "disinfo", "god_intervention", "threat",
+                      "mobilization")],
         }
         self.snapshots.append(snap)
         self.series.append({"tick": t, **metrics})

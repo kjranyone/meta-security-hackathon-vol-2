@@ -1,0 +1,43 @@
+{
+  "run_name": "earth_taiwan_v2",
+  "seed": 42,
+  "ticks": 36,
+  "final_metrics": {
+    "tick": 35,
+    "world_gdp": 79.3976,
+    "mean_stability": 42.13,
+    "wars": 0,
+    "collapsed": 0,
+    "price_energy": 1.0,
+    "price_food": 1.0,
+    "price_chips": 1.6707,
+    "mean_inflation": 0.0109,
+    "mean_debt_gdp": 80.3,
+    "defaults": 5,
+    "mean_unemployment": 10.91,
+    "global_co2": 582.8
+  },
+  "event_counts": {
+    "policy_shift": 576,
+    "shortage": 40,
+    "factor_acquired": 25,
+    "god_intervention": 1,
+    "tech_emergence": 13,
+    "tech_adopted": 129,
+    "trade_throttled": 87,
+    "price_spike": 5,
+    "sovereign_default": 5,
+    "credibility_hit": 12,
+    "factor_relinquished": 2
+  },
+  "wars": 0,
+  "config": {
+    "preset": "earth",
+    "gen_seed": null,
+    "gen_nations": 8,
+    "policy": "heuristic",
+    "rl_nation": null,
+    "rl_weights": null,
+    "scenario": "scenarios/earth_taiwan.yaml"
+  }
+}

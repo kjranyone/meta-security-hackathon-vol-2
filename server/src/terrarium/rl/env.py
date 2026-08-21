@@ -117,13 +117,19 @@ def tick_reward(eng: Engine, nation_id: str, prev: dict, default_penalty: float 
 
     default_penalty > 0 additionally punishes this nation's sovereign default,
     letting the god/experimenter trade growth-seeking against debt discipline.
+    成長項は月次換算に正規化する: 時計の圧縮率(1tick=1時間でも1ヶ月でも)
+    によらず学習シグナルのスケールを保つ。
     """
     cur = reward_snapshot(eng, nation_id)
+    fm = max(getattr(eng, "_fm", lambda: 1.0)(), 1e-9)
     r = 0.0
-    r += 20.0 * (cur["log_gdp"] - prev["log_gdp"])
+    r += 20.0 * (cur["log_gdp"] - prev["log_gdp"]) / fm
     r += 0.30 * (cur["stability"] - prev["stability"])
     r += 0.10 * (cur["approval"] - prev["approval"])
     r -= 0.40 * cur["war"]
+    # 統治の質: 安定度の水準報酬（月次換算）。Δ項だけだと崩壊→回復の
+    # 往復が打ち消し合い、「生き続ける」ことへの勾配が消える。
+    r += 0.08 * cur["stability"] * fm
     # shortage events hitting this nation this tick (dominant penalty:
     # rationing/hoarding only matter insofar as they prevent these)
     for rec in eng.event_log.records:

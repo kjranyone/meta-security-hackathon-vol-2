@@ -1,0 +1,48 @@
+{
+  "run_name": "earth_financial_crisis",
+  "seed": 42,
+  "ticks": 36,
+  "final_metrics": {
+    "tick": 35,
+    "world_gdp": 73.8903,
+    "mean_stability": 36.82,
+    "wars": 1,
+    "collapsed": 0,
+    "price_energy": 2.605,
+    "price_food": 1.0,
+    "price_chips": 1.4653,
+    "mean_inflation": 0.09361,
+    "mean_debt_gdp": 74.6,
+    "defaults": 12,
+    "mean_unemployment": 13.94,
+    "global_co2": 592.9
+  },
+  "event_counts": {
+    "policy_shift": 576,
+    "shortage": 50,
+    "factor_acquired": 27,
+    "god_intervention": 2,
+    "tech_emergence": 13,
+    "tech_adopted": 131,
+    "trade_throttled": 259,
+    "price_spike": 5,
+    "sovereign_default": 12,
+    "credibility_hit": 32,
+    "collapse": 4,
+    "factor_relinquished": 7,
+    "mobilization": 1,
+    "war_start": 1,
+    "fx_crisis": 2
+  },
+  "wars": 1,
+  "config": {
+    "preset": "earth",
+    "gen_seed": null,
+    "gen_nations": 8,
+    "policy": "heuristic",
+    "rl_nation": null,
+    "rl_weights": null,
+    "scenario": "scenarios/earth_financial_crisis.yaml",
+    "engine": "v4-realtime-clock"
+  }
+}

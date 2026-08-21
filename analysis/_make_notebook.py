@@ -165,8 +165,8 @@ for wj in sorted(LOGS.glob("*/whatif.json")):
         "IF": "t" + str(r["fork_tick"]) + " " + ", ".join(_iv_label(iv) for iv in r["interventions"]),
         "first_div": r["first_divergence_tick"],
         "d_gdp": d.get("world_gdp"), "d_defaults": d.get("defaults"),
-        "only_in_base": "; ".join("t" + str(e["tick"]) + e["actor"] for e in r["only_in_base"])[:60],
-        "only_in_fork": "; ".join("t" + str(e["tick"]) + e["actor"] for e in r["only_in_fork"])[:60],
+        "only_in_base": "; ".join("t" + str(e["tick"]) + (e["actor"] or "?") for e in r["only_in_base"])[:60],
+        "only_in_fork": "; ".join("t" + str(e["tick"]) + (e["actor"] or "?") for e in r["only_in_fork"])[:60],
     })
 pd.DataFrame(rows)"""))
 

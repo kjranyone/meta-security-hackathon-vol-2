@@ -48,6 +48,8 @@ class Chokepoint(BaseModel):
     lat: float
     closed: bool = False
     closed_since: Optional[int] = None
+    # 封鎖の実効化度 0-1: 航行中の船はまだ着く。輸送力は REROUTE_TAU で漸減する
+    throttle: float = 0.0
 
 
 class TradeRoute(BaseModel):
@@ -150,6 +152,12 @@ class WorldSpec(BaseModel):
     chokepoints: list[Chokepoint] = []
     routes: list[TradeRoute] = []
     map_geojson: str = "world.geojson"   # viewer hint (web/<file>)
+    # ---- シミュレーション時計: 1tickの実時間（時間）。動力学は実時間で校正済み ----
+    # 720 = 月次圧縮時計（実験・訓練・旧互換）。1 = 神モードのRTS時計。
+    hours_per_tick: float = 720.0
+    # 国家の意思決定周期（時間）。None = 毎tick。神モードでは週次(168)を推奨:
+    # 政府は毎時間閣議を開かない。決定は次の決定点まで継続適用される。
+    decision_every_hours: Optional[float] = None
 
 
 class EventRecord(BaseModel):

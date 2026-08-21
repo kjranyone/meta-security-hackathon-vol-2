@@ -37,7 +37,7 @@ class Session:
 
     def __init__(self) -> None:
         self.engine: Optional[Engine] = None
-        self.max_ticks: int = 60
+        self.max_ticks: int = 24 * 400          # 神モード: 400日分の砂箱
         self.speed_ms: int = 1200
         self.running: bool = False
         self.clients: set[WebSocket] = set()
@@ -56,6 +56,10 @@ class Session:
             spec = generate_world(GenParams(seed=gen_seed))
         else:
             spec = load_preset(preset)
+        # 神モードのRTS時計: 1tick=1時間、政府の意思決定は週次(168時間)。
+        # 動力学は実時間で校正されているので、介入の波及には現実的な遅延が乗る。
+        spec.hours_per_tick = 1.0
+        spec.decision_every_hours = 168.0
         if policy == "rl" and not rl_nation:
             # 学習AI: 個別学習済み国 + 汎用ポリシー(generalist)で全国家を賄う
             import glob
@@ -90,6 +94,10 @@ class Session:
         return {
             "type": "meta",
             "seed": eng.seed,
+            "clock": {
+                "hours_per_tick": eng.hpt,
+                "decision_every_hours": getattr(eng.spec, "decision_every_hours", None),
+            },
             "geo": {
                 "map_geojson": eng.spec.map_geojson,
                 "nations": {
@@ -290,7 +298,8 @@ async def ws_endpoint(ws: WebSocket) -> None:
                 session.running = True
                 await session.broadcast({"type": "status", **session.status()})
             elif cmd == "speed":
-                session.speed_ms = max(100, min(5000, int(data.get("ms", session.speed_ms))))
+                # 高速側は1tick=1時間の世界で日/週を眺めるための早送り
+                session.speed_ms = max(30, min(5000, int(data.get("ms", session.speed_ms))))
                 await session.broadcast({"type": "status", **session.status()})
             elif cmd == "step":
                 async with session.lock:

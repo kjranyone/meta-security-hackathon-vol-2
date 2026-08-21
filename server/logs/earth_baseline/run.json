@@ -4,36 +4,37 @@
   "ticks": 36,
   "final_metrics": {
     "tick": 35,
-    "world_gdp": 184.1157,
-    "mean_stability": 50.61,
+    "world_gdp": 90.7407,
+    "mean_stability": 46.13,
     "wars": 0,
     "collapsed": 0,
     "price_energy": 1.0,
-    "price_food": 1.0,
+    "price_food": 1.002,
     "price_chips": 1.0,
-    "mean_inflation": 0.02645,
-    "mean_debt_gdp": 81.8,
-    "defaults": 2,
-    "mean_unemployment": 6.97,
-    "global_co2": 563.7
+    "mean_inflation": 0.02144,
+    "mean_debt_gdp": 86.2,
+    "defaults": 1,
+    "mean_unemployment": 8.73,
+    "global_co2": 570.3
   },
   "event_counts": {
     "policy_shift": 576,
-    "shortage": 315,
-    "factor_acquired": 28,
+    "shortage": 37,
+    "factor_acquired": 25,
     "tech_emergence": 13,
-    "tech_adopted": 149,
-    "sovereign_default": 2,
-    "credibility_hit": 6
+    "tech_adopted": 133,
+    "sovereign_default": 1,
+    "credibility_hit": 3
   },
   "wars": 0,
   "config": {
     "preset": "earth",
     "gen_seed": null,
     "gen_nations": 8,
-    "policy": "mock_llm",
+    "policy": "heuristic",
     "rl_nation": null,
     "rl_weights": null,
-    "scenario": null
+    "scenario": null,
+    "engine": "v4-realtime-clock"
   }
 }

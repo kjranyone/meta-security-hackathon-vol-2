@@ -13,6 +13,7 @@ import LegendModal from "../components/LegendModal";
 import StatusModal from "../components/StatusModal";
 import { loadGeojson } from "../lib/geo";
 import { pickAt } from "../lib/renderMap";
+import { setClock } from "../lib/calendar";
 import { initAudio, beep, toneForTypes, MAJOR_TONES } from "../lib/audio";
 
 export default function GodApp() {
@@ -83,6 +84,7 @@ export default function GodApp() {
         const m = JSON.parse(ev.data);
         if (m.type === "meta") {
           setMeta(m); setTicks([]); setGodEvents([]); setCur(0);
+          setClock(m.clock?.hours_per_tick ?? 1);
         } else if (m.type === "tick") {
           setTicks(t => [...t, m]);
           if ((m.events || []).length && sideTabRef.current !== "event")
@@ -121,7 +123,7 @@ export default function GodApp() {
   async function resetWorld() {
     const body = {
       preset: preset === "gen" ? "default" : preset, policy,
-      seed: +seed || 42, ticks: 60,
+      seed: +seed || 42, ticks: 24 * 400,
     };
     if (preset === "gen") body.gen_seed = 7;
     await fetch("/api/reset", {
@@ -218,7 +220,7 @@ export default function GodApp() {
         <button className="tlbtn" onClick={() => send({ cmd: "step" })}>1tick</button>
         <DateBar tick={status.tick} suffix={` / ${status.max_ticks} ${status.running ? "▶" : "⏸"}`} />
         <label className="speedlabel" style={{ flex: 1 }}><span>速度</span>
-          <input type="range" min="200" max="3000" defaultValue="1200"
+          <input type="range" min="30" max="3000" defaultValue="1200"
                  onChange={e => send({ cmd: "speed", ms: +e.target.value })} />
           <output>ms</output>
         </label>

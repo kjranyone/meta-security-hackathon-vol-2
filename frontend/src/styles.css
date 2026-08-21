@@ -78,6 +78,8 @@ canvas.map.god { cursor: pointer; }
 .ev { padding: 3px 6px; border-radius: 4px; margin-bottom: 2px; font-size: 12.5px; }
 .ev .t { color: var(--dim); font-size: 11px; margin-right: 6px; }
 .ev-war { border-left: 3px solid #f85149; }
+.ev-mobilization { border-left: 3px solid #db6d28; background: rgba(219,109,40,.08); }
+.ev-standdown { border-left: 3px solid #768390; }
 .ev-collapse { border-left: 3px solid #d29922; }
 .ev-default { border-left: 3px solid #ff6b35; background: rgba(255,107,53,.08); }
 .ev-credhit { border-left: 3px solid #ffa657; }

@@ -1,90 +1,86 @@
 [
  {
   "episode": 0,
-  "eval_reward": -59.866
+  "eval_reward": 47.759
  },
  {
-  "episode": 240,
-  "eval_reward": -45.082
+  "episode": 250,
+  "eval_reward": 53.556
  },
  {
-  "episode": 480,
-  "eval_reward": -45.503
+  "episode": 500,
+  "eval_reward": 54.17
  },
  {
-  "episode": 720,
-  "eval_reward": -53.94
+  "episode": 750,
+  "eval_reward": 50.709
  },
  {
-  "episode": 960,
-  "eval_reward": -50.616
+  "episode": 1000,
+  "eval_reward": 51.376
  },
  {
-  "episode": 1200,
-  "eval_reward": -46.379
+  "episode": 1250,
+  "eval_reward": 49.309
  },
  {
-  "episode": 1440,
-  "eval_reward": -46.879
+  "episode": 1500,
+  "eval_reward": 49.33
  },
  {
-  "episode": 1680,
-  "eval_reward": -50.799
+  "episode": 1750,
+  "eval_reward": 49.706
  },
  {
-  "episode": 1920,
-  "eval_reward": -54.12
+  "episode": 2000,
+  "eval_reward": 49.359
  },
  {
-  "episode": 2160,
-  "eval_reward": -55.777
+  "episode": 2250,
+  "eval_reward": 49.393
  },
  {
-  "episode": 2400,
-  "eval_reward": -53.812
+  "episode": 2500,
+  "eval_reward": 48.952
  },
  {
-  "episode": 2640,
-  "eval_reward": -50.717
+  "episode": 2750,
+  "eval_reward": 52.474
  },
  {
-  "episode": 2880,
-  "eval_reward": -52.076
+  "episode": 3000,
+  "eval_reward": 53.194
  },
  {
-  "episode": 3120,
-  "eval_reward": -52.557
+  "episode": 3250,
+  "eval_reward": 53.301
  },
  {
-  "episode": 3360,
-  "eval_reward": -52.584
+  "episode": 3500,
+  "eval_reward": 53.703
  },
  {
-  "episode": 3600,
-  "eval_reward": -56.534
+  "episode": 3750,
+  "eval_reward": 53.788
  },
  {
-  "episode": 3840,
-  "eval_reward": -58.836
+  "episode": 4000,
+  "eval_reward": 53.652
  },
  {
-  "episode": 4080,
-  "eval_reward": -55.104
+  "episode": 4250,
+  "eval_reward": 51.014
  },
  {
-  "episode": 4320,
-  "eval_reward": -52.73
+  "episode": 4500,
+  "eval_reward": 53.714
  },
  {
-  "episode": 4560,
-  "eval_reward": -50.348
- },
- {
-  "episode": 4800,
-  "eval_reward": -45.78
+  "episode": 4750,
+  "eval_reward": 53.411
  },
  {
   "episode": 4800,
-  "eval_reward": -46.306
+  "eval_reward": 53.633
  }
 ]

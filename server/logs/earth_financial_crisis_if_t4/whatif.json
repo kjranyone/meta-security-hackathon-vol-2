@@ -1,0 +1,161 @@
+{
+  "base_run": "earth_financial_crisis",
+  "fork_run": "earth_financial_crisis_if_t4",
+  "fork_tick": 4,
+  "interventions": [
+    {
+      "tick": 4,
+      "type": "bailout",
+      "params": {
+        "nation": "JPN"
+      }
+    }
+  ],
+  "first_divergence_tick": 4,
+  "final_metric_deltas": {
+    "world_gdp": 1.9453,
+    "mean_stability": 5.9,
+    "wars": -1.0,
+    "mean_debt_gdp": 6.1,
+    "defaults": -4.0
+  },
+  "only_in_fork": [
+    {
+      "type": "collapse",
+      "tick": 13,
+      "actor": "TUR"
+    },
+    {
+      "type": "collapse",
+      "tick": 14,
+      "actor": "EGY"
+    },
+    {
+      "type": "collapse",
+      "tick": 16,
+      "actor": "IND"
+    },
+    {
+      "type": "sovereign_default",
+      "tick": 8,
+      "actor": "USA"
+    },
+    {
+      "type": "sovereign_default",
+      "tick": 9,
+      "actor": "JPN"
+    },
+    {
+      "type": "sovereign_default",
+      "tick": 11,
+      "actor": "TUR"
+    },
+    {
+      "type": "sovereign_default",
+      "tick": 12,
+      "actor": "EGY"
+    },
+    {
+      "type": "sovereign_default",
+      "tick": 12,
+      "actor": "EUR"
+    },
+    {
+      "type": "sovereign_default",
+      "tick": 13,
+      "actor": "CHN"
+    },
+    {
+      "type": "sovereign_default",
+      "tick": 14,
+      "actor": "IND"
+    },
+    {
+      "type": "sovereign_default",
+      "tick": 24,
+      "actor": "JPN"
+    }
+  ],
+  "only_in_base": [
+    {
+      "type": "collapse",
+      "tick": 12,
+      "actor": "EGY"
+    },
+    {
+      "type": "collapse",
+      "tick": 13,
+      "actor": "IND"
+    },
+    {
+      "type": "collapse",
+      "tick": 14,
+      "actor": "TUR"
+    },
+    {
+      "type": "sovereign_default",
+      "tick": 6,
+      "actor": "JPN"
+    },
+    {
+      "type": "sovereign_default",
+      "tick": 8,
+      "actor": "EGY"
+    },
+    {
+      "type": "sovereign_default",
+      "tick": 9,
+      "actor": "USA"
+    },
+    {
+      "type": "sovereign_default",
+      "tick": 10,
+      "actor": "IND"
+    },
+    {
+      "type": "sovereign_default",
+      "tick": 11,
+      "actor": "CHN"
+    },
+    {
+      "type": "sovereign_default",
+      "tick": 12,
+      "actor": "TUR"
+    },
+    {
+      "type": "sovereign_default",
+      "tick": 13,
+      "actor": "EUR"
+    },
+    {
+      "type": "sovereign_default",
+      "tick": 19,
+      "actor": "JPN"
+    },
+    {
+      "type": "sovereign_default",
+      "tick": 22,
+      "actor": "USA"
+    },
+    {
+      "type": "sovereign_default",
+      "tick": 32,
+      "actor": "IND"
+    },
+    {
+      "type": "sovereign_default",
+      "tick": 34,
+      "actor": "EGY"
+    },
+    {
+      "type": "sovereign_default",
+      "tick": 35,
+      "actor": "EUR"
+    },
+    {
+      "type": "war_start",
+      "tick": 29,
+      "actor": null
+    }
+  ]
+}

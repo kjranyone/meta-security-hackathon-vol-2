@@ -30,6 +30,7 @@ export const MAJOR_TONES = {
   alliance_activation: 392,
   sovereign_default: 220, war_start: 110, collapse: 165,
   price_spike: 440, god_intervention: 660, crash: 195,
+  mobilization: 147,
 };
 export const MAJOR_COLOR = {
   fx_crisis: "#ffdd57",
@@ -39,6 +40,7 @@ export const MAJOR_COLOR = {
   alliance_activation: "#7ee787",
   sovereign_default: "#ff6b35", war_start: "#f85149", collapse: "#d29922",
   price_spike: "#e3b341", god_intervention: "#a371f7", crash: "#e5534b",
+  mobilization: "#db6d28",
 };
 
 export function toneForTypes(types) {
