@@ -35,7 +35,7 @@ export default function GodApp() {
   const eventLog = useMemo(() => ticks.flatMap(t => t.events || []).slice(-300), [ticks]);
   const openTab = t => { setSideTab(t); if (t === "event") setUnread(0); };
   const [preset, setPreset] = useState("earth_all");
-  const [policy, setPolicy] = useState("heuristic");
+  const [policy, setPolicy] = useState("rl");
   const [seed, setSeed] = useState(42);
   const [rlNation, setRlNation] = useState("");
   const [conn, setConn] = useState(false);

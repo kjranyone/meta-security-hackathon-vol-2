@@ -48,7 +48,7 @@ class Session:
 
 
     # ------------------------------------------------------------- lifecycle
-    def build(self, preset: str = "earth_all", policy: str = "heuristic", seed: int = 42,
+    def build(self, preset: str = "earth_all", policy: str = "rl", seed: int = 42,
               ticks: int = 60, gen_seed: Optional[int] = None,
               rl_nation: Optional[str] = None, rl_weights: Optional[str] = None,
               scenario: Optional[str] = None) -> None:
@@ -184,7 +184,7 @@ async def reset(payload: dict) -> dict:
         session.running = False
         session.build(
             preset=payload.get("preset", "earth"),
-            policy=payload.get("policy", "mock_llm"),
+            policy=payload.get("policy", "rl"),
             seed=int(payload.get("seed", 42)),
             ticks=int(payload.get("ticks", 60)),
             gen_seed=payload.get("gen_seed"),
