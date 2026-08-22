@@ -332,6 +332,12 @@ def generate_world(params: Optional[GenParams] = None) -> WorldSpec:
             aggression=round(max(0.05, min(0.9, rng.uniform(a.aggression - 0.05, a.aggression + 0.05))), 3),
             paranoia=round(max(0.05, min(0.9, rng.uniform(a.paranoia - 0.05, a.paranoia + 0.05))), 3),
             resources=list(a.resources),
+            # 思想・ドクトリン: アーキタイプの気質から導出（政府の異質性）
+            doctrine_militarism=round(max(0.05, min(1.0, a.aggression)), 2),
+            doctrine_revisionism=round(max(0.02, min(1.0, 0.6 * a.aggression)), 2),
+            doctrine_vengeance=round(max(0.1, min(1.0, 0.5 + 0.6 * a.paranoia)), 2),
+            doctrine_risk=round(max(0.2, min(0.9, 1.0 - 0.6 * a.paranoia)), 2),
+            doctrine_treaty_fidelity=round(rng.uniform(0.5, 0.95), 2),
             stockpile_months={k: round(v * rng.uniform(0.85, 1.15), 1) for k, v in a.stockpile.items()},
         ))
 

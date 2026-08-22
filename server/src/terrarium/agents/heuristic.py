@@ -29,7 +29,10 @@ class HeuristicPolicy:
                     out[fid] = "abandon" if view.me.get("stability", 50) < 25 else "hold"
             elif fid == "nuclear":
                 threatened = bool(view.me.get("at_war_with")) or view.me.get("stability", 50) < 40
-                out[fid] = "pursue" if threatened else "hold"
+                # 核拡散連鎖: 敵性核保有国の出現が対抗核追求を誘発する
+                rival_nuclear = any(r.get("nuclear") and r.get("trust", 0.0) < 10
+                                    for r in view.relations.values())
+                out[fid] = "pursue" if (threatened or rival_nuclear) else "hold"
             elif fid == "nuclear_umbrella":
                 out[fid] = "pursue" if allied_nuclear else "hold"
             elif fid == "currency_bloc":
@@ -61,11 +64,14 @@ class HeuristicPolicy:
         if stability < 40 or inflation > 0.08:
             budget["welfare"] += 0.2
             budget["military"] -= 0.1
+        # 思想の反映: 軍事偏重の政府は平時でも軍備に傾ける
+        budget["military"] += 0.4 * (me.get("doctrine_militarism", 0.3) - 0.3)
         # normalize to sum 1
         total = sum(max(v, 0.0) for v in budget.values())
         budget = {k: round(max(v, 0.0) / total, 3) for k, v in budget.items()}
 
         diplomacy: list[DiplomaticAction] = []
+        revisionism = me.get("doctrine_revisionism", 0.2)
         for other, rel in view.relations.items():
             trust = rel.get("trust", 0.0)
             if rel.get("war"):
@@ -74,7 +80,7 @@ class HeuristicPolicy:
                 diplomacy.append(DiplomaticAction(kind="sanction", target=other))
             elif trust > 40 and not rel.get("alliance"):
                 diplomacy.append(DiplomaticAction(kind="alliance_offer", target=other))
-            elif trust < -10 and aggression > 0.5:
+            elif trust < -10 and (aggression > 0.5 or revisionism > 0.55):
                 diplomacy.append(DiplomaticAction(kind="threaten", target=other))
 
         posture = "aggressive" if (at_war or aggression > 0.65) else ("defensive" if short else "neutral")

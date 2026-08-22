@@ -61,6 +61,13 @@ export default function NationDetail({ n, meta, onSelect }) {
           <Row k="外貨準備" v={`${(n.fx_reserves ?? 0).toFixed(1)}ヶ月分`} />
         </div>
         <div>
+          <Row k="思想: 軍事偏重" v={(n.doctrine_militarism ?? 0).toFixed(2)} />
+          <Row k="思想: 修正主義" v={(n.doctrine_revisionism ?? 0).toFixed(2)} />
+          <Row k="思想: 危機許容" v={(n.doctrine_risk ?? 0).toFixed(2)} />
+          <Row k="思想: 同盟遵守" v={(n.doctrine_treaty_fidelity ?? 0).toFixed(2)} />
+          <Row k="核態勢" v={n.nuclear_posture === "counterforce" ? "先制攻撃型" : n.nuclear_posture === "nfu" ? "不先使用" : "相互抑止"} />
+        </div>
+        <div>
           <Row k="経常収支" v={`${(n.ca_last ?? 0) >= 0 ? "+" : ""}${(n.ca_last ?? 0).toFixed(1)}`} />
           <Row k="インフラ" v={(n.infra ?? 1).toFixed(2)} />
           <Row k="CO2累積" v={(n.co2_cum ?? 0).toFixed(0)} />

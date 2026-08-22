@@ -33,10 +33,22 @@ SYSTEM_PROMPT = """あなたは地政学シミュレーションにおける国�
 }}"""
 
 
+DOCTRINE_LABELS = {
+    "doctrine_risk": "危機許容度(高いほど挑発に耐える)",
+    "doctrine_militarism": "軍事偏重(軍拡競争に反応しやすい)",
+    "doctrine_revisionism": "修正主義(現状変更志向)",
+    "doctrine_vengeance": "報復性(戦争を投げ切らない)",
+    "doctrine_treaty_fidelity": "同盟遵守度",
+    "nuclear_posture": "核態勢(counterforce/mad/nfu)",
+}
+
+
 def build_user_prompt(nation_persona: str, view: NationView) -> str:
+    doctrine = {label: view.me.get(k) for k, label in DOCTRINE_LABELS.items()}
     return json.dumps(
         {
             "あなたの国家": {"persona": nation_persona, **view.me},
+            "あなたの思想・ドクトリン(政策文化。価値判断の基準)": doctrine,
             "国際市場価格": view.prices,
             "価格・自国指標のトレンド": view.trends,
             "世界情勢": view.world,

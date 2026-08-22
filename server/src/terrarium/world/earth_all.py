@@ -275,6 +275,19 @@ def build_earth_all(seed: int = 7) -> WorldSpec:
             max(0.02, min(0.60, 0.08 + (0.22 if not fossil else 0.0) + min(0.18, gdp * 0.012))), 2)
         popg = round(w["pop_growth"] / 100.0, 4) if w.get("pop_growth") is not None else round(
             min(0.025, max(-0.004, 0.018 - gdp * 0.002)), 3)
+        # ---- 思想・ドクトリン: 中立的な決定論的サンプル。
+        # 軍事偏重だけは実軍事費比率から導出（mil 8%/GDPで1.0に飽和）。
+        # 特定国の思想への言明を避けるため、他はseed由来の分析用サンプル。
+        if w.get("mil_exp_pct"):
+            militarism = round(min(1.0, w["mil_exp_pct"] / 8.0), 2)
+        else:
+            militarism = round(rng.uniform(0.1, 0.45), 2)
+        doctr_risk = round(rng.uniform(0.3, 0.7), 2)
+        doctr_revision = round(rng.uniform(0.05, 0.4), 2)
+        doctr_venge = round(rng.uniform(0.15, 0.5), 2)
+        doctr_fidelity = round(rng.uniform(0.5, 0.95), 2)
+        posture = ("counterforce" if militarism > 0.55
+                   else "nfu" if militarism < 0.25 else "mad")
         specs.append(NationSpec(
             id=nid, name=admin, persona=_persona_for(res, gdp),
             color=f"hsl({(len(specs) * 137.508) % 360:.0f}, 52%, 50%)",
@@ -283,6 +296,12 @@ def build_earth_all(seed: int = 7) -> WorldSpec:
             aggression=aggr, paranoia=para, resources=res, debt_gdp=debt,
             population_growth=popg, education=education, gini=gini, energy_renew=renew,
             unemployment=unemp0,
+            doctrine_risk=doctr_risk,
+            doctrine_militarism=militarism,
+            doctrine_revisionism=doctr_revision,
+            doctrine_vengeance=doctr_venge,
+            doctrine_treaty_fidelity=doctr_fidelity,
+            nuclear_posture=posture,
         ))
 
     specs.sort(key=lambda s: s.id)

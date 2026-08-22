@@ -81,6 +81,14 @@ class NationSpec(BaseModel):
     gini: float = 0.38                 # 所得不平等（安定・支持に影響）
     energy_renew: float = 0.10         # 再生エネルギー比率 0-1（CO2に反映）
     unemployment: float = 6.0          # 初期失業率 %（実データがある国はその値）
+    # --- 思想・ドクトリン（政策の異質性の源。安全保障シミュレーションの中核） ---
+    # 数値は中立的な分析用の様式化であり、特定国の実政策への言明ではない
+    doctrine_risk: float = 0.5         # 危機許容度: 高いほど閾値近くまで冒険する
+    doctrine_militarism: float = 0.3   # 軍事偏重: リチャードソン軍拡反応・軍事報酬
+    doctrine_revisionism: float = 0.2  # 修正主義: 現状変更志向が緊張を高める
+    doctrine_vengeance: float = 0.3    # 報復性: 開戦後の疲弊耐性（執拗に戦い続ける）
+    doctrine_treaty_fidelity: float = 0.7  # 同盟遵守度: 相互防衛の発動確率に効く
+    nuclear_posture: str = "mad"       # counterforce | mad | nfu（先制安定性に効く）
     stockpile_months: dict[str, float] = Field(default_factory=lambda: {"energy": 3.0, "food": 4.0, "chips": 2.0})
 
 
@@ -128,6 +136,14 @@ class NationState(BaseModel):
     credibility: float = 80.0         # sovereign credit 0-100 (drives risk premium)
     defaults: int = 0                 # lifetime default count
     default_cooldown: int = 0         # post-default restructuring moratorium
+    # 思想・ドクトリン（specからコピー。観測・RL・LLMから見える）
+    doctrine_risk: float = 0.5
+    doctrine_militarism: float = 0.3
+    doctrine_revisionism: float = 0.2
+    doctrine_vengeance: float = 0.3
+    doctrine_treaty_fidelity: float = 0.7
+    nuclear_posture: str = "mad"
+    insurgency_cooldown: int = 0      # 内戦ハザードの冷却（tick）
 
     def view(self) -> dict[str, Any]:
         return self.model_dump()

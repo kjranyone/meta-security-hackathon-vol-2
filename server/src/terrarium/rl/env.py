@@ -30,6 +30,9 @@ OBS_DESC = [
     "mom_energy_t12", "mom_food_t12", "mom_chips_t12", "mom_minerals_t12", "mom_space_t12",
     "me_gdp_t12", "me_unemp_t12", "me_debt_t12", "me_fx_t12",
     "world_gdp_t12",
+    # --- 思想・ドクトリン（自国の性質。政策の異質性が観測に入る） ---
+    "doc_risk", "doc_militarism", "doc_revisionism", "doc_vengeance",
+    "doc_treaty_fidelity", "posture_counterforce", "posture_nfu",
 ]
 OBS_DIM = len(OBS_DESC)
 COMMODITIES = ("energy", "food", "chips", "minerals", "space")
@@ -74,6 +77,14 @@ def obs_from_view(view: NationView) -> np.ndarray:
         view.tick / 36.0,
         *mom,
         *mine,
+        # 思想・ドクトリン: 同じ重みでも「自分がどんな政府か」で戦術を変えられる
+        float(me.get("doctrine_risk", 0.5)),
+        float(me.get("doctrine_militarism", 0.3)),
+        float(me.get("doctrine_revisionism", 0.2)),
+        float(me.get("doctrine_vengeance", 0.3)),
+        float(me.get("doctrine_treaty_fidelity", 0.7)),
+        1.0 if me.get("nuclear_posture") == "counterforce" else 0.0,
+        1.0 if me.get("nuclear_posture") == "nfu" else 0.0,
     ], dtype=np.float32)
     return np.clip(obs, -5.0, 5.0)
 
@@ -106,6 +117,7 @@ def reward_snapshot(eng: Engine, nation_id: str) -> dict:
         "log_gdp": float(np.log(max(nat.gdp, 0.1))),
         "stability": nat.stability,
         "approval": nat.approval,
+        "military": nat.military,
         "war": len(nat.at_war_with),
         "collapsed": nat.collapsed,
         "min_stock": min(nat.stocks.values()),
@@ -127,6 +139,8 @@ def tick_reward(eng: Engine, nation_id: str, prev: dict, default_penalty: float 
     r += 0.30 * (cur["stability"] - prev["stability"])
     r += 0.10 * (cur["approval"] - prev["approval"])
     r -= 0.40 * cur["war"]
+    # 報酬の異質性: 軍事偏重の政府は軍備そのものを効用とする（思想の反映）
+    r += 0.02 * eng.nations[nation_id].doctrine_militarism * (cur["military"] - prev["military"])
     # 統治の質: 安定度の水準報酬（月次換算）。Δ項だけだと崩壊→回復の
     # 往復が打ち消し合い、「生き続ける」ことへの勾配が消える。
     r += 0.08 * cur["stability"] * fm

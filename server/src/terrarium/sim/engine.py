@@ -134,6 +134,12 @@ class Engine:
                 aggression=ns.aggression,
                 paranoia=ns.paranoia,
                 unemployment=getattr(ns, "unemployment", 6.0),
+                doctrine_risk=getattr(ns, "doctrine_risk", 0.5),
+                doctrine_militarism=getattr(ns, "doctrine_militarism", 0.3),
+                doctrine_revisionism=getattr(ns, "doctrine_revisionism", 0.2),
+                doctrine_vengeance=getattr(ns, "doctrine_vengeance", 0.3),
+                doctrine_treaty_fidelity=getattr(ns, "doctrine_treaty_fidelity", 0.7),
+                nuclear_posture=getattr(ns, "nuclear_posture", "mad"),
                 stocks={**DEFAULT_STOCKS, **ns.stockpile_months},
                 debt_gdp=ns.debt_gdp,
                 renew_eff=ns.energy_renew,
@@ -147,6 +153,8 @@ class Engine:
             ns.id: list(ns.resources) for ns in sorted(spec.nations, key=lambda n: n.id)
         }
         self.initial_gdp = {n.id: n.gdp for n in self.nations.values()}
+        # 前tickの軍事力（リチャードソン軍拡反応の検出用）
+        self._mil_prev: dict[str, float] = {nid: n.military for nid, n in self.nations.items()}
         self.wars: list[tuple[str, str]] = []
         self.temp_effects: list[TempEffect] = []
         self.news: list[str] = []
@@ -507,6 +515,8 @@ class Engine:
         self._factor_step()
         self._conflict()
         self._macro_update()
+        # 次tickのリチャードソン反応用に今tick末の軍事力を記録
+        self._mil_prev = {nid: n.military for nid, n in self.nations.items()}
         self._snapshot()
 
     # ------------------------------------------------------------- tech layer
@@ -1055,7 +1065,46 @@ class Engine:
             nb.war_exhaustion += 4.0 * fm
             for n in (na, nb):
                 n.gdp *= 1.0 - 0.003 * fm
-            if na.war_exhaustion > 40 or nb.war_exhaustion > 40 \
+            # 報復性が高い政府は疲弊に耐えて戦い続ける（降伏閾値が伸びる）
+            lim_a = 40.0 * (1.0 + 0.5 * na.doctrine_vengeance)
+            lim_b = 40.0 * (1.0 + 0.5 * nb.doctrine_vengeance)
+            # 交渉による終戦（Fearon型）: 力の不均衡と疲弊が深いほど講和が成立す
+            # る — 消耗衰亡とは別の終わり方
+            gap = abs(na.military - nb.military) / max(1.0, na.military + nb.military)
+            p_settle = (0.10 + 0.15 * gap
+                        + 0.002 * (na.war_exhaustion + nb.war_exhaustion))
+            if self.rng.random() < self._hazard(p_settle):
+                self.wars.remove((a, b))
+                na.at_war_with.remove(b)
+                nb.at_war_with.remove(a)
+                na.trust[b] = min(100.0, na.trust.get(b, 0.0) + 5.0)
+                nb.trust[a] = min(100.0, nb.trust.get(a, 0.0) + 5.0)
+                self.event_log.emit(
+                    t, "peace_settlement",
+                    f"{na.name} と {nb.name} が交渉で講和（力の差と疲弊が合意を生んだ）",
+                    targets=[a, b],
+                    data={"negotiated": True, "power_gap": round(gap, 3)},
+                )
+                continue
+            # 軍備管理: 核保有国同士の消耗戦は条約で凍結されうる
+            both_nuke = "nuclear" in na.factors and "nuclear" in nb.factors
+            if both_nuke and na.war_exhaustion > 12 and nb.war_exhaustion > 12 \
+                    and self.rng.random() < self._hazard(0.12):
+                self.wars.remove((a, b))
+                na.at_war_with.remove(b)
+                nb.at_war_with.remove(a)
+                for n in (na, nb):
+                    n.military *= 0.8
+                    n.war_exhaustion = max(0.0, n.war_exhaustion - 10.0)
+                na.trust[b] = min(100.0, na.trust.get(b, 0.0) + 8.0)
+                nb.trust[a] = min(100.0, nb.trust.get(a, 0.0) + 8.0)
+                self.event_log.emit(
+                    t, "arms_control",
+                    f"{na.name} と {nb.name} が軍備管理条約を締結し戦争を凍結（軍縮と信頼回復）",
+                    targets=[a, b], data={"military_cut": 0.2},
+                )
+                continue
+            if na.war_exhaustion > lim_a or nb.war_exhaustion > lim_b \
                     or self.rng.random() < self._hazard(0.05):
                 self.wars.remove((a, b))
                 na.at_war_with.remove(b)
@@ -1094,11 +1143,17 @@ class Engine:
     def _pair_tension(self, a: str, b: str) -> float:
         na, nb = self.nations[a], self.nations[b]
         rivalry_bonus = 0.15 if self._resource_dispute(a, b) else 0.0
+        # 思想項: 修正主義が緊張を煽り、軍事偏重が它を増幅し、
+        # 危機許容度（挑発に耐える度合い）が緊張を下げる
+        doctrinal = (0.20 * max(na.doctrine_revisionism, nb.doctrine_revisionism)
+                     + 0.10 * (na.doctrine_militarism + nb.doctrine_militarism) * 0.5
+                     - 0.12 * (na.doctrine_risk + nb.doctrine_risk) * 0.5)
         return (
             0.5 * (na.aggression + nb.aggression) * self.god.ai_aggression * 0.5
             + max(0.0, -na.trust.get(b, 0.0)) / 150.0
             + 0.1 * (na.paranoia + nb.paranoia)
             + rivalry_bonus
+            + doctrinal
         )
 
     def _enqueue_mobilization(self, a: str, b: str, tension: float) -> None:
@@ -1269,7 +1324,9 @@ class Engine:
                     continue
             elif trust < 35.0:
                 continue
-            if self.rng.random() < 0.4 * (trust / 100.0):
+            # 同盟遵守度: 条約は信任の関数でもある（高遵守国ほど履行する）
+            p_act = 0.4 * (trust / 100.0) * xnat.doctrine_treaty_fidelity
+            if self.rng.random() < p_act:
                 self.wars.append((x, a))
                 xnat.at_war_with.append(a)
                 self.nations[a].at_war_with.append(x)
@@ -1363,20 +1420,24 @@ class Engine:
         return True
 
     def _deterrence(self, a: str, b: str) -> float | None:
-        """a→bの開戦意欲への抑止係数。None=抑止なし。"""
+        """a→bの開戦意欲への抑止係数。None=抑止なし。
+        攻撃側(a)の核態勢が抑止の効きを変える: counterforce（核は使えると
+        信じる態勢）は抑止を侵食し、NFU（不先使用）は安定を強める。"""
         spec = FACTORS_BY_ID.get("nuclear")
         if not spec:
             return None
+        posture_mult = {"counterforce": 0.75, "mad": 1.0, "nfu": 1.25}.get(
+            self.nations[a].nuclear_posture, 1.0)
         a_holds = "nuclear" in self.nations[a].factors
         b_holds = "nuclear" in self.nations[b].factors
         if a_holds and b_holds:
-            return spec.deterrence_mutual
+            return min(1.0, spec.deterrence_mutual * posture_mult)
         if b_holds and not a_holds:
-            return spec.deterrence_vs_nonholder
+            return min(1.0, spec.deterrence_vs_nonholder * posture_mult)
         # 核傘: 保護国の抑止を係数付きで継承する
         umb = FACTORS_BY_ID.get("nuclear_umbrella")
         if umb and "nuclear_umbrella" in self.nations[b].factors and not a_holds:
-            return spec.deterrence_vs_nonholder * (1.0 + umb.umbrella_deterrence) / 2.0
+            return min(1.0, spec.deterrence_vs_nonholder * (1.0 + umb.umbrella_deterrence) / 2.0 * posture_mult)
         return None
 
     def _macro_update(self) -> None:
@@ -1487,8 +1548,35 @@ class Engine:
                 fspec = FACTORS_BY_ID.get(fid)
                 if fspec:
                     mil_mult *= fspec.military_mult
-            nat.military = min(150.0, nat.military + (2.0 * bud.get("military", 0.2)) * mil_mult * fm - (0.5 * fm if nid in [x for w in self.wars for x in w] else 0.0))
+            # リチャードソン軍拰方程数: 敵性大国の軍備増強に軍事偏重が反応する
+            # （行動-反応の軍拡競争。敵の増加分に比例して自国の軍拡が加速する）
+            rival_surge = 0.0
+            for o, onat in self.nations.items():
+                if o == nid or onat.collapsed or nat.trust.get(o, 20.0) >= 15.0:
+                    continue
+                rival_surge = max(rival_surge,
+                                  onat.military - self._mil_prev.get(o, onat.military))
+            richardson = 1.0 + nat.doctrine_militarism * min(1.0, rival_surge / 5.0)
+            nat.military = min(150.0, nat.military + (2.0 * bud.get("military", 0.2)) * mil_mult * richardson * fm - (0.5 * fm if nid in [x for w in self.wars for x in w] else 0.0))
             nat.gdp *= (1.0 + growth) ** fy
+            # --- 内戦・反乱: 統治崩壊領域（安定<15）で不平等/失業が不和を増幅 ---
+            if nat.insurgency_cooldown > 0:
+                nat.insurgency_cooldown -= 1
+            elif nat.stability < 15.0:
+                grievance = ((1.0 - nat.stability / 15.0)
+                             * (0.5 + max(0.0, spec.gini - 0.40) * 3.0
+                                + max(0.0, nat.unemployment - 12.0) * 0.02))
+                if self.rng.random() < self._hazard(0.08 * grievance):
+                    nat.insurgency_cooldown = self._ticks_for(12.0 * TC.HOURS_PER_MONTH)
+                    nat.military *= 0.85
+                    nat.stability = max(0.0, nat.stability - 6.0)
+                    self.event_log.emit(
+                        t, "insurgency",
+                        f"{nat.name} で武装反乱が勃発（不安定と不平等の複合）。軍は鎮圧に割かれる",
+                        actor=nid, targets=[nid],
+                        parents=self._causal_parents(nid),
+                        data={"grievance": round(grievance, 3), "gini": spec.gini},
+                    )
             # stability & approval（月次レートを実時間で）
             t_stab, t_appr = self._tech_socio_drifts(nid)
             drift = 0.25 * (55.0 - nat.stability) * fm
@@ -1561,6 +1649,13 @@ class Engine:
                 "factors": list(nat.factors),
                 "factor_progress": {k: round(v, 1) for k, v in nat.factor_progress.items()},
                 "doctrines": dict(nat.doctrines),
+                # 思想・ドクトリン（観測・UIから見える）
+                "doctrine_risk": round(nat.doctrine_risk, 2),
+                "doctrine_militarism": round(nat.doctrine_militarism, 2),
+                "doctrine_revisionism": round(nat.doctrine_revisionism, 2),
+                "doctrine_vengeance": round(nat.doctrine_vengeance, 2),
+                "doctrine_treaty_fidelity": round(nat.doctrine_treaty_fidelity, 2),
+                "nuclear_posture": nat.nuclear_posture,
             }
         metrics = {
             "world_gdp": round(sum(n.gdp for n in self.nations.values()), 4),
