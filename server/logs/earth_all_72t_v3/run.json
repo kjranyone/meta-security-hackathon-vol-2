@@ -1,0 +1,44 @@
+{
+  "run_name": "earth_all_72t_v3",
+  "seed": 42,
+  "ticks": 72,
+  "final_metrics": {
+    "tick": 71,
+    "world_gdp": 124.2327,
+    "mean_stability": 53.03,
+    "wars": 0,
+    "collapsed": 0,
+    "price_energy": 1.15,
+    "price_food": 1.0134,
+    "price_chips": 1.0,
+    "mean_inflation": 0.02356,
+    "mean_debt_gdp": 96.2,
+    "defaults": 14,
+    "mean_unemployment": 5.35,
+    "global_co2": 5988.9
+  },
+  "event_counts": {
+    "policy_shift": 12672,
+    "sovereign_default": 14,
+    "credibility_hit": 357,
+    "price_spike": 2,
+    "factor_acquired": 48,
+    "tech_emergence": 13,
+    "tech_adopted": 2193,
+    "fx_crisis": 15,
+    "mobilization": 6,
+    "war_start": 5,
+    "war_end": 5
+  },
+  "wars": 0,
+  "config": {
+    "preset": "earth_all",
+    "gen_seed": null,
+    "gen_nations": 8,
+    "policy": "heuristic",
+    "rl_nation": null,
+    "rl_weights": null,
+    "scenario": null,
+    "engine": "v4-realtime-clock"
+  }
+}

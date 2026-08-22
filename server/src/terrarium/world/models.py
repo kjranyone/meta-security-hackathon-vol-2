@@ -80,6 +80,7 @@ class NationSpec(BaseModel):
     education: float = 0.5             # 教育水準 0-1（研究吸収・安定に寄与）
     gini: float = 0.38                 # 所得不平等（安定・支持に影響）
     energy_renew: float = 0.10         # 再生エネルギー比率 0-1（CO2に反映）
+    unemployment: float = 6.0          # 初期失業率 %（実データがある国はその値）
     stockpile_months: dict[str, float] = Field(default_factory=lambda: {"energy": 3.0, "food": 4.0, "chips": 2.0})
 
 

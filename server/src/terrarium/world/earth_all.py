@@ -1,10 +1,16 @@
 """earth_all: すべての国をAI国家化するプリセット（手続き生成）。
 
-Natural Earth 110m の全特徴（南極等を除く約170カ国）をそれぞれ1つのAI国家とし、
-主要国は概算データ（GDP/軍事/債務/資源）のテーブルで、その他の国は安定した
-デフォルトで初期化する。世界全体の需給は worldgen のトップアップ処理で
-1.15倍以上を保証し、航路も実際の海峡を経由させて自動生成する。
-数値は公開情報の簡易概算（中立的・分析目的）。
+Natural Earth 110m の全特徴（南極等を除く約170カ国）をそれぞれ1つのAI国家とする。
+初期値は可能な限り**実データ**（世界銀行 API + Natural Earth 埋め込み推定:
+`wb_data.json`、`scripts/fetch_wb.py` で取得・コミット済み）:
+
+  GDP・人口・失業率・債務対GDP・軍事費対GDP・ジニ係数・再エネ比率・
+  WGI政治安定推定・人口成長率  →  実データ優先
+
+手概算テーブル(DATA)と決定論的導出は**フォールバック**（欠損国のみ）。
+攻撃性・疑心・資源構造は公開情報の簡易表現（中立的・分析目的）。
+世界全体の需給は worldgen のトップアップ処理で1.15倍以上を保証し、
+航路も実際の海峡を経由させて自動生成する。
 """
 from __future__ import annotations
 
@@ -17,6 +23,22 @@ from .worldgen import REAL_CHOKEPOINTS, CONSUMPTION, RESOURCE_COMMO, YIELD_PER_U
 
 REPO = Path(__file__).resolve().parents[4]
 GEOJSON = REPO / "web" / "world.geojson"
+WB_DATA = Path(__file__).resolve().parent / "wb_data.json"
+
+# 軍事力スコアの較正: 軍事費(対GDP%)×GDP($T)→スコア。米国≈100になる係数
+# (mil_exp_pct は百分率なので 3.4%×30.8T×0.95 ≈ 100)
+MIL_SCALE = 0.95
+
+
+def _load_wb() -> dict[str, dict]:
+    if not WB_DATA.exists():
+        return {}
+    return json.loads(WB_DATA.read_text(encoding="utf-8"))
+
+
+def _wgi_to_stability(est: float) -> float:
+    """WGI政治安定推定(-2.5..2.5) → 安定度(5..92)。中央0→55。"""
+    return round(min(92.0, max(5.0, 55.0 + 14.0 * est)), 1)
 
 # 主要国テーブル: ADMIN名 -> (gdp_t, military, stability, debt_gdp, aggression, paranoia, resources)
 # 数値は2024年前後の公開概算。resources は経済構造の大まかな表現。
@@ -197,6 +219,7 @@ def _routes(rng: random.Random, specs: list[NationSpec], cps: list[Chokepoint]) 
 def build_earth_all(seed: int = 7) -> WorldSpec:
     rng = random.Random(f"earth_all:{seed}")
     geo = json.loads(GEOJSON.read_text(encoding="utf-8"))
+    wb = _load_wb()
 
     specs: list[NationSpec] = []
     used_ids: set[str] = set()
@@ -208,6 +231,7 @@ def build_earth_all(seed: int = 7) -> WorldSpec:
         if ctr[1] < -59: continue                      # 南極・亜南極は除外
         key = ALIAS.get(admin, admin)
         d = DATA.get(key)
+        w = wb.get(key) or wb.get(admin) or {}
         if d:
             gdp, mil, stab, debt, aggr, para, res = d
             res = [ResourceKind(EXTRA_MAP.get(r, r)) for r in res]
@@ -218,6 +242,20 @@ def build_earth_all(seed: int = 7) -> WorldSpec:
             aggr, para = round(rng.uniform(0.1, 0.4), 2), round(rng.uniform(0.2, 0.5), 2)
             res = []
             pop = round(rng.uniform(0.5, 15), 1)
+        # ---- 実データによる上書き（世界銀行 + Natural Earth。欠損は既存値のまま）
+        if w.get("gdp_usd"):
+            gdp = round(max(0.005, w["gdp_usd"] / 1e12), 4)
+            pop = max(0.05, gdp * 40)                 # popは下で実人口で上書き
+        if w.get("population"):
+            pop = round(w["population"] / 1e6, 2)
+        if w.get("debt_gdp"):
+            debt = round(w["debt_gdp"], 1)
+        if w.get("mil_exp_pct") and w.get("gdp_usd"):
+            # 実際の軍事費規模: 軍事費(対GDP%)×GDP。米国≈100に較正
+            mil = round(max(0.5, w["mil_exp_pct"] * (w["gdp_usd"] / 1e12) * MIL_SCALE), 1)
+        if w.get("wgi_stability") is not None:
+            stab = _wgi_to_stability(w["wgi_stability"])
+        unemp0 = round(w["unemployment"], 1) if w.get("unemployment") else 6.0
         nid = "".join(ch for ch in key.upper() if ch.isascii() and ch.isalpha())[:3] or "X"
         if nid in used_ids:
             # 同じ3文字を主張する国が複数ある場合は2文字+連番で決定論的に解決
@@ -228,12 +266,15 @@ def build_earth_all(seed: int = 7) -> WorldSpec:
             while nid in used_ids:
                 nid += "X"
         used_ids.add(nid)
-        # 社会・エネルギーパラメータは経済規模と資源構造から決定論的に導出
+        # 社会・エネルギーパラメータ: 実データ優先、欠損は決定論的導出
         fossil = any(r in (ResourceKind.OIL, ResourceKind.GAS) for r in res)
         education = round(min(0.92, 0.38 + 0.30 * min(1.0, gdp / 2.0) + 0.08 * (len(res) >= 4)), 2)
-        gini = round(min(0.60, 0.33 + 0.18 * max(0.0, 1.0 - gdp / 2.0) + (0.05 if fossil else 0.0)), 2)
-        renew = round(max(0.02, min(0.60, 0.08 + (0.22 if not fossil else 0.0) + min(0.18, gdp * 0.012))), 2)
-        popg = round(min(0.025, max(-0.004, 0.018 - gdp * 0.002)), 3)
+        gini = round(w["gini"] / 100.0, 3) if w.get("gini") else round(
+            min(0.60, 0.33 + 0.18 * max(0.0, 1.0 - gdp / 2.0) + (0.05 if fossil else 0.0)), 2)
+        renew = round(w["renewables_pct"] / 100.0, 3) if w.get("renewables_pct") else round(
+            max(0.02, min(0.60, 0.08 + (0.22 if not fossil else 0.0) + min(0.18, gdp * 0.012))), 2)
+        popg = round(w["pop_growth"] / 100.0, 4) if w.get("pop_growth") is not None else round(
+            min(0.025, max(-0.004, 0.018 - gdp * 0.002)), 3)
         specs.append(NationSpec(
             id=nid, name=admin, persona=_persona_for(res, gdp),
             color=f"hsl({(len(specs) * 137.508) % 360:.0f}, 52%, 50%)",
@@ -241,6 +282,7 @@ def build_earth_all(seed: int = 7) -> WorldSpec:
             gdp_t=gdp, military=mil, stability=stab, approval=50.0,
             aggression=aggr, paranoia=para, resources=res, debt_gdp=debt,
             population_growth=popg, education=education, gini=gini, energy_renew=renew,
+            unemployment=unemp0,
         ))
 
     specs.sort(key=lambda s: s.id)

@@ -1,0 +1,44 @@
+{
+  "run_name": "earth_all_hormuz_72t_rl_v3",
+  "seed": 42,
+  "ticks": 72,
+  "final_metrics": {
+    "tick": 71,
+    "world_gdp": 114.2316,
+    "mean_stability": 55.74,
+    "wars": 0,
+    "collapsed": 0,
+    "price_energy": 1.15,
+    "price_food": 1.0,
+    "price_chips": 1.0,
+    "mean_inflation": 0.02337,
+    "mean_debt_gdp": 90.8,
+    "defaults": 32,
+    "mean_unemployment": 4.01,
+    "global_co2": 6093.0
+  },
+  "event_counts": {
+    "policy_shift": 12672,
+    "sovereign_default": 32,
+    "credibility_hit": 816,
+    "price_spike": 6,
+    "god_intervention": 2,
+    "tech_emergence": 13,
+    "tech_adopted": 2133,
+    "trade_throttled": 1206,
+    "shortage": 90,
+    "collapse": 1,
+    "fx_crisis": 16,
+    "mobilization": 8,
+    "war_start": 6,
+    "war_end": 6
+  },
+  "wars": 0,
+  "config": {
+    "preset": "earth_all",
+    "policy": "rl",
+    "rl_nation": "ALL(generalist+selfplay)",
+    "scenario": "scenarios/earth_all_hormuz.yaml",
+    "engine": "v4-realtime-clock"
+  }
+}

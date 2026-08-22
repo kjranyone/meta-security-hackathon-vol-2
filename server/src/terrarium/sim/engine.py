@@ -99,6 +99,8 @@ class Engine:
         # 市場の裁定材料: 航路需要とその遮断率（価格シグナルの分母）
         self._wants_total: dict[str, float] = {c.value: 0.0 for c in Commodity}
         self._blocked_wants: dict[str, float] = {c.value: 0.0 for c in Commodity}
+        # 輸出フロー累計（月次レート換算して成長ボーナスに使う）
+        self._export_flow: dict[str, float] = {}
         # 連続不足の深度（月換算で蓄積し、深刻度とする）
         self._shortage_since: dict[tuple, float] = {}
         self._last_sev: dict[tuple, float] = {}
@@ -131,6 +133,7 @@ class Engine:
                 approval=ns.approval,
                 aggression=ns.aggression,
                 paranoia=ns.paranoia,
+                unemployment=getattr(ns, "unemployment", 6.0),
                 stocks={**DEFAULT_STOCKS, **ns.stockpile_months},
                 debt_gdp=ns.debt_gdp,
                 renew_eff=ns.energy_renew,
@@ -475,6 +478,7 @@ class Engine:
         self._ca_exports = {}
         self._ca_imports = {}
         self._shortages = {}
+        self._export_flow = {}
         for c in self._wants_total:
             self._wants_total[c] = 0.0
             self._blocked_wants[c] = 0.0
@@ -698,9 +702,10 @@ class Engine:
             if blocked:
                 self._tick_throttled_note(route, blocked, capacity)
             # exporter earns, importer receives (flow already includes fm).
-            # 収益は月次レート: 旧式の×12年率化はGDPを水膨れさせていた
-            revenue = 0.01 * flow * self.prices[route.commodity.value]
-            exp.gdp += revenue
+            # 輸出はGDP水準にではなく成長率に効かせる（macroで集計）:
+            # 大口輸出国は最大+2.4%/年の成長ボーナス。水準加算だと
+            # 資源輸出国が複利で爆発する
+            self._export_flow[route.exporter] = self._export_flow.get(route.exporter, 0.0) + flow
             imp.stocks[route.commodity.value] += flow
             flow_val = flow * self.prices[route.commodity.value]
             self._ca_exports[route.exporter] = self._ca_exports.get(route.exporter, 0.0) + flow_val
@@ -1405,9 +1410,12 @@ class Engine:
                 infl_delta *= 1.0 / max(0.7, nat.fx)
             a_infl = self._alpha(TC.INFLATION_TAU)
             nat.inflation = max(-0.05, min(1.0, (1.0 - a_infl) * nat.inflation + a_infl * 0.02 + infl_delta))
-            # growth — 年率として複利で刻む
+            # growth — 年率として複利で刻む。輸出フローは成長ボーナスとして
+            # 効かせる（大口輸出国で最大+2.4%/年: 資源ブームの表現）
             finance_units = sum(1 for r in self.nation_resources[nid] if r is ResourceKind.FINANCE)
-            growth = 0.02 + 0.002 * finance_units - nat.inflation * 0.6
+            export_flow_m = self._export_flow.get(nid, 0.0) / max(fm, 1e-9)
+            growth = (0.02 + 0.002 * finance_units - nat.inflation * 0.6
+                      + 0.003 * min(8.0, export_flow_m))
             # --- 労働: 失業率（生産ギャップ・戦争・福祉が決める） ---
             welfare_share = bud0 = nat.budget.get("welfare", 0.3)
             shortage_hits = self._shortages.get(nid, 0.0)
