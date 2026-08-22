@@ -140,6 +140,12 @@ class Engine:
                 doctrine_vengeance=getattr(ns, "doctrine_vengeance", 0.3),
                 doctrine_treaty_fidelity=getattr(ns, "doctrine_treaty_fidelity", 0.7),
                 nuclear_posture=getattr(ns, "nuclear_posture", "mad"),
+                local_debt_share=(
+                    ns.local_debt_share if getattr(ns, "local_debt_share", -1.0) >= 0
+                    else min(0.95, max(0.1,
+                        0.35 + min(0.40, ns.gdp_t / 8.0)
+                        + 0.25 * (ResourceKind.FINANCE in ns.resources)))
+                ),
                 stocks={**DEFAULT_STOCKS, **ns.stockpile_months},
                 debt_gdp=ns.debt_gdp,
                 renew_eff=ns.energy_renew,
@@ -1229,8 +1235,10 @@ class Engine:
 
     def _bond_rate(self, nat) -> float:
         """Annual sovereign rate: base + credibility risk premium + inflation
-        pass-through + god's world rate hike."""
-        premium = (100.0 - nat.credibility) / 100.0 * 0.10
+        pass-through + god's world rate hike.
+        自国通貨建て債務が厚い国は通貨発行で返済できるため、信用リスク
+        プレミアムの吹き上がりが抑えられる（主要国がデフォルトしない理由）。"""
+        premium = (100.0 - nat.credibility) / 100.0 * 0.10 * (1.0 - 0.7 * nat.local_debt_share)
         infl_pass = min(0.15, max(0.0, nat.inflation - 0.05) * 2.0)
         return float(min(0.60, max(0.02, 0.02 + premium + infl_pass + self.god.world_rate_hike)))
 
@@ -1248,6 +1256,15 @@ class Engine:
         deficit = spending + interest - revenue
         nat.debt_gdp = max(0.0, nat.debt_gdp + deficit * 100.0)
 
+        # 自国通貨建て債務（現実の校正）: 石油危機のような貿易ショックで
+        # 主要国がデフォルトしないのは、自国通貨で借りているからである。
+        # 金利負担の強制力は外貨建て分にのみ働き、自国通貨分の赤字は
+        # 通貨発行（インフレ）で吸収される
+        eff_interest = interest * (1.0 - 0.8 * nat.local_debt_share)
+        if deficit > 0 and nat.debt_gdp > 120.0:
+            nat.inflation = min(1.0, nat.inflation
+                                + 0.5 * deficit * nat.local_debt_share)
+
         # credibility dynamics (high debt alone erodes credit only slowly:
         # credible high-debt states like Japan must stay serviceable)
         nat.credibility = min(100.0, nat.credibility + 1.5 * fm)
@@ -1260,10 +1277,14 @@ class Engine:
             nat.default_cooldown -= 1
             return
 
-        # sovereign default check（月次ハザードを実時間に変換して判定）
-        if interest > self.DEFAULT_SAFE:
-            forced = interest > self.DEFAULT_FORCE
-            p = 1.0 if forced else 0.10 + (interest - self.DEFAULT_SAFE) * 20.0
+        # sovereign default check（月次ハザードを実時間に変換して判定）。
+        # 外貨準備が厚い間は防衛できる — 破綻は「利払い負担×準備枯渇」の複合
+        if eff_interest > self.DEFAULT_SAFE:
+            forced = eff_interest > self.DEFAULT_FORCE
+            p = 1.0 if forced else 0.05 + (eff_interest - self.DEFAULT_SAFE) * 15.0
+            if nat.fx_reserves >= 2.0:
+                p *= 0.35          # 準備防衛が効いている
+                nat.fx_reserves -= eff_interest * 40.0   # 防衛コストは準備を削る
             if self.rng.random() < self._hazard(p):
                 self._sovereign_default(nid, nat, rate)
 

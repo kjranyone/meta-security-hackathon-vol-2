@@ -41,6 +41,10 @@ def test_default_contagion_has_causal_parents():
     # engineer a definite default: Egypt, huge debt, no credibility
     eng.nations["EGY"].debt_gdp = 300.0
     eng.nations["EGY"].credibility = 5.0
+    # 外貨建て危機: 準備枯渇 + 高インフレで金利が上限へ（自国通貨国は
+    # 校正後破綻しないので、破綻の再現には外貨建て条件が要る）
+    eng.nations["EGY"].fx_reserves = 0.5
+    eng.nations["EGY"].inflation = 0.30
     eng.run(3, Scenario())
     defaults = [r for r in eng.event_log.records if r.type == "sovereign_default"
                 and (r.actor == "EGY" or "EGY" in r.targets)]

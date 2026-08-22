@@ -81,6 +81,9 @@ class NationSpec(BaseModel):
     gini: float = 0.38                 # 所得不平等（安定・支持に影響）
     energy_renew: float = 0.10         # 再生エネルギー比率 0-1（CO2に反映）
     unemployment: float = 6.0          # 初期失業率 %（実データがある国はその値）
+    # 自国通貨建て債務の割合 0-1（-1は engines が導出）。主要通貨国は
+    # 強制破綻がほぼ不可能で、危機はインフレ（通貨発行）で吸収される
+    local_debt_share: float = -1.0
     # --- 思想・ドクトリン（政策の異質性の源。安全保障シミュレーションの中核） ---
     # 数値は中立的な分析用の様式化であり、特定国の実政策への言明ではない
     doctrine_risk: float = 0.5         # 危機許容度: 高いほど閾値近くまで冒険する
@@ -144,6 +147,7 @@ class NationState(BaseModel):
     doctrine_treaty_fidelity: float = 0.7
     nuclear_posture: str = "mad"
     insurgency_cooldown: int = 0      # 内戦ハザードの冷却（tick）
+    local_debt_share: float = 0.5     # 自国通貨建て債務割合（specから導出コピー）
 
     def view(self) -> dict[str, Any]:
         return self.model_dump()
