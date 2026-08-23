@@ -148,6 +148,8 @@ class NationState(BaseModel):
     nuclear_posture: str = "mad"
     insurgency_cooldown: int = 0      # 内戦ハザードの冷却（tick）
     local_debt_share: float = 0.5     # 自国通貨建て債務割合（specから導出コピー）
+    # 創発するイデオロギー圏（実在宗教の割付ではない。宗教系技術の採用で移行）
+    ideology: str = "secular"         # secular | ai_cult | techno_nationalist
 
     def view(self) -> dict[str, Any]:
         return self.model_dump()

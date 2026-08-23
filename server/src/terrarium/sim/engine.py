@@ -562,6 +562,11 @@ class Engine:
         tech = self.tech_index[tech_id]
         nat = self.nations[nid]
         self.tech_adopted[tech_id].add(nid)
+        # 宗教系技術の採用はイデオロギー圏の成立でもある（創発。割付ではない）
+        if tech_id == "ai_religion":
+            nat.ideology = "ai_cult"
+        elif tech_id == "techno_nationalism":
+            nat.ideology = "techno_nationalist"
         nat.aggression = min(1.0, nat.aggression + tech.aggression_shot)
         nat.paranoia = min(1.0, nat.paranoia + tech.paranoia_shot)
         if tech.trust_hit:
@@ -1154,6 +1159,9 @@ class Engine:
         doctrinal = (0.20 * max(na.doctrine_revisionism, nb.doctrine_revisionism)
                      + 0.10 * (na.doctrine_militarism + nb.doctrine_militarism) * 0.5
                      - 0.12 * (na.doctrine_risk + nb.doctrine_risk) * 0.5)
+        # イデオロギー摩擦: 異なる圏の間は緊張が、同じ圏の内側は結束が効く
+        if na.ideology != "secular" and nb.ideology != "secular":
+            doctrinal += -0.06 if na.ideology == nb.ideology else 0.12
         return (
             0.5 * (na.aggression + nb.aggression) * self.god.ai_aggression * 0.5
             + max(0.0, -na.trust.get(b, 0.0)) / 150.0
@@ -1190,10 +1198,14 @@ class Engine:
         parents += [r.id for r in self.event_log.records[-10:]
                     if r.type in ("threat", "sanction", "shortage", "disinfo", "mobilization")
                     and (r.actor in (a, b) or a in r.targets or b in r.targets)]
+        ideological = (na.ideology != "secular" and nb.ideology != "secular"
+                       and na.ideology != nb.ideology)
         self.event_log.emit(
-            t, "war_start", f"{na.name} と {nb.name} の間で武力衝突が勃発",
+            t, "war_start",
+            (f"{na.name} と {nb.name} の間で武力衝突が勃発"
+             + ("（イデオロギー圏の対立が背景）" if ideological else "")),
             targets=[a, b], parents=parents,
-            data={"tension": round(tension, 3)},
+            data={"tension": round(tension, 3), "ideological": ideological},
         )
         # 相互防衛: 両側の同盟国が協議の末、条約を履行するか（遅延あり）
         wev = self.event_log.records[-1]
@@ -1538,6 +1550,16 @@ class Engine:
                         f"{nat.name} の外貨準備が枯渇（{nat.fx_reserves:.1f}ヶ月分）。輸入が絞られる",
                         actor=nid, targets=[nid], data={"reserves": round(nat.fx_reserves, 2)},
                     )
+            # --- イデオロギー摩擦: 異なる圏への信頼は徐々に削れる ---
+            if nat.ideology != "secular":
+                worst, worst_trust = None, 100.0
+                for o, onat in self.nations.items():
+                    if o == nid or onat.ideology in ("secular", nat.ideology):
+                        continue
+                    if nat.trust.get(o, 20.0) < worst_trust:
+                        worst, worst_trust = o, nat.trust.get(o, 20.0)
+                if worst is not None:
+                    nat.trust[worst] = max(-100.0, nat.trust[worst] - 0.3 * fm)
             # --- 安全保障ジレンマ: 信頼の低い大国の軍事優位が攻撃性を煽る ---
             rival_max = 0.0
             for o, onat in self.nations.items():
@@ -1677,6 +1699,7 @@ class Engine:
                 "doctrine_vengeance": round(nat.doctrine_vengeance, 2),
                 "doctrine_treaty_fidelity": round(nat.doctrine_treaty_fidelity, 2),
                 "nuclear_posture": nat.nuclear_posture,
+                "ideology": nat.ideology,
             }
         metrics = {
             "world_gdp": round(sum(n.gdp for n in self.nations.values()), 4),

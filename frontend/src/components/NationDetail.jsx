@@ -66,6 +66,7 @@ export default function NationDetail({ n, meta, onSelect }) {
           <Row k="思想: 危機許容" v={(n.doctrine_risk ?? 0).toFixed(2)} />
           <Row k="思想: 同盟遵守" v={(n.doctrine_treaty_fidelity ?? 0).toFixed(2)} />
           <Row k="核態勢" v={n.nuclear_posture === "counterforce" ? "先制攻撃型" : n.nuclear_posture === "nfu" ? "不先使用" : "相互抑止"} />
+          <Row k="イデオロギー" v={n.ideology === "ai_cult" ? "AI神格宗教圏" : n.ideology === "techno_nationalist" ? "テクノ・ナショナリズム圏" : "世俗"} />
         </div>
         <div>
           <Row k="経常収支" v={`${(n.ca_last ?? 0) >= 0 ? "+" : ""}${(n.ca_last ?? 0).toFixed(1)}`} />
