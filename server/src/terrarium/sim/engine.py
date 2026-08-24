@@ -972,11 +972,15 @@ class Engine:
                     "trade_pact", "war_start", "war_end", "peace_settlement",
                     "arms_control", "collective_sanction", "disinfo")
 
-    def _bilateral_memory(self, nid: str, limit: int = 12) -> list[dict]:
+    def _bilateral_memory(self, nid: str, limit: int = 20) -> list[dict]:
         """この国が当事者である双方向の外交・紛争エピソード（直近順）。
-        「過去の会話と経緯」の記憶: 相手が誰で何をしたか/されたか。"""
+        「過去の会話と経緯」の記憶: 相手が誰で何をしたか/されたか。
+        窓は実時間で定義する（直近5年）— 時計モードによらず政府は歳月で覚える。"""
+        cutoff = self.tick_no - self._ticks_for(60.0 * TC.HOURS_PER_MONTH)
         out: list[dict] = []
-        for rec in reversed(self.event_log.records[-400:]):
+        for rec in reversed(self.event_log.records):
+            if rec.tick < cutoff:
+                break
             if rec.type not in self.MEMORY_TYPES:
                 continue
             if rec.actor != nid and nid not in rec.targets:
@@ -1035,7 +1039,10 @@ class Engine:
             if fresh:
                 hist = self._decision_history.setdefault(nid, [])
                 hist.append({"tick": t, **self._last_decision[nid]})
-                del hist[:-5]
+                # 政策史は実時間で保持する: 直近24ヶ月(上限12件)。
+                # 時計モード(週次閣議でも月次でも)によらない
+                cutoff = t - self._ticks_for(24.0 * TC.HOURS_PER_MONTH)
+                hist[:] = [h for h in hist if h["tick"] >= cutoff][-12:]
             if nat.propaganda and not d.propaganda:
                 nat.propaganda = False
             elif d.propaganda:

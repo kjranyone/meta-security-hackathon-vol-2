@@ -43,6 +43,24 @@ def test_decision_history_accumulates():
     assert all("tick" in d and "posture" in d for d in v.last_decisions)
 
 
+def test_memory_window_is_realtime():
+    """記憶の窓は実時間で決まる: 5年より古い外交エピソードは忘れる。"""
+    eng = _engine(seed=1)
+    eng.run(2, Scenario())
+    old = eng.event_log.records[0]
+    from terrarium.sim.events import EventLog
+    # 6年前の脅迫イベントを捏造して履歴に混ぜる
+    stale = eng.event_log.emit(eng.tick_no - 73, "threat", "古い脅迫（6年前）",
+                               actor="USA", targets=["IRN"])
+    mem = eng._bilateral_memory("IRN")
+    assert not any(m["tick"] < eng.tick_no - 61 for m in mem), \
+        "5年より古いエピソードは記憶から消えるべき"
+    fresh = eng.event_log.emit(eng.tick_no, "threat", "新しい脅迫",
+                               actor="USA", targets=["IRN"])
+    mem2 = eng._bilateral_memory("IRN")
+    assert any(m["tick"] == eng.tick_no for m in mem2)
+
+
 def test_llm_prompt_contains_memory():
     eng = _engine(seed=1)
     eng.run(8, Scenario())
