@@ -68,6 +68,11 @@ def run_one(policy: str, deterrence: str, seed: int, ticks: int) -> dict:
     eng = Engine(spec, pol, seed=seed, out_dir=None)
     apply_deterrence(eng, deterrence)
     eng.run(ticks, load_scenario("scenarios/earth_chaos.yaml"))
+    if policy == "llm":
+        calls = sum(getattr(p, "calls", 0) for p in eng.policies.values())
+        fbs = sum(getattr(p, "fallbacks", 0) for p in eng.policies.values())
+        if calls + fbs > 0:
+            print(f"[stab] llm real calls {calls} / fallback {fbs}", flush=True)
     evs = eng.event_log.records
     wars = [e for e in evs if e.type == "war_start"]
     holders = {nid for nid, n in eng.nations.items() if "nuclear" in n.factors}

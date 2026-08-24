@@ -426,6 +426,31 @@ FactorSpec(
 エンジン・UI・ログ・IF史は一切変更不要です。実測では、脅威を受け前提を満たした国が
 約18tickで取得に至り（テスト担保）、これらの離散遷移もparentリンク付きで因果グラフに乗ります。
 
+## LLM→RL蒸留: 思考AIが教師となり学習AIを訓練する
+
+**「最先端のLLMが自律訓練する」の実体**（`terrarium/rl/distill.py`、
+`tests/test_distill.py` が検証）:
+
+1. **収集** — エンジン内でLLM（z.ai GLM）政府を運転し、(観測48次元 → 決定) を
+   教師データとして記録（`models/llm_teacher_data.jsonl`）
+2. **蒸留** — 軽量RLネット（numpy MLP・30KB）が行動クローニングでLLMの戦術を模倣
+3. **微調整** — 自己対戦actor-criticでLLMの戦術を出発点に改善
+
+実測（glm-4.6、5カ国×24決定=118回の実API呼び出し、各〜23秒）:
+- 行動クローン **15エポックで予算一致率86%**（チャンス水準17%）— LLMの予算配分の
+  「癖」が30KBのネットに移植される
+- 評価報酬: BC 78.4 → **BC+A2C微調整 100.0**
+
+LLM 1回の推論は数十秒だが、蒸留後の戦術AIはnumpy/CPUで即時に動く —
+**LLMの戦略判断を、LLMなしで動く全国家に配布する**パイプラインである
+（実行: `uv run python -m terrarium.rl.distill --preset earth --episodes-per-nation 1`）。
+
+> 運用上の注意: APIキーが無いプロセスではLLMはheuristicに静かにフォールバックする。
+> これを検出するため `ZaiLLMPolicy` は `calls`/`fallbacks` を数え、蒸留は
+> 実呼び出しゼロで即fail、稳定性実験は実行後に呼び出し比率を報告する
+> （かつ `.env` を自動読み込みする — 過去のGLM安定性数値の一部はフォールバック
+> 混入の疑いで再測定中）。
+
 ## 再帰型戦術AI（GRU: 時系列を統合する推論）
 
 `--recurrent` で**GRU株+actor-critic頭**の再帰型戦術AI（LSTM相当）を訓練できる

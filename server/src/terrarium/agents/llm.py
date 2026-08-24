@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 import os
 import random
 from typing import Optional
@@ -72,6 +73,11 @@ class ZaiLLMPolicy:
                  temperature: float = 0.7, fallback: Optional[HeuristicPolicy] = None):
         from openai import OpenAI  # lazy import
 
+        # APIキーが無ければ server/.env から明示的に読む — キー無しで動かすと
+        # heuristicに静かにフォールバックし「LLM実験」が無音で偽装される
+        if not os.environ.get("ZAI_API_KEY"):
+            from ..util.env import load_env
+            load_env(Path(__file__).resolve().parents[3] / ".env")
         self.nation_id = nation_id
         self.persona = persona
         self.model = model or os.environ.get("ZAI_MODEL", "glm-4.6")
@@ -82,6 +88,7 @@ class ZaiLLMPolicy:
             api_key=api_key or os.environ.get("ZAI_API_KEY", "missing"),
         )
         self.calls = 0
+        self.fallbacks = 0   # API失敗でheuristicに落ちた回数（実験の健全性監査用）
         self.raw_log: list[dict] = []
 
     def decide(self, view: NationView) -> Decisions:
@@ -97,6 +104,7 @@ class ZaiLLMPolicy:
             )
             raw = resp.choices[0].message.content or ""
         except Exception as exc:  # network / quota / parse -> heuristic fallback
+            self.fallbacks += 1
             self.raw_log.append({"tick": view.tick, "nation": self.nation_id, "error": str(exc)})
             return self.fallback.decide(view)
         self.calls += 1

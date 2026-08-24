@@ -142,6 +142,34 @@ class PolicyNet:
             p += lr * mhat / (np.sqrt(vhat) + 1e-8)
         return {}
 
+    def imitate(self, obs: np.ndarray, budget_idx: int, posture_idx: int,
+                rationing: int, propaganda: int, lr: float = 2e-3) -> None:
+        """行動クローニング: 教師行動への交差エントロピーの1ステップ（A2Cの
+        policy-gradient経路を advantage=1・教師行動・entropyなしで流す）。"""
+        out = self.forward(obs)
+        h = self._cache["h"]
+        gB = _softmax_grad_neglog(out["budget_logits"], budget_idx)
+        gP = _softmax_grad_neglog(out["posture_logits"], posture_idx)
+        gR = float(rationing) - _sigmoid(out["ration_logit"])
+        gG = float(propaganda) - _sigmoid(out["propa_logit"])
+        dW = {k: np.zeros_like(v) for k, v in
+              [("W1", self.W1), ("b1", self.b1), ("Wb", self.Wb), ("bb", self.bb),
+               ("Wp", self.Wp), ("bp", self.bp), ("Wr", self.Wr), ("br", self.br),
+               ("Wg", self.Wg), ("bg", self.bg)]}
+        dW["Wb"] += np.outer(h, gB); dW["bb"] += gB
+        dW["Wp"] += np.outer(h, gP); dW["bp"] += gP
+        dW["Wr"] += np.outer(h, [gR]); dW["br"] += np.array([gR])
+        dW["Wg"] += np.outer(h, [gG]); dW["bg"] += np.array([gG])
+        dh = gB @ self.Wb.T + gP @ self.Wp.T + gR * self.Wr[:, 0] + gG * self.Wg[:, 0]
+        dz = dh * (1.0 - h ** 2)
+        dW["W1"] += np.outer(obs, dz); dW["b1"] += dz
+        grads = [dW["W1"], dW["b1"], dW["Wb"], dW["bb"], dW["Wp"], dW["bp"],
+                 dW["Wr"], dW["br"], dW["Wg"], dW["bg"]]
+        params = [self.W1, self.b1, self.Wb, self.bb, self.Wp, self.bp,
+                  self.Wr, self.br, self.Wg, self.bg]
+        for i, (pp, g) in enumerate(zip(params, grads)):
+            pp -= lr * g     # 確率的勾配降下（CE最小化）
+
     # ------------------------------------------------------------------- io
     def save(self, path) -> None:
         np.savez(path, obs_dim=np.array([self.W1.shape[0]]),
