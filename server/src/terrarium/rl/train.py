@@ -25,10 +25,19 @@ from .nets import PolicyNet
 SERVER_ROOT = Path(__file__).resolve().parents[3]
 
 
+def _make_net(args):
+    from .nets import RecurrentPolicyNet
+    if getattr(args, "recurrent", False):
+        return RecurrentPolicyNet(obs_dim=OBS_DIM, seed=args.seed)
+    return PolicyNet(obs_dim=OBS_DIM, seed=args.seed)
+
+
 def run_episode(env, net, train: bool, gamma: float = 0.97,
                 reward_scale: float = 0.1, lr: float = 1e-3, entropy_coef: float = 0.005):
     """Single-agent episode (NationEnv); works unchanged for evaluation."""
     obs = env.reset()
+    if hasattr(net, "reset_state"):
+        net.reset_state()
     traj = []
     done = False
     total = 0.0
@@ -55,8 +64,14 @@ def _apply_update(net, traj, gamma: float = 0.97, lr: float = 1e-3,
     advs = [G - a["value"] for (_, a, _), G in zip(traj, returns)]
     mu = float(np.mean(advs))
     sigma = float(np.std(advs)) + 1e-6
-    for (obs_t, act_t, _), G, adv in zip(traj, returns, advs):
-        net.update(obs_t, act_t, (adv - mu) / sigma, G, lr=lr, entropy_coef=entropy_coef)
+    norm = [(adv - mu) / sigma for adv in advs]
+    if hasattr(net, "update_sequence"):
+        # 再帰型: エピソードを通じたBPTT（打ち切り長16）
+        net.update_sequence([o for o, _, _ in traj], [a for _, a, _ in traj],
+                            norm, returns, lr=lr, entropy_coef=entropy_coef)
+        return
+    for (obs_t, act_t, _), G, adv in zip(traj, returns, norm):
+        net.update(obs_t, act_t, adv, G, lr=lr, entropy_coef=entropy_coef)
 
 
 def run_selfplay_episode(env, nets: dict, train: bool, gamma: float = 0.97,
@@ -65,6 +80,9 @@ def run_selfplay_episode(env, nets: dict, train: bool, gamma: float = 0.97,
     """One episode of SelfPlayEnv: every learner acts each tick, each net
     updates on its own trajectory (the others are part of its environment)."""
     obs_d = env.reset()
+    for net in nets.values():
+        if hasattr(net, "reset_state"):
+            net.reset_state()
     trajs = {nid: [] for nid in env.nation_ids}
     totals = {nid: 0.0 for nid in env.nation_ids}
     done = False
@@ -105,7 +123,7 @@ def _train_generalist(args, train_scenario) -> int:
     envs = {nid: NationEnv(args.preset, nid, seed=args.seed,
                            horizon=args.horizon, scenario=train_scenario)
             for nid in nids}
-    net = PolicyNet(obs_dim=OBS_DIM, seed=args.seed)
+    net = _make_net(args)
     eval_seeds = [101, 202, 303]
     t0 = time.time()
 
@@ -215,6 +233,8 @@ def main(argv: list[str] | None = None) -> int:
                     help="reward penalty per own sovereign default (0=growth-only objective)")
     ap.add_argument("--out", default=None,
                     help="weights path (single) or prefix (self-play); default models/rl_<nation>[.npz] or models/selfplay_<nation>.npz")
+    ap.add_argument("--recurrent", action="store_true",
+                    help="GRU再帰型戦術AI（隠れ状態で時系列を統合）を訓練")
     args = ap.parse_args(argv)
 
     from ..sim.interventions import load_scenario as _load_scenario
@@ -236,7 +256,7 @@ def main(argv: list[str] | None = None) -> int:
     train_scenario = _load_scenario(args.scenario) if args.scenario else None
     env = NationEnv(args.preset, args.nation, seed=args.seed, horizon=args.horizon,
                     scenario=train_scenario, default_penalty=args.default_penalty)
-    net = PolicyNet(obs_dim=OBS_DIM, seed=args.seed)
+    net = _make_net(args)
 
     eval_seeds = [101, 202, 303, 404, 505]
     # common random numbers: cycle a small fixed set of env seeds so the

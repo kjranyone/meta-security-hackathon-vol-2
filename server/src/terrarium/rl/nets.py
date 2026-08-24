@@ -200,3 +200,175 @@ def _entropy_grad_bern(logit: float) -> float:
     H2 = -(_sigmoid(logit + eps) * np.log(_sigmoid(logit + eps) + 1e-12)
            + (1 - _sigmoid(logit + eps)) * np.log(1 - _sigmoid(logit + eps) + 1e-12))
     return float((H2 - H) / eps)
+
+
+class RecurrentPolicyNet:
+    """GRU株+actor-critic頭の再帰型戦術AI（LSTM相当の時系列統合）。
+
+    MLP版は毎tickの観測を独立に写像する（マルコフ前提）。再帰版は隠れ状態hが
+    エピソードを通じて過去の観測・行動・報酬の影響を保持する — 「傾向の変化」
+    「危機の積み重ね」を自力で統合できる高度な推論の素地。
+    訓練は各エピソード終了後に系列を再計算して打ち切り長16のBPTTを回す。
+    """
+
+    def __init__(self, obs_dim: int, hidden: int = 64, seed: int = 0):
+        self.rng = np.random.default_rng(seed)
+        self.obs_dim, self.hidden = obs_dim, hidden
+        H = hidden
+        self.Wz = _he_init(obs_dim, H, self.rng); self.Uz = _he_init(H, H, self.rng) * 0.1; self.bz = np.zeros(H)
+        self.Wr_ = _he_init(obs_dim, H, self.rng); self.Ur_ = _he_init(H, H, self.rng) * 0.1; self.br_ = np.zeros(H)
+        self.Wn = _he_init(obs_dim, H, self.rng); self.Un = _he_init(H, H, self.rng) * 0.1; self.bn = np.zeros(H)
+        self.Wb = _he_init(H, len(BUDGET_PRESETS), self.rng); self.bb = np.zeros(len(BUDGET_PRESETS))
+        self.Wp = _he_init(H, 3, self.rng); self.bp = np.zeros(3)
+        self.Wq = _he_init(H, 1, self.rng); self.bq = np.zeros(1)   # rationing
+        self.Wc = _he_init(H, 1, self.rng); self.bc = np.zeros(1)   # propaganda
+        self.Wv = _he_init(H, 1, self.rng); self.bv = np.zeros(1)
+        self.params = [self.Wz, self.Uz, self.bz, self.Wr_, self.Ur_, self.br_,
+                       self.Wn, self.Un, self.bn,
+                       self.Wb, self.bb, self.Wp, self.bp, self.Wq, self.bq,
+                       self.Wc, self.bc, self.Wv, self.bv]
+        self._m = [np.zeros_like(p) for p in self.params]
+        self._v = [np.zeros_like(p) for p in self.params]
+        self._t = 0
+        self._h = np.zeros(H)          # 実行時のローリング隠れ状態
+
+    # ---------------------------------------------------------------- runtime
+    def reset_state(self) -> None:
+        self._h = np.zeros(self.hidden)
+
+    def _cell(self, x: np.ndarray, h_prev: np.ndarray):
+        a_z = x @ self.Wz + h_prev @ self.Uz + self.bz
+        z = _sigmoid_vec(a_z)
+        a_r = x @ self.Wr_ + h_prev @ self.Ur_ + self.br_
+        r = _sigmoid_vec(a_r)
+        a_n = x @ self.Wn + (r * h_prev) @ self.Un + self.bn
+        n = np.tanh(a_n)
+        h = (1.0 - z) * h_prev + z * n
+        return z, r, n, h
+
+    def forward_h(self, x: np.ndarray, h_prev: np.ndarray) -> np.ndarray:
+        return self._cell(x, h_prev)[3]
+
+    def act(self, obs: np.ndarray, deterministic: bool = False) -> dict:
+        z, r, n, h = self._cell(obs, self._h)
+        self._h = h
+        budget_logits = h @ self.Wb + self.bb
+        posture_logits = h @ self.Wp + self.bp
+        ration_logit = float((h @ self.Wq + self.bq)[0])
+        propa_logit = float((h @ self.Wc + self.bc)[0])
+        value = float((h @ self.Wv + self.bv)[0])
+        if deterministic:
+            b = int(np.argmax(budget_logits)); p = int(np.argmax(posture_logits))
+            q = 1 if ration_logit > 0 else 0; c = 1 if propa_logit > 0 else 0
+            logp = 0.0
+        else:
+            b = int(self.rng.choice(len(BUDGET_PRESETS), p=_softmax(budget_logits)))
+            p = int(self.rng.choice(3, p=_softmax(posture_logits)))
+            q = int(self.rng.random() < _sigmoid(ration_logit))
+            c = int(self.rng.random() < _sigmoid(propa_logit))
+            logp = (_log_softmax(budget_logits)[b] + _log_softmax(posture_logits)[p]
+                    + _bern_logp(ration_logit, q) + _bern_logp(propa_logit, c))
+        return {"budget_idx": b, "posture_idx": p, "rationing": q, "propaganda": c,
+                "logp": logp, "value": value}
+
+    # -------------------------------------------------------- training (BPTT)
+    def update_sequence(self, obs_list, act_list, advs, rets, lr: float = 1e-3,
+                        entropy_coef: float = 0.005, bptt_len: int = 16) -> None:
+        T = len(obs_list)
+        if T == 0:
+            return
+        # forward over the episode from h0 = 0
+        hs = []
+        cache = []
+        h = np.zeros(self.hidden)
+        for x in obs_list:
+            a_z = x @ self.Wz + h @ self.Uz + self.bz
+            zz = _sigmoid_vec(a_z)
+            a_r = x @ self.Wr_ + h @ self.Ur_ + self.br_
+            rr = _sigmoid_vec(a_r)
+            a_n = x @ self.Wn + (rr * h) @ self.Un + self.bn
+            nn = np.tanh(a_n)
+            h_new = (1.0 - zz) * h + zz * nn
+            cache.append((x, h, zz, rr, nn, a_z, a_r, a_n))
+            hs.append(h_new)
+            h = h_new
+        # grads
+        gW = [np.zeros_like(p) for p in self.params]
+        dh_next = np.zeros(self.hidden)
+        for t in range(T - 1, -1, -1):
+            if (T - 1 - t) >= bptt_len:
+                dh_next = np.zeros(self.hidden)   # truncate
+            x, h_prev, zz, rr, nn, a_z, a_r, a_n = cache[t]
+            hh = hs[t]
+            adv, ret = advs[t], rets[t]
+            budget_logits = hh @ self.Wb + self.bb
+            posture_logits = hh @ self.Wp + self.bp
+            ration_logit = float((hh @ self.Wq + self.bq)[0])
+            propa_logit = float((hh @ self.Wc + self.bc)[0])
+            value = float((hh @ self.Wv + self.bv)[0])
+            a = act_list[t]
+            gB = -adv * _softmax_grad_neglog(budget_logits, a["budget_idx"]) \
+                - entropy_coef * _entropy_grad_softmax(budget_logits)
+            gP = -adv * _softmax_grad_neglog(posture_logits, a["posture_idx"]) \
+                - entropy_coef * _entropy_grad_softmax(posture_logits)
+            gQ = -adv * (a["rationing"] - _sigmoid(ration_logit)) \
+                - entropy_coef * _entropy_grad_bern(ration_logit)
+            gC = -adv * (a["propaganda"] - _sigmoid(propa_logit)) \
+                - entropy_coef * _entropy_grad_bern(propa_logit)
+            gV = np.array([ret - value])
+            _acc(gW, 9, np.outer(hh, gB)); _acc(gW, 10, gB)
+            _acc(gW, 11, np.outer(hh, gP)); _acc(gW, 12, gP)
+            _acc(gW, 13, np.outer(hh, [gQ])); _acc(gW, 14, np.array([gQ]))
+            _acc(gW, 15, np.outer(hh, [gC])); _acc(gW, 16, np.array([gC]))
+            _acc(gW, 17, np.outer(hh, gV)); _acc(gW, 18, gV)
+            dh = (gB @ self.Wb.T + gP @ self.Wp.T + gQ * self.Wq[:, 0]
+                  + gC * self.Wc[:, 0] + gV * self.Wv[:, 0]) + dh_next
+            # GRU逆伝播: h = (1-z)*h_prev + z*n
+            dz = dh * (nn - h_prev)                      # dh ⊙ d h/dz
+            da_z = dz * zz * (1.0 - zz)
+            dn = dh * zz * (1.0 - nn ** 2)
+            dh_prev = (1.0 - zz) * dh + self.Uz.T @ da_z
+            da_r = (self.Un.T @ dn) * h_prev * rr * (1.0 - rr)
+            dh_prev += rr * (self.Un.T @ dn) + self.Ur_.T @ da_r
+            _acc(gW, 6, np.outer(x, dn)); _acc(gW, 7, np.outer(rr * h_prev, dn)); _acc(gW, 8, dn)
+            _acc(gW, 3, np.outer(x, da_r)); _acc(gW, 4, np.outer(h_prev, da_r)); _acc(gW, 5, da_r)
+            _acc(gW, 0, np.outer(x, da_z)); _acc(gW, 1, np.outer(h_prev, da_z)); _acc(gW, 2, da_z)
+            dh_next = dh_prev
+        # Adam ascent
+        self._t += 1
+        for i, (p, g) in enumerate(zip(self.params, gW)):
+            self._m[i] = 0.9 * self._m[i] + 0.1 * g
+            self._v[i] = 0.999 * self._v[i] + 0.001 * g * g
+            mhat = self._m[i] / (1.0 - 0.9 ** self._t)
+            vhat = self._v[i] / (1.0 - 0.999 ** self._t)
+            p += lr * mhat / (np.sqrt(vhat) + 1e-8)
+
+    # ------------------------------------------------------------------- io
+    def save(self, path) -> None:
+        np.savez(path, kind=np.array(["gru"]), obs_dim=np.array([self.obs_dim]),
+                 **{f"p{i}": p for i, p in enumerate(self.params)})
+
+    @classmethod
+    def load(cls, path) -> "RecurrentPolicyNet":
+        data = np.load(path)
+        obs_dim = int(data["obs_dim"][0])
+        net = cls(obs_dim=obs_dim, seed=0)
+        for i in range(len(net.params)):
+            net.params[i][...] = data[f"p{i}"]
+        return net
+
+
+def _acc(gW, i, g) -> None:
+    gW[i] += g
+
+
+def _sigmoid_vec(a: np.ndarray) -> np.ndarray:
+    return 1.0 / (1.0 + np.exp(-np.clip(a, -30, 30)))
+
+
+def load_net(path):
+    """npzを読んでMLP/GRUを自動判別して復元する。"""
+    data = np.load(path)
+    if "kind" in data and str(data["kind"][0]) == "gru":
+        return RecurrentPolicyNet.load(path)
+    return PolicyNet.load(path)

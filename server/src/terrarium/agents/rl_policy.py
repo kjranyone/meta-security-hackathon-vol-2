@@ -4,7 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from ..rl.env import action_to_decisions, obs_from_view
-from ..rl.nets import PolicyNet
+from ..rl.nets import load_net
 from .base import Decisions, NationView
 
 SERVER_ROOT = Path(__file__).resolve().parents[3]
@@ -21,12 +21,14 @@ class RLPolicy:
             raise FileNotFoundError(
                 f"RL weights not found: {path}. Train first: "
                 f"uv run python -m terrarium.rl.train --nation {nation_id}")
-        self.net = PolicyNet.load(path)
+        self.net = load_net(path)
         self.nation_id = nation_id
         self.weights_path = str(path)
 
     def decide(self, view: NationView) -> Decisions:
         obs = obs_from_view(view)
+        # 再帰型の場合、隠れ状態はこの政策オブジェクトの寿命の間ローリングする
+        # （世界の履歴の内部表現。世界再構築でリセット=決定論を保つ）
         action = self.net.act(obs, deterministic=True)
         d = action_to_decisions(action)
         d.rationale = f"RL tactical policy ({self.weights_path})"

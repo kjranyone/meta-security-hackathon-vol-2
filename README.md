@@ -423,6 +423,26 @@ FactorSpec(
 エンジン・UI・ログ・IF史は一切変更不要です。実測では、脅威を受け前提を満たした国が
 約18tickで取得に至り（テスト担保）、これらの離散遷移もparentリンク付きで因果グラフに乗ります。
 
+## 再帰型戦術AI（GRU: 時系列を統合する推論）
+
+`--recurrent` で**GRU株+actor-critic頭**の再帰型戦術AI（LSTM相当）を訓練できる
+（`tests/test_recurrent.py` が検証）:
+
+- MLP版は毎tickの観測を独立に写像する（マルコフ前提）。再帰版は**隠れ状態hが
+  エピソードを通じて過去の観渗・行動・報酬の影響を保持する** — トレンド特徴量に
+  頼らず「危機の積み重ね」を自力で統合する
+- 訓練は各エピソード終了後に系列を再前向播し、**打ち切り長16のBPTT**で逆伝播
+  （numpy実装、CPUのみ・GPU不要）
+- 実行時は政策オブジェクトの寿命の間隠れ状態がローリングし、世界再構築で
+  ゼロに戻る — **決定論（IF史の再現性）を保つ**
+- 実測: 乾魊シナリオのSAH学習で MLP(2000エピソードで+0.2) に対し
+  **GRUは400エピソードで+2.9** — 履歴の統合が学習速度そのものを改善する
+
+```bash
+uv run python -m terrarium.rl.train --preset earth --nation ALL --recurrent \
+    --scenario scenarios/earth_hormuz.yaml --episodes 4800   # → models/generalist.npz (GRU)
+```
+
 ## 汎用戦術AI（全国家RL化）
 
 **汎用戦術AI**（`generalist.npz`）: 全国家を学習者として巡回しつつ**重みを共有**して訓練した
