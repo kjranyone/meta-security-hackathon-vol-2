@@ -41,6 +41,8 @@ class NationView(BaseModel):
     world: dict = {}                    # 世界情勢の要約とトレンド
     trade: dict = {}                    # 輸入依存・海峡曝露・輸出国構造
     last_decision: dict = {}            # 自分の直前の政策（無記憶AIへの記憶供給）
+    last_decisions: list = []           # 自分の直近5期の決定（政策の一貫性の記憶）
+    memory: list = []                   # 双方向の外交・紛争履歴（エピソード記憶）
 
 
 class Policy(Protocol):

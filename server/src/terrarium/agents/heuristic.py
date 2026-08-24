@@ -66,6 +66,12 @@ class HeuristicPolicy:
             budget["military"] -= 0.1
         # 思想の反映: 軍事偏重の政府は平時でも軍備に傾ける
         budget["military"] += 0.4 * (me.get("doctrine_militarism", 0.3) - 0.3)
+        # エピソード記憶: 直近6ヶ月以内に脅迫・偽情報の標的にされた経験
+        recent_threats = [m for m in getattr(view, "memory", [])
+                          if not m.get("i_acted") and m.get("event") in ("threat", "disinfo")
+                          and view.tick - m.get("tick", 0) <= 6]
+        if recent_threats:
+            budget["military"] += 0.15
         # normalize to sum 1
         total = sum(max(v, 0.0) for v in budget.values())
         budget = {k: round(max(v, 0.0) / total, 3) for k, v in budget.items()}

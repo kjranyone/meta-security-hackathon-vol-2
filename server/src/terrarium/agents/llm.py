@@ -56,6 +56,8 @@ def build_user_prompt(nation_persona: str, view: NationView) -> str:
             "世界パラメータ": view.god_params,
             "他国（観測可能な概要つき）": view.relations,
             "最近の出来事": view.recent_events[-16:],
+            "あなたの外交・紛争履歴（双方向のエピソード記憶。誰が何をしたか/されたか）": getattr(view, "memory", []),
+            "あなたの過去の決定（直近5期。一貫性の参考に）": getattr(view, "last_decisions", []),
             "あなたの前月の決定": view.last_decision,
         },
         ensure_ascii=False,

@@ -115,6 +115,8 @@ class Engine:
         self._ca_imports: dict[str, float] = {}
         self._shortages: dict[str, float] = {}
         self._abandon_votes: dict = {}
+        # 政策決定の履歴（直近5期。一貫性と後悔の材料）
+        self._decision_history: dict[str, list] = {}
         self._last_decision: dict[str, dict] = {}
         self.global_co2 = 0.0
         self.prices = {c.value: 1.0 for c in Commodity}
@@ -949,6 +951,7 @@ class Engine:
             rel_full = dict(ranked[:30])
 
         recent = [f"t{r.tick}: {r.text}" for r in self.event_log.records[-16:]]
+        memory = self._bilateral_memory(nid)
         return NationView(
             tick=self.tick_no,
             me=me_view,
@@ -961,7 +964,34 @@ class Engine:
             world=world,
             trade=trade,
             last_decision=self._last_decision.get(nid, {}),
+            last_decisions=self._decision_history.get(nid, []),
+            memory=memory,
         )
+
+    MEMORY_TYPES = ("threat", "sanction", "alliance_formed", "alliance_activation",
+                    "trade_pact", "war_start", "war_end", "peace_settlement",
+                    "arms_control", "collective_sanction", "disinfo")
+
+    def _bilateral_memory(self, nid: str, limit: int = 12) -> list[dict]:
+        """この国が当事者である双方向の外交・紛争エピソード（直近順）。
+        「過去の会話と経緯」の記憶: 相手が誰で何をしたか/されたか。"""
+        out: list[dict] = []
+        for rec in reversed(self.event_log.records[-400:]):
+            if rec.type not in self.MEMORY_TYPES:
+                continue
+            if rec.actor != nid and nid not in rec.targets:
+                continue
+            others = [x for x in ([rec.actor] if rec.actor else []) + rec.targets if x != nid]
+            if not others:
+                continue
+            out.append({
+                "tick": rec.tick, "with": sorted(set(others)),
+                "event": rec.type, "text": rec.text,
+                "i_acted": rec.actor == nid,
+            })
+            if len(out) >= limit:
+                break
+        return out
 
     def _decide(self) -> dict[str, Decisions]:
         """国家の意思決定。decision_every_hours が設定された世界では、
@@ -1002,6 +1032,10 @@ class Engine:
                 "rationing": d.rationing,
                 "doctrines": dict(d.doctrines or {}),
             }
+            if fresh:
+                hist = self._decision_history.setdefault(nid, [])
+                hist.append({"tick": t, **self._last_decision[nid]})
+                del hist[:-5]
             if nat.propaganda and not d.propaganda:
                 nat.propaganda = False
             elif d.propaganda:
