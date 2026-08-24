@@ -1,0 +1,43 @@
+{
+  "run_name": "earth_all_century_rl",
+  "seed": 42,
+  "ticks": 1200,
+  "final_metrics": {
+    "tick": 1199,
+    "world_gdp": 5.4689,
+    "mean_stability": 27.42,
+    "wars": 1,
+    "collapsed": 26,
+    "price_energy": 1.15,
+    "price_food": 2.2952,
+    "price_chips": 1.4843,
+    "mean_inflation": 0.09984,
+    "mean_debt_gdp": 216.7,
+    "defaults": 3476,
+    "mean_unemployment": 11.56,
+    "global_co2": 67864.9
+  },
+  "event_counts": {
+    "policy_shift": 211200,
+    "price_spike": 94,
+    "sovereign_default": 3476,
+    "credibility_hit": 89716,
+    "tech_emergence": 13,
+    "tech_adopted": 2288,
+    "fx_crisis": 56729,
+    "shortage": 1032,
+    "mobilization": 10206,
+    "war_start": 8652,
+    "peace_settlement": 7465,
+    "war_end": 1186,
+    "collapse": 6599,
+    "insurgency": 494
+  },
+  "wars": 1,
+  "config": {
+    "preset": "earth_all",
+    "policy": "rl(MLP-generalist)",
+    "rl_nation": "ALL",
+    "engine": "v4-realtime-clock"
+  }
+}
