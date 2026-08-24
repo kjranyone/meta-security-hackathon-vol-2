@@ -143,7 +143,8 @@ def tick_reward(eng: Engine, nation_id: str, prev: dict, default_penalty: float 
     r += 0.02 * eng.nations[nation_id].doctrine_militarism * (cur["military"] - prev["military"])
     # 統治の質: 安定度の水準報酬（月次換算）。Δ項だけだと崩壊→回復の
     # 往復が打ち消し合い、「生き続ける」ことへの勾配が消える。
-    r += 0.08 * cur["stability"] * fm
+    # GRUの運用実測で成長偏重が崩壊波を生んだため水準報酬を強化した。
+    r += 0.15 * cur["stability"] * fm
     # shortage events hitting this nation this tick (dominant penalty:
     # rationing/hoarding only matter insofar as they prevent these)
     for rec in eng.event_log.records:
@@ -154,7 +155,7 @@ def tick_reward(eng: Engine, nation_id: str, prev: dict, default_penalty: float 
         elif rec.type == "sovereign_default" and rec.actor == nation_id:
             r -= default_penalty
     if cur["collapsed"] and not prev["collapsed"]:
-        r -= 8.0
+        r -= 20.0
     return float(r)
 
 
