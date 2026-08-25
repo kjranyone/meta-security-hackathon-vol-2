@@ -6,13 +6,22 @@
   "world_growth_drop_pp": 3.0
  },
  "simulated": {
-  "price_peak_mult": 1.99,
-  "t_peak_mo": 9,
-  "annual_growth_pct": -1.57
+  "price_peak_mult": 2.0,
+  "t_peak_mo": 11,
+  "annual_growth_pct": -0.32
+ },
+ "episode_1979": {
+  "episode": "1979 イラン革命（油価×2.5、12ヶ月で上昇、供給は段階的に回復）",
+  "observed": {
+   "price_mult_at_12mo": 2.5
+  },
+  "simulated": {
+   "price_mult_at_12mo": 1.53
+  }
  },
  "notes": [
   "ピーク倍率は実績4.0に対しシミュレーションは2.0 — 較正に使った1990年(×2.3)より大規模な供給ショックで振幅が下振れ",
-  "GDP成長は実績+2%→-1%の低下に対し年率-1.6% — 方向は一致",
+  "GDP成長は実績+2%→-1%の低下に対し年率-0.3% — 方向は一致",
   "この試験は較正(1990)に使っていないエピソードでの独立検証"
  ]
 }

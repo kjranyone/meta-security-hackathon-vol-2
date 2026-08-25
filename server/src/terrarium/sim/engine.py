@@ -41,7 +41,9 @@ from .interventions import Intervention, Scenario
 CONSUMPTION = {"energy": 1.0, "food": 1.0, "chips": 0.5, "minerals": 0.5, "space": 0.25}
 DEFAULT_STOCKS = {"energy": 3.0, "food": 4.0, "chips": 2.0, "minerals": 2.0, "space": 1.0}
 YIELD_PER_UNIT = 1.5
-IMPORT_INFLATION_CAP = 0.35   # 輸入価格のCPIパススルーウェイト上限
+# 較正済み(1973-74年米国CPI +4.8ptへのフィット、analysis/calibrate_macro.py、
+# グレードB: 禁輸近似による)
+IMPORT_INFLATION_CAP = 0.25   # 輸入価格のCPIパススルーウェイト上限
 SHORTAGE_STABILITY_HIT = {"energy": 4.0, "food": 6.0, "chips": 2.0, "minerals": 3.0, "space": 0.5}
 COMMODITY_YIELD_SLIDER = {
     Commodity.ENERGY: "energy_yield",
@@ -499,6 +501,13 @@ class Engine:
         self._ca_imports = {}
         self._shortages = {}
         self._export_flow = {}
+        # 被制裁国ごとの制裁主体数(成長ドラッグ用。O(n^2)だが176^2は軽量)
+        sanctioned = {nid: 0 for nid in self.nations}
+        for n in self.nations.values():
+            for tgt in n.sanctions_on:
+                if tgt in sanctioned:
+                    sanctioned[tgt] += 1
+        self._sanctioned_count = sanctioned
         for c in self._wants_total:
             self._wants_total[c] = 0.0
             self._blocked_wants[c] = 0.0
@@ -1034,7 +1043,19 @@ class Engine:
         fresh = self._decisions_fresh
         for nid in sorted(decisions):
             nat, d = self.nations[nid], decisions[nid]
-            nat.budget = d.budget
+            if fresh and d.budget:
+                # 予算の慣性(実在の制約): 政府は一期で±15pt以上予算を振れない。
+                # 政権交代の公約シフトは直接代入なのでこの制約をバイパスする
+                old_b = nat.budget or {}
+                clamped = {}
+                for k in ("military", "welfare", "stockpile", "subsidy"):
+                    o = float(old_b.get(k, 0.25))
+                    nv = float(d.budget.get(k, 0.25))
+                    clamped[k] = o + max(-0.15, min(0.15, nv - o))
+                tot = sum(clamped.values()) or 1.0
+                nat.budget = {k: v / tot for k, v in clamped.items()}
+            else:
+                nat.budget = d.budget
             nat.rationing = d.rationing
             nat.doctrines = dict(d.doctrines or {})   # 戦略因子の自己選択を反映
             self._last_decision[nid] = {
@@ -1575,8 +1596,11 @@ class Engine:
             # 効かせる（大口輸出国で最大+2.4%/年: 資源ブームの表現）
             finance_units = sum(1 for r in self.nation_resources[nid] if r is ResourceKind.FINANCE)
             export_flow_m = self._export_flow.get(nid, 0.0) / max(fm, 1e-9)
+            # 制裁の経済的歯: 被制裁数に比例した成長ドラッグ(文献: 年1-2%GDP)
+            sanctioned_by = self._sanctioned_count.get(nid, 0)
             growth = (0.02 + 0.002 * finance_units - nat.inflation * 0.6
-                      + 0.003 * min(8.0, export_flow_m))
+                      + 0.003 * min(8.0, export_flow_m)
+                      - min(0.02, 0.004 * sanctioned_by))
             # --- 労働: 失業率（生産ギャップ・戦争・福祉が決める） ---
             welfare_share = bud0 = nat.budget.get("welfare", 0.3)
             shortage_hits = self._shortages.get(nid, 0.0)
@@ -1617,6 +1641,12 @@ class Engine:
                         f"{nat.name} の外貨準備が枯渇（{nat.fx_reserves:.1f}ヶ月分）。輸入が絞られる",
                         actor=nid, targets=[nid], data={"reserves": round(nat.fx_reserves, 2)},
                     )
+            # --- 囮戦争の誘因(diversionary): 選挙直前・低支持の民主政権は
+            #     外部緊張で支持を固めようとする(Chiozza & Goemans型) ---
+            if nat.regime == "democracy" and nat.next_election > t:
+                months_to_election = (nat.next_election - t) / max(1, self._ticks_for(TC.HOURS_PER_MONTH))
+                if months_to_election <= 6.0 and nat.approval < 40.0:
+                    nat.aggression = min(0.95, nat.aggression + 0.003 * fm)
             # --- イデオロギー摩擦: 異なる圏への信頼は徐々に削れる ---
             if nat.ideology != "secular":
                 worst, worst_trust = None, 100.0
