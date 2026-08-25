@@ -288,6 +288,10 @@ def build_earth_all(seed: int = 7) -> WorldSpec:
         doctr_fidelity = round(rng.uniform(0.5, 0.95), 2)
         posture = ("counterforce" if militarism > 0.55
                    else "nfu" if militarism < 0.25 else "mad")
+        # 政体: WGI「発言権と説明責任」(2024)の実データで分類
+        va = w.get("wgi_voice")
+        regime = ("democracy" if va is not None and va > 0.5
+                  else "autocracy" if va is not None and va < -0.5 else "hybrid")
         specs.append(NationSpec(
             id=nid, name=admin, persona=_persona_for(res, gdp),
             color=f"hsl({(len(specs) * 137.508) % 360:.0f}, 52%, 50%)",
@@ -302,6 +306,7 @@ def build_earth_all(seed: int = 7) -> WorldSpec:
             doctrine_vengeance=doctr_venge,
             doctrine_treaty_fidelity=doctr_fidelity,
             nuclear_posture=posture,
+            regime=regime,
         ))
 
     specs.sort(key=lambda s: s.id)

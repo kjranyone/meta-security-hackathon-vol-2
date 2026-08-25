@@ -92,6 +92,8 @@ class NationSpec(BaseModel):
     doctrine_vengeance: float = 0.3    # 報復性: 開戦後の疲弊耐性（執拗に戦い続ける）
     doctrine_treaty_fidelity: float = 0.7  # 同盟遵守度: 相互防衛の発動確率に効く
     nuclear_posture: str = "mad"       # counterforce | mad | nfu（先制安定性に効く）
+    # 政体（WGI発言権・説明責任の実データから分類。制度の「タイプ」の多様性）
+    regime: str = "hybrid"             # democracy | hybrid | autocracy
     stockpile_months: dict[str, float] = Field(default_factory=lambda: {"energy": 3.0, "food": 4.0, "chips": 2.0})
 
 
@@ -150,6 +152,8 @@ class NationState(BaseModel):
     local_debt_share: float = 0.5     # 自国通貨建て債務割合（specから導出コピー）
     # 創発するイデオロギー圏（実在宗教の割付ではない。宗教系技術の採用で移行）
     ideology: str = "secular"         # secular | ai_cult | techno_nationalist
+    regime: str = "hybrid"            # 政体（選挙サイクル・民主的平和・抑圧に効く）
+    next_election: int = -1           # 民主政体の次回選挙tick（-1=未設定）
 
     def view(self) -> dict[str, Any]:
         return self.model_dump()

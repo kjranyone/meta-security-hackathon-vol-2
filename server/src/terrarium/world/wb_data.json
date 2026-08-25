@@ -7,6 +7,8 @@
   "renewables_pct": 20.0,
   "unemployment": 13.351,
   "wgi_stability": -2.205,
+  "wgi_voice": -2.148,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Albania": {
@@ -19,6 +21,8 @@
   "renewables_pct": 41.9,
   "unemployment": 10.926,
   "wgi_stability": 0.02,
+  "wgi_voice": -0.012,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Algeria": {
@@ -30,6 +34,8 @@
   "renewables_pct": 0.1,
   "unemployment": 11.633,
   "wgi_stability": -0.694,
+  "wgi_voice": 0.931,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Angola": {
@@ -41,6 +47,8 @@
   "renewables_pct": 52.9,
   "unemployment": 14.108,
   "wgi_stability": -0.574,
+  "wgi_voice": -1.059,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Antarctica": {
@@ -56,6 +64,8 @@
   "renewables_pct": 9.2,
   "unemployment": 7.145,
   "wgi_stability": -0.17,
+  "wgi_voice": 0.386,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Armenia": {
@@ -68,6 +78,8 @@
   "renewables_pct": 9.1,
   "unemployment": 12.871,
   "wgi_stability": -0.723,
+  "wgi_voice": 0.958,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Australia": {
@@ -80,6 +92,8 @@
   "renewables_pct": 12.3,
   "unemployment": 4.09,
   "wgi_stability": 0.793,
+  "wgi_voice": 1.512,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Austria": {
@@ -91,6 +105,8 @@
   "renewables_pct": 36.0,
   "unemployment": 5.582,
   "wgi_stability": 0.492,
+  "wgi_voice": 1.405,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Azerbaijan": {
@@ -103,6 +119,8 @@
   "renewables_pct": 1.3,
   "unemployment": 5.457,
   "wgi_stability": -0.14,
+  "wgi_voice": -1.504,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Bangladesh": {
@@ -115,6 +133,8 @@
   "renewables_pct": 25.0,
   "unemployment": 3.778,
   "wgi_stability": -1.463,
+  "wgi_voice": -1.161,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Belarus": {
@@ -127,6 +147,8 @@
   "renewables_pct": 8.2,
   "unemployment": 3.38,
   "wgi_stability": -0.377,
+  "wgi_voice": -1.69,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Belgium": {
@@ -138,6 +160,8 @@
   "renewables_pct": 11.7,
   "unemployment": 5.906,
   "wgi_stability": 0.121,
+  "wgi_voice": 1.497,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Belize": {
@@ -150,6 +174,8 @@
   "renewables_pct": 30.8,
   "unemployment": 8.856,
   "wgi_stability": 0.785,
+  "wgi_voice": 0.104,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Benin": {
@@ -161,6 +187,8 @@
   "renewables_pct": 54.5,
   "unemployment": 1.589,
   "wgi_stability": -0.403,
+  "wgi_voice": 1.056,
+  "wgi_voice_year": 2017,
   "wgi_year": 2024
  },
  "Bhutan": {
@@ -172,6 +200,8 @@
   "renewables_pct": 82.5,
   "unemployment": 3.227,
   "wgi_stability": 1.354,
+  "wgi_voice": 0.401,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Bolivia": {
@@ -184,6 +214,8 @@
   "renewables_pct": 12.8,
   "unemployment": 2.967,
   "wgi_stability": -0.546,
+  "wgi_voice": -0.44,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Bosnia and Herzegovina": {
@@ -196,6 +228,8 @@
   "renewables_pct": 36.6,
   "unemployment": 11.037,
   "wgi_stability": -0.501,
+  "wgi_voice": -0.395,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Botswana": {
@@ -208,6 +242,8 @@
   "renewables_pct": 27.4,
   "unemployment": 24.477,
   "wgi_stability": 1.032,
+  "wgi_voice": 0.295,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Brazil": {
@@ -220,6 +256,8 @@
   "renewables_pct": 46.5,
   "unemployment": 5.97,
   "wgi_stability": -0.521,
+  "wgi_voice": 0.316,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Brunei": {
@@ -230,6 +268,8 @@
   "renewables_pct": 0.0,
   "unemployment": 5.277,
   "wgi_stability": 1.203,
+  "wgi_voice": -0.8,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Bulgaria": {
@@ -241,6 +281,8 @@
   "renewables_pct": 20.4,
   "unemployment": 3.536,
   "wgi_stability": 0.04,
+  "wgi_voice": 0.213,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Burkina Faso": {
@@ -253,6 +295,8 @@
   "renewables_pct": 71.4,
   "unemployment": 3.477,
   "wgi_stability": -1.906,
+  "wgi_voice": -0.964,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Burundi": {
@@ -264,6 +308,8 @@
   "renewables_pct": 83.0,
   "unemployment": 0.922,
   "wgi_stability": -1.376,
+  "wgi_voice": -1.492,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Cambodia": {
@@ -275,6 +321,8 @@
   "renewables_pct": 52.4,
   "unemployment": 0.263,
   "wgi_stability": 0.128,
+  "wgi_voice": -1.671,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Cameroon": {
@@ -287,6 +335,8 @@
   "renewables_pct": 79.2,
   "unemployment": 3.602,
   "wgi_stability": -1.557,
+  "wgi_voice": -1.242,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Canada": {
@@ -299,6 +349,8 @@
   "renewables_pct": 23.8,
   "unemployment": 6.907,
   "wgi_stability": 0.598,
+  "wgi_voice": 0.958,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Central African Republic": {
@@ -310,6 +362,8 @@
   "renewables_pct": 90.9,
   "unemployment": 6.251,
   "wgi_stability": -1.833,
+  "wgi_voice": -1.311,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Chad": {
@@ -321,6 +375,8 @@
   "renewables_pct": 70.0,
   "unemployment": 1.057,
   "wgi_stability": -1.779,
+  "wgi_voice": -1.519,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Chile": {
@@ -333,6 +389,8 @@
   "renewables_pct": 24.2,
   "unemployment": 8.974,
   "wgi_stability": 0.121,
+  "wgi_voice": 0.994,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "China": {
@@ -344,6 +402,8 @@
   "renewables_pct": 15.2,
   "unemployment": 4.615,
   "wgi_stability": -0.153,
+  "wgi_voice": -1.653,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Colombia": {
@@ -356,6 +416,8 @@
   "renewables_pct": 29.7,
   "unemployment": 8.29,
   "wgi_stability": -0.971,
+  "wgi_voice": 0.035,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Costa Rica": {
@@ -367,6 +429,8 @@
   "renewables_pct": 34.2,
   "unemployment": 6.843,
   "wgi_stability": 1.176,
+  "wgi_voice": 1.011,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Croatia": {
@@ -378,6 +442,8 @@
   "renewables_pct": 34.1,
   "unemployment": 5.002,
   "wgi_stability": 0.581,
+  "wgi_voice": 0.649,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Cuba": {
@@ -388,6 +454,8 @@
   "renewables_pct": 20.9,
   "unemployment": 1.746,
   "wgi_stability": 0.316,
+  "wgi_voice": -1.269,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Cyprus": {
@@ -400,6 +468,8 @@
   "renewables_pct": 15.6,
   "unemployment": 4.924,
   "wgi_stability": 0.386,
+  "wgi_voice": 0.887,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Czechia": {
@@ -412,6 +482,8 @@
   "renewables_pct": 17.2,
   "unemployment": 2.825,
   "wgi_stability": 0.972,
+  "wgi_voice": 1.255,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Democratic Republic of the Congo": {
@@ -424,6 +496,8 @@
   "renewables_pct": 96.3,
   "unemployment": 4.434,
   "wgi_stability": -2.119,
+  "wgi_voice": -1.214,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Denmark": {
@@ -436,6 +510,8 @@
   "renewables_pct": 39.5,
   "unemployment": 5.529,
   "wgi_stability": 0.769,
+  "wgi_voice": 1.895,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Djibouti": {
@@ -447,6 +523,8 @@
   "renewables_pct": 26.9,
   "unemployment": 26.015,
   "wgi_stability": -0.556,
+  "wgi_voice": -1.245,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Dominican Republic": {
@@ -459,6 +537,8 @@
   "renewables_pct": 14.8,
   "unemployment": 5.092,
   "wgi_stability": 0.589,
+  "wgi_voice": 0.201,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "East Timor": {
@@ -470,6 +550,8 @@
   "renewables_pct": 11.4,
   "unemployment": 1.592,
   "wgi_stability": 0.526,
+  "wgi_voice": 0.346,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Ecuador": {
@@ -481,6 +563,8 @@
   "renewables_pct": 18.9,
   "unemployment": 3.308,
   "wgi_stability": -0.721,
+  "wgi_voice": -0.105,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Egypt": {
@@ -493,6 +577,8 @@
   "renewables_pct": 6.1,
   "unemployment": 6.781,
   "wgi_stability": -0.978,
+  "wgi_voice": -1.601,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "El Salvador": {
@@ -505,6 +591,8 @@
   "renewables_pct": 21.9,
   "unemployment": 3.303,
   "wgi_stability": 0.006,
+  "wgi_voice": -0.788,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Equatorial Guinea": {
@@ -516,6 +604,8 @@
   "renewables_pct": 4.2,
   "unemployment": 8.337,
   "wgi_stability": -0.141,
+  "wgi_voice": -1.725,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Eritrea": {
@@ -526,6 +616,8 @@
   "renewables_pct": 80.7,
   "unemployment": 5.978,
   "wgi_stability": -0.709,
+  "wgi_voice": -2.29,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Estonia": {
@@ -537,6 +629,8 @@
   "renewables_pct": 38.0,
   "unemployment": 8.313,
   "wgi_stability": 0.7,
+  "wgi_voice": 1.414,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Ethiopia": {
@@ -549,6 +643,8 @@
   "renewables_pct": 90.6,
   "unemployment": 3.323,
   "wgi_stability": -1.885,
+  "wgi_voice": -1.242,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Falkland Islands": {
@@ -565,6 +661,8 @@
   "renewables_pct": 28.4,
   "unemployment": 5.347,
   "wgi_stability": 0.698,
+  "wgi_voice": 0.332,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Finland": {
@@ -577,6 +675,8 @@
   "renewables_pct": 50.2,
   "unemployment": 9.461,
   "wgi_stability": 0.833,
+  "wgi_voice": 1.854,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "France": {
@@ -588,6 +688,8 @@
   "renewables_pct": 16.2,
   "unemployment": 7.542,
   "wgi_stability": -0.241,
+  "wgi_voice": 0.877,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "French Southern and Antarctic Lands": {
@@ -603,6 +705,8 @@
   "renewables_pct": 91.3,
   "unemployment": 20.154,
   "wgi_stability": -0.277,
+  "wgi_voice": -1.021,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Gambia": {
@@ -614,6 +718,8 @@
   "renewables_pct": 47.7,
   "unemployment": 6.521,
   "wgi_stability": -0.018,
+  "wgi_voice": -0.182,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Georgia": {
@@ -626,6 +732,8 @@
   "renewables_pct": 25.2,
   "unemployment": 12.097,
   "wgi_stability": -0.613,
+  "wgi_voice": -0.254,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Germany": {
@@ -638,6 +746,8 @@
   "renewables_pct": 17.6,
   "unemployment": 3.711,
   "wgi_stability": 0.124,
+  "wgi_voice": 1.598,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Ghana": {
@@ -649,6 +759,8 @@
   "renewables_pct": 39.0,
   "unemployment": 2.979,
   "wgi_stability": 0.011,
+  "wgi_voice": 0.204,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Greece": {
@@ -660,6 +772,8 @@
   "renewables_pct": 21.5,
   "unemployment": 8.54,
   "wgi_stability": 0.139,
+  "wgi_voice": 1.405,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Greenland": {
@@ -678,6 +792,8 @@
   "renewables_pct": 62.1,
   "unemployment": 2.604,
   "wgi_stability": -0.21,
+  "wgi_voice": -0.471,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Guinea": {
@@ -689,6 +805,8 @@
   "renewables_pct": 66.6,
   "unemployment": 5.163,
   "wgi_stability": -1.038,
+  "wgi_voice": -1.209,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Guinea-Bissau": {
@@ -700,6 +818,8 @@
   "renewables_pct": 87.4,
   "unemployment": 2.673,
   "wgi_stability": -0.618,
+  "wgi_voice": -0.779,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Guyana": {
@@ -711,6 +831,8 @@
   "renewables_pct": 12.1,
   "unemployment": 11.962,
   "wgi_stability": 0.216,
+  "wgi_voice": -0.107,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Haiti": {
@@ -722,6 +844,8 @@
   "renewables_pct": 76.7,
   "unemployment": 14.944,
   "wgi_stability": -1.201,
+  "wgi_voice": -1.265,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Honduras": {
@@ -733,6 +857,8 @@
   "renewables_pct": 45.9,
   "unemployment": 4.92,
   "wgi_stability": -0.567,
+  "wgi_voice": -0.654,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Hungary": {
@@ -745,6 +871,8 @@
   "renewables_pct": 15.3,
   "unemployment": 4.521,
   "wgi_stability": 0.436,
+  "wgi_voice": -0.028,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Iceland": {
@@ -756,6 +884,8 @@
   "renewables_pct": 82.4,
   "unemployment": 3.625,
   "wgi_stability": 1.206,
+  "wgi_voice": 1.425,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "India": {
@@ -768,6 +898,8 @@
   "renewables_pct": 34.9,
   "unemployment": 4.219,
   "wgi_stability": -0.786,
+  "wgi_voice": -0.079,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Indonesia": {
@@ -780,6 +912,8 @@
   "renewables_pct": 20.2,
   "unemployment": 3.237,
   "wgi_stability": -0.609,
+  "wgi_voice": -0.175,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Iran": {
@@ -791,6 +925,8 @@
   "renewables_pct": 0.9,
   "unemployment": 8.301,
   "wgi_stability": -1.581,
+  "wgi_voice": -1.548,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Iraq": {
@@ -803,6 +939,8 @@
   "renewables_pct": 1.1,
   "unemployment": 15.485,
   "wgi_stability": -2.064,
+  "wgi_voice": -1.022,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Ireland": {
@@ -814,6 +952,8 @@
   "renewables_pct": 12.7,
   "unemployment": 4.632,
   "wgi_stability": 0.71,
+  "wgi_voice": 1.638,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Israel": {
@@ -826,6 +966,8 @@
   "renewables_pct": 6.2,
   "unemployment": 3.489,
   "wgi_stability": -1.038,
+  "wgi_voice": 0.295,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Italy": {
@@ -838,6 +980,8 @@
   "renewables_pct": 17.5,
   "unemployment": 6.391,
   "wgi_stability": 0.309,
+  "wgi_voice": 1.067,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Ivory Coast": {
@@ -850,6 +994,8 @@
   "renewables_pct": 58.2,
   "unemployment": 2.323,
   "wgi_stability": -0.844,
+  "wgi_voice": -0.617,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Jamaica": {
@@ -862,6 +1008,8 @@
   "renewables_pct": 10.5,
   "unemployment": 3.286,
   "wgi_stability": 0.477,
+  "wgi_voice": 0.485,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Japan": {
@@ -873,6 +1021,8 @@
   "renewables_pct": 8.8,
   "unemployment": 2.451,
   "wgi_stability": 1.134,
+  "wgi_voice": 1.116,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Jordan": {
@@ -885,6 +1035,8 @@
   "renewables_pct": 11.5,
   "unemployment": 16.535,
   "wgi_stability": -0.35,
+  "wgi_voice": -0.714,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Kazakhstan": {
@@ -897,6 +1049,8 @@
   "renewables_pct": 2.0,
   "unemployment": 4.771,
   "wgi_stability": -0.283,
+  "wgi_voice": -0.816,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Kenya": {
@@ -908,6 +1062,8 @@
   "renewables_pct": 67.7,
   "unemployment": 5.449,
   "wgi_stability": -1.356,
+  "wgi_voice": -0.354,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Kosovo": {
@@ -922,6 +1078,8 @@
   "renewables_pct": 0.1,
   "unemployment": 2.181,
   "wgi_stability": 0.294,
+  "wgi_voice": -0.718,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Kyrgyzstan": {
@@ -934,6 +1092,8 @@
   "renewables_pct": 27.6,
   "unemployment": 3.526,
   "wgi_stability": -0.505,
+  "wgi_voice": -0.801,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Laos": {
@@ -945,6 +1105,8 @@
   "renewables_pct": 49.2,
   "unemployment": 1.187,
   "wgi_stability": 0.558,
+  "wgi_voice": -1.471,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Latvia": {
@@ -957,6 +1119,8 @@
   "renewables_pct": 44.0,
   "unemployment": 6.568,
   "wgi_stability": 0.62,
+  "wgi_voice": 1.128,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Lebanon": {
@@ -969,6 +1133,8 @@
   "renewables_pct": 6.8,
   "unemployment": 10.985,
   "wgi_stability": -1.39,
+  "wgi_voice": -0.773,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Lesotho": {
@@ -981,6 +1147,8 @@
   "renewables_pct": 34.9,
   "unemployment": 16.315,
   "wgi_stability": -0.259,
+  "wgi_voice": -0.155,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Liberia": {
@@ -992,6 +1160,8 @@
   "renewables_pct": 92.8,
   "unemployment": 2.884,
   "wgi_stability": -0.229,
+  "wgi_voice": -0.112,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Libya": {
@@ -1002,6 +1172,8 @@
   "renewables_pct": 3.1,
   "unemployment": 18.758,
   "wgi_stability": -1.896,
+  "wgi_voice": -1.336,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Lithuania": {
@@ -1013,6 +1185,8 @@
   "renewables_pct": 33.2,
   "unemployment": 6.731,
   "wgi_stability": 0.939,
+  "wgi_voice": 1.223,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Luxembourg": {
@@ -1025,6 +1199,8 @@
   "renewables_pct": 20.5,
   "unemployment": 6.343,
   "wgi_stability": 1.073,
+  "wgi_voice": 1.665,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Madagascar": {
@@ -1036,6 +1212,8 @@
   "renewables_pct": 83.1,
   "unemployment": 3.041,
   "wgi_stability": -0.481,
+  "wgi_voice": -0.725,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Malawi": {
@@ -1048,6 +1226,8 @@
   "renewables_pct": 62.9,
   "unemployment": 5.072,
   "wgi_stability": -0.38,
+  "wgi_voice": -0.109,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Malaysia": {
@@ -1060,6 +1240,8 @@
   "renewables_pct": 7.5,
   "unemployment": 3.764,
   "wgi_stability": 0.385,
+  "wgi_voice": -0.127,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Mali": {
@@ -1071,6 +1253,8 @@
   "renewables_pct": 71.1,
   "unemployment": 2.831,
   "wgi_stability": -2.491,
+  "wgi_voice": -1.221,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Mauritania": {
@@ -1082,6 +1266,8 @@
   "renewables_pct": 19.6,
   "unemployment": 10.319,
   "wgi_stability": -0.56,
+  "wgi_voice": -0.925,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Mexico": {
@@ -1094,6 +1280,8 @@
   "renewables_pct": 13.0,
   "unemployment": 2.673,
   "wgi_stability": -0.715,
+  "wgi_voice": -0.338,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Moldova": {
@@ -1106,6 +1294,8 @@
   "renewables_pct": 21.4,
   "unemployment": 1.505,
   "wgi_stability": -0.345,
+  "wgi_voice": 0.284,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Mongolia": {
@@ -1118,6 +1308,8 @@
   "renewables_pct": 3.0,
   "unemployment": 5.233,
   "wgi_stability": 0.42,
+  "wgi_voice": 0.127,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Montenegro": {
@@ -1129,6 +1321,8 @@
   "renewables_pct": 39.6,
   "unemployment": 13.572,
   "wgi_stability": 0.332,
+  "wgi_voice": 0.391,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Morocco": {
@@ -1141,6 +1335,8 @@
   "renewables_pct": 10.9,
   "unemployment": 9.0,
   "wgi_stability": -0.441,
+  "wgi_voice": -0.727,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Mozambique": {
@@ -1153,6 +1349,8 @@
   "renewables_pct": 76.9,
   "unemployment": 6.628,
   "wgi_stability": -1.758,
+  "wgi_voice": -1.006,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Myanmar": {
@@ -1164,6 +1362,8 @@
   "renewables_pct": 62.9,
   "unemployment": 3.047,
   "wgi_stability": -2.09,
+  "wgi_voice": -2.125,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Namibia": {
@@ -1176,6 +1376,8 @@
   "renewables_pct": 30.0,
   "unemployment": 19.291,
   "wgi_stability": 0.547,
+  "wgi_voice": 0.337,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Nepal": {
@@ -1188,6 +1390,8 @@
   "renewables_pct": 73.7,
   "unemployment": 10.465,
   "wgi_stability": -0.415,
+  "wgi_voice": -0.06,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Netherlands": {
@@ -1200,6 +1404,8 @@
   "renewables_pct": 12.2,
   "unemployment": 3.874,
   "wgi_stability": 0.428,
+  "wgi_voice": 0.731,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "New Caledonia": {
@@ -1218,6 +1424,8 @@
   "renewables_pct": 28.9,
   "unemployment": 5.076,
   "wgi_stability": 1.151,
+  "wgi_voice": 1.689,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Nicaragua": {
@@ -1229,6 +1437,8 @@
   "renewables_pct": 50.4,
   "unemployment": 5.04,
   "wgi_stability": -0.069,
+  "wgi_voice": -1.716,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Niger": {
@@ -1240,6 +1450,8 @@
   "renewables_pct": 79.6,
   "unemployment": 0.394,
   "wgi_stability": -1.763,
+  "wgi_voice": -0.971,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Nigeria": {
@@ -1251,6 +1463,8 @@
   "renewables_pct": 80.3,
   "unemployment": 3.064,
   "wgi_stability": -2.003,
+  "wgi_voice": -0.727,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "North Korea": {
@@ -1260,6 +1474,8 @@
   "renewables_pct": 14.7,
   "unemployment": 3.545,
   "wgi_stability": 0.322,
+  "wgi_voice": -1.987,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "North Macedonia": {
@@ -1271,6 +1487,8 @@
   "renewables_pct": 19.5,
   "unemployment": 12.256,
   "wgi_stability": 0.156,
+  "wgi_voice": 0.074,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Northern Cyprus": {
@@ -1287,6 +1505,8 @@
   "renewables_pct": 61.4,
   "unemployment": 4.637,
   "wgi_stability": 0.903,
+  "wgi_voice": 1.929,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Oman": {
@@ -1297,6 +1517,8 @@
   "renewables_pct": 0.1,
   "unemployment": 3.251,
   "wgi_stability": 0.627,
+  "wgi_voice": -0.888,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Pakistan": {
@@ -1309,6 +1531,8 @@
   "renewables_pct": 41.6,
   "unemployment": 5.42,
   "wgi_stability": -2.063,
+  "wgi_voice": -1.166,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Palestine": {
@@ -1328,6 +1552,8 @@
   "renewables_pct": 28.0,
   "unemployment": 8.36,
   "wgi_stability": 0.265,
+  "wgi_voice": 0.441,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Papua New Guinea": {
@@ -1340,6 +1566,8 @@
   "renewables_pct": 54.6,
   "unemployment": 2.571,
   "wgi_stability": -0.654,
+  "wgi_voice": -0.326,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Paraguay": {
@@ -1351,6 +1579,8 @@
   "renewables_pct": 58.8,
   "unemployment": 4.803,
   "wgi_stability": -0.074,
+  "wgi_voice": -0.15,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Peru": {
@@ -1363,6 +1593,8 @@
   "renewables_pct": 30.6,
   "unemployment": 5.117,
   "wgi_stability": -0.654,
+  "wgi_voice": 0.046,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Philippines": {
@@ -1375,6 +1607,8 @@
   "renewables_pct": 28.0,
   "unemployment": 2.235,
   "wgi_stability": -0.774,
+  "wgi_voice": -0.355,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Poland": {
@@ -1387,6 +1621,8 @@
   "renewables_pct": 15.2,
   "unemployment": 2.976,
   "wgi_stability": 0.499,
+  "wgi_voice": 0.752,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Portugal": {
@@ -1399,6 +1635,8 @@
   "renewables_pct": 32.3,
   "unemployment": 6.164,
   "wgi_stability": 0.537,
+  "wgi_voice": 0.378,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Puerto Rico": {
@@ -1417,6 +1655,8 @@
   "renewables_pct": 0.0,
   "unemployment": 0.13,
   "wgi_stability": 0.951,
+  "wgi_voice": -0.954,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Republic of Serbia": {
@@ -1428,6 +1668,8 @@
   "renewables_pct": 27.2,
   "unemployment": 7.123,
   "wgi_stability": -0.169,
+  "wgi_voice": -0.466,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Republic of the Congo": {
@@ -1440,6 +1682,8 @@
   "renewables_pct": 71.4,
   "unemployment": 19.876,
   "wgi_stability": -0.258,
+  "wgi_voice": -1.315,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Romania": {
@@ -1451,6 +1695,8 @@
   "renewables_pct": 23.6,
   "unemployment": 5.992,
   "wgi_stability": 0.159,
+  "wgi_voice": 0.387,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Russia": {
@@ -1463,6 +1709,8 @@
   "renewables_pct": 3.5,
   "unemployment": 2.133,
   "wgi_stability": -0.903,
+  "wgi_voice": -1.422,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Rwanda": {
@@ -1475,6 +1723,8 @@
   "renewables_pct": 79.9,
   "unemployment": 11.363,
   "wgi_stability": -0.044,
+  "wgi_voice": -0.589,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Saudi Arabia": {
@@ -1485,6 +1735,8 @@
   "renewables_pct": 0.1,
   "unemployment": 3.038,
   "wgi_stability": -0.048,
+  "wgi_voice": -1.547,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Senegal": {
@@ -1496,6 +1748,8 @@
   "renewables_pct": 35.4,
   "unemployment": 2.735,
   "wgi_stability": -0.229,
+  "wgi_voice": 0.016,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Sierra Leone": {
@@ -1507,6 +1761,8 @@
   "renewables_pct": 71.6,
   "unemployment": 3.15,
   "wgi_stability": -0.45,
+  "wgi_voice": -0.513,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Slovakia": {
@@ -1518,6 +1774,8 @@
   "renewables_pct": 17.9,
   "unemployment": 5.359,
   "wgi_stability": 0.634,
+  "wgi_voice": 0.93,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Slovenia": {
@@ -1530,6 +1788,8 @@
   "renewables_pct": 23.4,
   "unemployment": 3.175,
   "wgi_stability": 0.721,
+  "wgi_voice": 1.057,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Solomon Islands": {
@@ -1541,6 +1801,8 @@
   "renewables_pct": 50.1,
   "unemployment": 1.431,
   "wgi_stability": 0.75,
+  "wgi_voice": 0.327,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Somalia": {
@@ -1552,6 +1814,8 @@
   "renewables_pct": 95.4,
   "unemployment": 18.948,
   "wgi_stability": -2.263,
+  "wgi_voice": -1.576,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Somaliland": {
@@ -1568,6 +1832,8 @@
   "renewables_pct": 9.7,
   "unemployment": 32.391,
   "wgi_stability": -0.617,
+  "wgi_voice": 0.607,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "South Korea": {
@@ -1580,6 +1846,8 @@
   "renewables_pct": 3.6,
   "unemployment": 2.683,
   "wgi_stability": 0.639,
+  "wgi_voice": 0.16,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "South Sudan": {
@@ -1591,6 +1859,8 @@
   "renewables_pct": 32.4,
   "unemployment": 12.374,
   "wgi_stability": -1.49,
+  "wgi_voice": -1.892,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Spain": {
@@ -1603,6 +1873,8 @@
   "renewables_pct": 19.0,
   "unemployment": 10.376,
   "wgi_stability": -0.003,
+  "wgi_voice": 1.148,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Sri Lanka": {
@@ -1615,6 +1887,8 @@
   "renewables_pct": 48.8,
   "unemployment": 4.005,
   "wgi_stability": -0.35,
+  "wgi_voice": -0.126,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Sudan": {
@@ -1627,6 +1901,8 @@
   "renewables_pct": 61.0,
   "unemployment": 7.53,
   "wgi_stability": -2.024,
+  "wgi_voice": -1.884,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Suriname": {
@@ -1637,6 +1913,8 @@
   "renewables_pct": 14.5,
   "unemployment": 7.834,
   "wgi_stability": 0.478,
+  "wgi_voice": 0.055,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Sweden": {
@@ -1648,6 +1926,8 @@
   "renewables_pct": 57.9,
   "unemployment": 8.694,
   "wgi_stability": 0.604,
+  "wgi_voice": 1.728,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Switzerland": {
@@ -1660,6 +1940,8 @@
   "renewables_pct": 27.7,
   "unemployment": 4.873,
   "wgi_stability": 0.981,
+  "wgi_voice": 1.642,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Syria": {
@@ -1671,6 +1953,8 @@
   "renewables_pct": 1.1,
   "unemployment": 13.569,
   "wgi_stability": -2.368,
+  "wgi_voice": -1.847,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Taiwan": {
@@ -1687,6 +1971,8 @@
   "renewables_pct": 34.9,
   "unemployment": 6.931,
   "wgi_stability": -0.276,
+  "wgi_voice": -1.643,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Thailand": {
@@ -1699,6 +1985,8 @@
   "renewables_pct": 19.0,
   "unemployment": 0.781,
   "wgi_stability": -0.683,
+  "wgi_voice": -0.56,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "The Bahamas": {
@@ -1709,6 +1997,8 @@
   "renewables_pct": 1.1,
   "unemployment": 9.207,
   "wgi_stability": 1.049,
+  "wgi_voice": 0.553,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Togo": {
@@ -1720,6 +2010,8 @@
   "renewables_pct": 75.1,
   "unemployment": 1.995,
   "wgi_stability": -0.809,
+  "wgi_voice": -0.972,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Trinidad and Tobago": {
@@ -1732,6 +2024,8 @@
   "renewables_pct": 0.5,
   "unemployment": 3.329,
   "wgi_stability": 0.36,
+  "wgi_voice": 0.406,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Tunisia": {
@@ -1744,6 +2038,8 @@
   "renewables_pct": 11.6,
   "unemployment": 15.108,
   "wgi_stability": -0.925,
+  "wgi_voice": -0.684,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Turkey": {
@@ -1756,6 +2052,8 @@
   "renewables_pct": 12.0,
   "unemployment": 8.52,
   "wgi_stability": -0.971,
+  "wgi_voice": -1.095,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Turkmenistan": {
@@ -1767,6 +2065,8 @@
   "renewables_pct": 0.1,
   "unemployment": 4.267,
   "wgi_stability": 0.246,
+  "wgi_voice": -2.043,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Uganda": {
@@ -1779,6 +2079,8 @@
   "renewables_pct": 90.9,
   "unemployment": 2.746,
   "wgi_stability": -1.022,
+  "wgi_voice": -1.013,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Ukraine": {
@@ -1791,6 +2093,8 @@
   "renewables_pct": 8.9,
   "unemployment": 9.834,
   "wgi_stability": -0.432,
+  "wgi_voice": -0.111,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "United Arab Emirates": {
@@ -1803,6 +2107,8 @@
   "renewables_pct": 1.0,
   "unemployment": 2.174,
   "wgi_stability": 0.789,
+  "wgi_voice": -0.854,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "United Kingdom": {
@@ -1815,6 +2121,8 @@
   "renewables_pct": 12.2,
   "unemployment": 4.746,
   "wgi_stability": 0.258,
+  "wgi_voice": 1.301,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "United Republic of Tanzania": {
@@ -1826,6 +2134,8 @@
   "renewables_pct": 78.3,
   "unemployment": 1.572,
   "wgi_stability": -0.39,
+  "wgi_voice": -0.645,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "United States of America": {
@@ -1838,6 +2148,8 @@
   "renewables_pct": 10.9,
   "unemployment": 4.198,
   "wgi_stability": -0.095,
+  "wgi_voice": 0.887,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Uruguay": {
@@ -1850,6 +2162,8 @@
   "renewables_pct": 57.8,
   "unemployment": 7.516,
   "wgi_stability": 1.278,
+  "wgi_voice": 1.228,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Uzbekistan": {
@@ -1861,6 +2175,8 @@
   "renewables_pct": 1.0,
   "unemployment": 4.622,
   "wgi_stability": -0.027,
+  "wgi_voice": -1.04,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Vanuatu": {
@@ -1872,6 +2188,8 @@
   "renewables_pct": 25.0,
   "unemployment": 5.073,
   "wgi_stability": 0.96,
+  "wgi_voice": 0.486,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Venezuela": {
@@ -1883,6 +2201,8 @@
   "renewables_pct": 33.7,
   "unemployment": 5.307,
   "wgi_stability": -1.74,
+  "wgi_voice": -1.817,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Vietnam": {
@@ -1894,6 +2214,8 @@
   "renewables_pct": 24.2,
   "unemployment": 1.523,
   "wgi_stability": 0.006,
+  "wgi_voice": 0.833,
+  "wgi_voice_year": 2017,
   "wgi_year": 2024
  },
  "Western Sahara": {
@@ -1909,6 +2231,8 @@
   "renewables_pct": 3.7,
   "unemployment": 17.322,
   "wgi_stability": -2.751,
+  "wgi_voice": -1.697,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Zambia": {
@@ -1921,6 +2245,8 @@
   "renewables_pct": 83.0,
   "unemployment": 5.918,
   "wgi_stability": -0.101,
+  "wgi_voice": -0.408,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "Zimbabwe": {
@@ -1932,6 +2258,8 @@
   "renewables_pct": 82.4,
   "unemployment": 9.293,
   "wgi_stability": -1.017,
+  "wgi_voice": -1.26,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  },
  "eSwatini": {
@@ -1944,6 +2272,8 @@
   "renewables_pct": 64.7,
   "unemployment": 34.202,
   "wgi_stability": -0.733,
+  "wgi_voice": -1.347,
+  "wgi_voice_year": 2024,
   "wgi_year": 2024
  }
 }

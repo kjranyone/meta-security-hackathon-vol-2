@@ -87,6 +87,9 @@ class Engine:
         self._recover_ticks = TC.ticks_for(6.0 * TC.HOURS_PER_MONTH, self.hpt)
         # 遅延伝播キュー: 動員(開戦前のラダー)と同盟参戦協議
         self._pending_wars: list[dict] = []
+        # 戦争強度 (a,b)->intensity 1.0-3.0: 限定戦争から総力戦へのエスカレーション
+        self._war_intensity: dict[tuple, float] = {}
+        self._war_casualties: dict[str, float] = {}   # nid -> 人口損失(百万人)
         self._pending_alliance: list[dict] = []
         self._seq = 0
         # 市場: 期待(恐怖)プレミアムと価格履歴(日次急騰判定用)
@@ -142,6 +145,7 @@ class Engine:
                 doctrine_vengeance=getattr(ns, "doctrine_vengeance", 0.3),
                 doctrine_treaty_fidelity=getattr(ns, "doctrine_treaty_fidelity", 0.7),
                 nuclear_posture=getattr(ns, "nuclear_posture", "mad"),
+                regime=getattr(ns, "regime", "hybrid"),
                 local_debt_share=(
                     ns.local_debt_share if getattr(ns, "local_debt_share", -1.0) >= 0
                     else min(0.95, max(0.1,
@@ -834,7 +838,10 @@ class Engine:
                     self._shortage_since[key] = self._shortage_since.get(key, 0.0) + fm
                     severity = max(min(1.0, deficit / max(use, 1e-9)),
                                    min(TC.CHRONIC_SHORTAGE_CAP, self._shortage_since[key]))
-                    nat.stability -= SHORTAGE_STABILITY_HIT[c.value] * severity * fm
+                    stab_hit = SHORTAGE_STABILITY_HIT[c.value] * severity * fm
+                    if nat.regime == "autocracy":
+                        stab_hit *= 0.8   # 抑圧機構が社会的不満を緩衝する
+                    nat.stability -= stab_hit
                     self._shortages[nid] = self._shortages.get(nid, 0.0) + severity * fm
                     # 0.3を上回って横切った瞬間に一度だけ通知する
                     if severity >= 0.3 > self._last_sev.get(key, 0.0):
@@ -1106,17 +1113,28 @@ class Engine:
     def _conflict(self) -> None:
         t = self.tick_no
         fm = self._fm()
-        # ongoing wars: attrition（軍事消耗・疲弊は月次レートを実時間で）
+        # ongoing wars: attrition（軍事消耗・疲弊は月次レートを実時間で）。
+        # 戦争はスカラーではなく強度を持つ: 軍事偏重と期間で限定→総力戦へ
+        # エスカレーションし、消耗・経済損失・人的被害が強度でスケールする
         for a, b in list(self.wars):
             na, nb = self.nations[a], self.nations[b]
-            dmg_a = (2.0 + self.rng.random() * 3.0) * fm
-            dmg_b = (2.0 + self.rng.random() * 3.0) * fm
+            inten = self._war_intensity.get((a, b), 1.0)
+            inten = min(3.0, inten + 0.03 * fm * (na.doctrine_militarism + nb.doctrine_militarism))
+            self._war_intensity[(a, b)] = inten
+            dmg_a = (2.0 + self.rng.random() * 3.0) * fm * inten
+            dmg_b = (2.0 + self.rng.random() * 3.0) * fm * inten
             na.military -= dmg_b
             nb.military -= dmg_a
-            na.war_exhaustion += 4.0 * fm
-            nb.war_exhaustion += 4.0 * fm
-            for n in (na, nb):
-                n.gdp *= 1.0 - 0.003 * fm
+            # 民主政体は人的被害に敏感（疲弊が強度で増幅）
+            sens_a = 1.2 if na.regime == "democracy" else 1.0
+            sens_b = 1.2 if nb.regime == "democracy" else 1.0
+            na.war_exhaustion += 4.0 * fm * inten * sens_a
+            nb.war_exhaustion += 4.0 * fm * inten * sens_b
+            for n, other_pop in ((na, "a"), (nb, "b")):
+                n.gdp *= 1.0 - 0.003 * fm * inten
+                cas = 0.001 * inten * fm * n.population_m * 0.01   # 人口の~0.001%/月@強度1
+                n.population_m = max(0.1, n.population_m - cas)
+                self._war_casualties[n.id] = self._war_casualties.get(n.id, 0.0) + cas
             # 報復性が高い政府は疲弊に耐えて戦い続ける（降伏閾値が伸びる）
             lim_a = 40.0 * (1.0 + 0.5 * na.doctrine_vengeance)
             lim_b = 40.0 * (1.0 + 0.5 * nb.doctrine_vengeance)
@@ -1124,9 +1142,11 @@ class Engine:
             # る — 消耗衰亡とは別の終わり方
             gap = abs(na.military - nb.military) / max(1.0, na.military + nb.military)
             p_settle = (0.10 + 0.15 * gap
-                        + 0.002 * (na.war_exhaustion + nb.war_exhaustion))
+                        + 0.002 * (na.war_exhaustion + nb.war_exhaustion)
+                        + 0.05 * (inten - 1.0))
             if self.rng.random() < self._hazard(p_settle):
                 self.wars.remove((a, b))
+                self._war_intensity.pop((a, b), None)
                 na.at_war_with.remove(b)
                 nb.at_war_with.remove(a)
                 na.trust[b] = min(100.0, na.trust.get(b, 0.0) + 5.0)
@@ -1143,6 +1163,7 @@ class Engine:
             if both_nuke and na.war_exhaustion > 12 and nb.war_exhaustion > 12 \
                     and self.rng.random() < self._hazard(0.12):
                 self.wars.remove((a, b))
+                self._war_intensity.pop((a, b), None)
                 na.at_war_with.remove(b)
                 nb.at_war_with.remove(a)
                 for n in (na, nb):
@@ -1159,6 +1180,7 @@ class Engine:
             if na.war_exhaustion > lim_a or nb.war_exhaustion > lim_b \
                     or self.rng.random() < self._hazard(0.05):
                 self.wars.remove((a, b))
+                self._war_intensity.pop((a, b), None)
                 na.at_war_with.remove(b)
                 nb.at_war_with.remove(a)
                 self.event_log.emit(
@@ -1203,6 +1225,9 @@ class Engine:
         # イデオロギー摩擦: 異なる圏の間は緊張が、同じ圏の内側は結束が効く
         if na.ideology != "secular" and nb.ideology != "secular":
             doctrinal += -0.06 if na.ideology == nb.ideology else 0.12
+        # 民主的平和（実証的規則性）: 民主政体同士は武力紛争に至りにくい
+        if na.regime == "democracy" and nb.regime == "democracy":
+            doctrinal -= 0.12
         return (
             0.5 * (na.aggression + nb.aggression) * self.god.ai_aggression * 0.5
             + max(0.0, -na.trust.get(b, 0.0)) / 150.0
@@ -1235,6 +1260,7 @@ class Engine:
         self.wars.append((a, b))
         na.at_war_with.append(b)
         nb.at_war_with.append(a)
+        self._war_intensity[(a, b)] = 1.0      # 限定戦争として開始
         parents = [cause] if cause else []
         parents += [r.id for r in self.event_log.records[-10:]
                     if r.type in ("threat", "sanction", "shortage", "disinfo", "mobilization")
@@ -1650,6 +1676,8 @@ class Engine:
                 grievance = ((1.0 - nat.stability / 15.0)
                              * (0.5 + max(0.0, spec.gini - 0.40) * 3.0
                                 + max(0.0, nat.unemployment - 12.0) * 0.02))
+                if nat.regime == "autocracy":
+                    grievance *= 1.3   # 抑圧は不平を地表から隠し、地下で増幅する
                 if self.rng.random() < self._hazard(0.08 * grievance):
                     nat.insurgency_cooldown = self._ticks_for(12.0 * TC.HOURS_PER_MONTH)
                     nat.military *= 0.85
@@ -1671,6 +1699,37 @@ class Engine:
             nat.stability = max(0.0, min(100.0, nat.stability + drift + welfare - nat.inflation * 25.0 * fm - nat.war_exhaustion * 0.05 * fm - gini_drag - unemp_drag + t_stab * fm))
             nat.approval = max(0.0, min(100.0, nat.approval + (0.2 * (50.0 - nat.approval) + (1.0 if bud.get("welfare", 0) > 0.35 else -0.5) - unemp_drag * 0.5 + edu_lift + t_appr) * fm))
             nat.war_exhaustion = max(0.0, nat.war_exhaustion - 0.5 * fm)
+            # ---------------------------------------------------- 選挙(民主政体)
+            if nat.regime == "democracy":
+                if nat.next_election < 0:
+                    # 初回は政体確認から24-48ヶ月以内に設定(分散)
+                    nat.next_election = t + self._ticks_for(
+                        TC.HOURS_PER_MONTH * (12 + (hash(nid) % 25)))
+                elif t >= nat.next_election:
+                    nat.next_election = t + self._ticks_for(48.0 * TC.HOURS_PER_MONTH)
+                    if nat.approval < 45.0:
+                        # 政権交代: 新政権は公約で福祉を優先し、外交路線をリセット
+                        nat.approval = min(100.0, nat.approval + 12.0)
+                        nat.stability = min(100.0, nat.stability + 3.0)
+                        nat.aggression = nat.base_aggression
+                        nat.paranoia = nat.base_paranoia
+                        bud = nat.budget
+                        nat.budget = {"military": max(0.05, bud.get("military", 0.2) - 0.08),
+                                      "welfare": min(0.6, bud.get("welfare", 0.3) + 0.12),
+                                      "stockpile": bud.get("stockpile", 0.2),
+                                      "subsidy": bud.get("subsidy", 0.3)}
+                        self.event_log.emit(
+                            t, "election_turnover",
+                            f"{nat.name} で政権交代（不支持の与党が敗北）。新政権は福祉公約で出直す",
+                            actor=nid, targets=[nid], data={"approval_before": round(nat.approval - 12.0, 1)},
+                        )
+                    else:
+                        nat.approval = max(0.0, nat.approval - 5.0)   # 再選後の逆風
+                        self.event_log.emit(
+                            t, "election",
+                            f"{nat.name} で与党が再選（政策的継続）",
+                            actor=nid, targets=[nid], data={},
+                        )
             # ---------------------------------------------------- fiscal block
             self._fiscal_step(nid, nat)
             # collapse check（不安定が実時間で継続した場合）
@@ -1741,6 +1800,9 @@ class Engine:
                 "doctrine_treaty_fidelity": round(nat.doctrine_treaty_fidelity, 2),
                 "nuclear_posture": nat.nuclear_posture,
                 "ideology": nat.ideology,
+                "regime": nat.regime,
+                "next_election": nat.next_election,
+                "war_casualties_m": round(self._war_casualties.get(nid, 0.0), 4),
             }
         metrics = {
             "world_gdp": round(sum(n.gdp for n in self.nations.values()), 4),
@@ -1755,6 +1817,7 @@ class Engine:
             "defaults": sum(n.defaults for n in self.nations.values()),
             "mean_unemployment": round(sum(n.unemployment for n in self.nations.values()) / len(self.nations), 2),
             "global_co2": round(self.global_co2, 1),
+            "war_casualties_m": round(sum(self._war_casualties.values()), 4),
         }
         snap = {
             "type": "tick", "tick": t, "hours": round((t + 1) * self.hpt, 1),
