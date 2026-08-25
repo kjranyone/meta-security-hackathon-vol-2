@@ -92,6 +92,9 @@ class Engine:
         # 戦争強度 (a,b)->intensity 1.0-3.0: 限定戦争から総力戦へのエスカレーション
         self._war_intensity: dict[tuple, float] = {}
         self._war_casualties: dict[str, float] = {}   # nid -> 人口損失(百万人)
+        self._refugees_out: dict[str, float] = {}     # nid -> 難民流出累計(百万人)
+        self._refugees_in: dict[str, float] = {}      # nid -> 難民受入累計(百万人)
+        self._regime_counter: dict = {}               # 政体遷移の持続カウンタ
         self._pending_alliance: list[dict] = []
         self._seq = 0
         # 市場: 期待(恐怖)プレミアムと価格履歴(日次急騰判定用)
@@ -1151,11 +1154,41 @@ class Engine:
             sens_b = 1.2 if nb.regime == "democracy" else 1.0
             na.war_exhaustion += 4.0 * fm * inten * sens_a
             nb.war_exhaustion += 4.0 * fm * inten * sens_b
+            # サイバー戦: サイバー攻撃基盤を持つ側が敵の生産・軍事を妨害する
+            for att, deff, anat, dnat in ((a, b, na, nb), (b, a, nb, na)):
+                if "cyber_arsenal" in self._techs_of(att) \
+                        and self.rng.random() < self._hazard(0.15):
+                    self.temp_effects.append(TempEffect(self.tick_no + 2, deff, "chips", 0.7))
+                    dnat.military = max(0.0, dnat.military - 1.5 * fm * inten)
+                    self.event_log.emit(
+                        t, "cyber_attack",
+                        f"{anat.name} のサイバー攻撃が {dnat.name} の半導体生産と軍事系統を妨害",
+                        actor=att, targets=[deff], data={},
+                    )
             for n, other_pop in ((na, "a"), (nb, "b")):
                 n.gdp *= 1.0 - 0.003 * fm * inten
                 cas = 0.001 * inten * fm * n.population_m * 0.01   # 人口の~0.001%/月@強度1
                 n.population_m = max(0.1, n.population_m - cas)
                 self._war_casualties[n.id] = self._war_casualties.get(n.id, 0.0) + cas
+                # 難民フロー: 強度に比例して流出し、重心距離の近隣3カ国が受け入れる
+                out_m = 0.0008 * fm * inten * n.population_m   # 月次・人口の0.08%×強度
+                if out_m > 1e-5:
+                    n.population_m = max(0.1, n.population_m - out_m)
+                    self._refugees_out[n.id] = self._refugees_out.get(n.id, 0.0) + out_m
+                    my_ctr = self._specs[n.id].centroid
+                    neighbors = sorted(
+                        (o for o in self.nations
+                         if o != n.id and not self.nations[o].collapsed),
+                        key=lambda o: (self._specs[o].centroid[0] - my_ctr[0]) ** 2
+                        + (self._specs[o].centroid[1] - my_ctr[1]) ** 2)[:3]
+                    for o in neighbors:
+                        onat = self.nations[o]
+                        inflow = out_m / len(neighbors)
+                        share = inflow / max(0.5, onat.population_m)
+                        onat.population_m += inflow
+                        onat.stability = max(0.0, onat.stability - 30.0 * share)
+                        onat.unemployment = min(45.0, onat.unemployment + 8.0 * share)
+                        self._refugees_in[o] = self._refugees_in.get(o, 0.0) + inflow
             # 報復性が高い政府は疲弊に耐えて戦い続ける（降伏閾値が伸びる）
             lim_a = 40.0 * (1.0 + 0.5 * na.doctrine_vengeance)
             lim_b = 40.0 * (1.0 + 0.5 * nb.doctrine_vengeance)
@@ -1641,6 +1674,21 @@ class Engine:
                         f"{nat.name} の外貨準備が枯渇（{nat.fx_reserves:.1f}ヶ月分）。輸入が絞られる",
                         actor=nid, targets=[nid], data={"reserves": round(nat.fx_reserves, 2)},
                     )
+            # --- 気候極端イベント: CO2蓄積に比例した旱魃/台風のハザード ---
+            if self.global_co2 > 3000.0 and self.rng.random() < self._hazard(
+                    min(0.10, 0.02 * self.global_co2 / 10000.0)):
+                kind = "drought" if self.rng.random() < 0.6 else "typhoon"
+                if kind == "drought":
+                    self.temp_effects.append(TempEffect(
+                        self.tick_no + self._ticks_for(6.0 * TC.HOURS_PER_MONTH), nid, "food", 0.7))
+                else:
+                    nat.infra = max(0.5, nat.infra - 0.08)
+                self.event_log.emit(
+                    t, "climate_disaster",
+                    f"{nat.name} を{'深刻な旱魃' if kind == 'drought' else '大型台風'}が襲った"
+                    f"（CO2累積 {self.global_co2:.0f} の気候シグナル）",
+                    actor=nid, targets=[nid], data={"kind": kind},
+                )
             # --- 囮戦争の誘因(diversionary): 選挙直前・低支持の民主政権は
             #     外部緊張で支持を固めようとする(Chiozza & Goemans型) ---
             if nat.regime == "democracy" and nat.next_election > t:
@@ -1671,7 +1719,11 @@ class Engine:
             techs = self._techs_of(nid)
             renew = max(spec.energy_renew,
                         0.50 if "fusion" in techs else 0.35 if "space_solar" in techs else spec.energy_renew)
-            nat.renew_eff = renew
+            # エネルギー転換: 価格シグナルと補助金が再エネを加速する
+            # (1973年後の省エネ投資のように、危機が長期の需給構造を変える)
+            transition = (0.004 * fm * max(0.0, self.prices["energy"] - 1.3)
+                          + 0.0008 * fm * (nat.budget.get("subsidy", 0.3) > 0.4))
+            nat.renew_eff = round(min(0.85, renew + transition), 4)
             fossil_units = sum(1 for r in self.nation_resources[nid] if r in (ResourceKind.OIL, ResourceKind.GAS))
             co2_flow = fossil_units * (1.0 - renew)
             nat.co2_cum += co2_flow * fm
@@ -1729,6 +1781,33 @@ class Engine:
             nat.stability = max(0.0, min(100.0, nat.stability + drift + welfare - nat.inflation * 25.0 * fm - nat.war_exhaustion * 0.05 * fm - gini_drag - unemp_drag + t_stab * fm))
             nat.approval = max(0.0, min(100.0, nat.approval + (0.2 * (50.0 - nat.approval) + (1.0 if bud.get("welfare", 0) > 0.35 else -0.5) - unemp_drag * 0.5 + edu_lift + t_appr) * fm))
             nat.war_exhaustion = max(0.0, nat.war_exhaustion - 0.5 * fm)
+            # --- 政体遷移(内生): 長い危機は混合政体を権威主義化し、
+            #     繁栄と教育は専制を民主化する(近代化理論・民主主義後退) ---
+            rc_key = ("regime", nid)
+            if nat.stability < 20.0 and nat.regime == "hybrid":
+                self._regime_counter[rc_key] = self._regime_counter.get(rc_key, 0) + fm
+                if self._regime_counter[rc_key] >= 24.0:   # 2年間の統治危機
+                    self._regime_counter[rc_key] = 0.0
+                    nat.regime = "autocracy"
+                    self.event_log.emit(
+                        t, "democratic_backsliding",
+                        f"{nat.name} で長期の統治危機の末、権威主義化（政体遷移）",
+                        actor=nid, targets=[nid],
+                        parents=self._causal_parents(nid), data={},
+                    )
+            elif (nat.regime == "autocracy" and nat.stability > 55.0
+                  and nat.approval > 55.0 and spec.education > 0.6):
+                self._regime_counter[rc_key] = self._regime_counter.get(rc_key, 0) + fm
+                if self._regime_counter[rc_key] >= 36.0:   # 3年間の繁栄
+                    self._regime_counter[rc_key] = 0.0
+                    nat.regime = "democracy"
+                    self.event_log.emit(
+                        t, "democratization",
+                        f"{nat.name} で経済的繁栄と教育の蓄積が民主化を生んだ（政体遷移）",
+                        actor=nid, targets=[nid], data={},
+                    )
+            else:
+                self._regime_counter[rc_key] = 0.0
             # ---------------------------------------------------- 選挙(民主政体)
             if nat.regime == "democracy":
                 if nat.next_election < 0:
@@ -1833,6 +1912,8 @@ class Engine:
                 "regime": nat.regime,
                 "next_election": nat.next_election,
                 "war_casualties_m": round(self._war_casualties.get(nid, 0.0), 4),
+                "refugees_out_m": round(self._refugees_out.get(nid, 0.0), 4),
+                "refugees_in_m": round(self._refugees_in.get(nid, 0.0), 4),
             }
         metrics = {
             "world_gdp": round(sum(n.gdp for n in self.nations.values()), 4),
