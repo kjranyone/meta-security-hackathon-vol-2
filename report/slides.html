@@ -251,12 +251,13 @@
     <div class="col">
       <h3>転移評価: 訓練に無い176カ国世界・ホルムズ72ヶ月</h3>
       <table>
-        <tr><th>指標</th><th>earth専修</th><th>generalist_lh</th></tr>
-        <tr><td>世界GDP</td><td>121.2</td><td><b>124.8 (+3.0%)</b></td></tr>
-        <tr><td>平均失業率</td><td>5.4%</td><td><b>3.3%</b></td></tr>
-        <tr><td>平均安定度</td><td>43.2</td><td><b>47.0</b></td></tr>
-        <tr><td>崩壊</td><td>9</td><td>10（同等）</td></tr>
+        <tr><th>指標</th><th>earth専修</th><th>lh (GAE+DR)</th><th>+fine行動</th></tr>
+        <tr><td>世界GDP</td><td>121.2</td><td><b>124.8</b></td><td>120.5</td></tr>
+        <tr><td>平均失業率</td><td>5.4%</td><td><b>3.3%</b></td><td>4.4%</td></tr>
+        <tr><td>崩壊</td><td>9</td><td>10</td><td><b>45（悪化）</b></td></tr>
       </table>
+      <p style="font-size:13.5px;"><b>知見</b>: 微操作はドメイン内で有利だが分布シフト下では
+      転移を悪化させる — 要件間のトレードオフ自体を測定した。</p>
       <h3>両義性（正直な結果）</h3>
       <div class="box" style="font-size:14px;">
         全カ国学習AI化は破綴を減らす一方、<b>分布外の脆弱国家の安定を犠牲にする

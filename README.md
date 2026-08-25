@@ -483,16 +483,22 @@ FactorSpec(
 
 **転移評価**（訓練に一度も使っていないearth_all 176カ国・ホルムズ72ヶ月）:
 
-| 指標 | 従来(earth専修・粗行動) | generalist_lh |
-|---|---|---|
-| 世界GDP | 121.2 | **124.8 (+3.0%)** |
-| 平均安定度 | 43.2 | **47.0 (+3.8)** |
-| 平均失業率 | 5.4% | **3.3% (−2.1pt)** |
-| 崩壊(最終) | 9 | 10（同等） |
+| 指標 | 従来(earth専修) | generalist_lh<br>(GAE+地平96+DR) | generalist_fine<br>(+fine行動) |
+|---|---|---|---|
+| 世界GDP | 121.2 | **124.8 (+3.0%)** | 120.5 |
+| 平均安定度 | 43.2 | **47.0** | 25.8 |
+| 平均失業率 | 5.4% | **3.3%** | 4.4% |
+| 崩壊(最終) | 9 | 10（同等） | **45（悪化）** |
+
+**正直な知見**: 微操作(fine)はドメイン内では学習を加速するが、**分布シフト下では
+転移を悪化させる**（行動空間の細分化が過適合の自由度を増す）。よって汎用配備は
+`generalist_lh`（DR+GAE・粗行動）、`generalist_fine`はfineの効果と限界の実証として
+同梱する — 要件間のトレードオフ自体が測定された。
 
 ```bash
 uv run python -m terrarium.rl.train --nation ALL \
-    --preset earth,gen:7,gen:13,gen:99 --fine --horizon 96 --episodes 4800
+    --preset earth,gen:7,gen:13,gen:99 --horizon 96 --episodes 4800          # -> generalist_lh
+uv run python -m terrarium.rl.train --nation ALL --fine \ --preset earth --horizon 96 --episodes 4800   # -> generalist_fine
 ```
 
 ## LLM→RL蒸留: 思考AIが教師となり学習AIを訓練する

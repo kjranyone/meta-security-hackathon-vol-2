@@ -28,8 +28,12 @@ SERVER_ROOT = Path(__file__).resolve().parents[3]
 def _make_net(args):
     from .nets import RecurrentPolicyNet
     if getattr(args, "recurrent", False):
+        print(f"[net] RecurrentPolicyNet (GRU) obs={OBS_DIM}", flush=True)
         return RecurrentPolicyNet(obs_dim=OBS_DIM, seed=args.seed)
-    return PolicyNet(obs_dim=OBS_DIM, seed=args.seed)
+    fine = bool(getattr(args, "fine", False))
+    print(f"[net] PolicyNet obs={OBS_DIM} fine={fine} "
+          f"budget_head={'4x5' if fine else '6 presets'}", flush=True)
+    return PolicyNet(obs_dim=OBS_DIM, seed=args.seed, fine=fine)
 
 
 def run_episode(env, net, train: bool, gamma: float = 0.97,
