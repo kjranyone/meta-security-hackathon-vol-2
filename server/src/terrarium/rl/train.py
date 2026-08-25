@@ -53,15 +53,20 @@ def run_episode(env, net, train: bool, gamma: float = 0.97,
 
 
 def _apply_update(net, traj, gamma: float = 0.97, lr: float = 1e-3,
-                  entropy_coef: float = 0.005) -> None:
-    # Monte-Carlo returns with value baseline, advantage-normalized
-    returns = []
-    G = 0.0
-    for _, _, r_t in reversed(traj):
-        G = r_t + gamma * G
-        returns.append(G)
-    returns.reverse()
-    advs = [G - a["value"] for (_, a, _), G in zip(traj, returns)]
+                  entropy_coef: float = 0.005, lam: float = 0.95) -> None:
+    """GAE(λ): 長期戦略の信用割当て。λ=1はモンテカルロ、λ=0はTD(0)に一致。
+    価値ベースラインのバイアスと分散のトレードオフを中間(λ=0.95)に取る。"""
+    T = len(traj)
+    values = [a["value"] for _, a, _ in traj]
+    advs = [0.0] * T
+    acc = 0.0
+    for t in range(T - 1, -1, -1):
+        r_t = traj[t][2]
+        next_v = values[t + 1] if t + 1 < T else 0.0
+        delta = r_t + gamma * next_v - values[t]
+        acc = delta + gamma * lam * acc
+        advs[t] = acc
+    returns = [v + a for v, a in zip(values, advs)]
     mu = float(np.mean(advs))
     sigma = float(np.std(advs)) + 1e-6
     norm = [(adv - mu) / sigma for adv in advs]
@@ -118,21 +123,27 @@ def _train_generalist(args, train_scenario) -> int:
 
     out = Path(args.out) if args.out else SERVER_ROOT / "models" / "generalist.npz"
     out.parent.mkdir(parents=True, exist_ok=True)
-    spec = load_preset(args.preset)
-    nids = sorted(ns.id for ns in spec.nations)
-    envs = {nid: NationEnv(args.preset, nid, seed=args.seed,
-                           horizon=args.horizon, scenario=train_scenario)
-            for nid in nids}
+    # ドメインランダム化: カンマ区切り複数プリセット(生成世界 gen:<seed> 含む)を
+    # 巡回訓練し、未知の世界分布への転移(分布シフト耐性)を狙う
+    presets = [p.strip() for p in args.preset.split(",") if p.strip()]
+    spec = load_preset(presets[0])
+    keys, envs = [], {}
+    for pi, preset in enumerate(presets):
+        sp = load_preset(preset)
+        for nid in sorted(ns.id for ns in sp.nations):
+            keys.append(f"{preset}:{nid}")
+            envs[keys[-1]] = NationEnv(preset, nid, seed=args.seed + pi,
+                                       horizon=args.horizon, scenario=train_scenario)
+    eval_keys = keys[::max(1, len(keys) // 12)]
     net = _make_net(args)
     eval_seeds = [101, 202, 303]
     t0 = time.time()
 
     def evaluate() -> float:
         vals = []
-        saved = {nid: env._ep for env in envs.values() for nid in [None]}
         for s in eval_seeds:
-            for nid in nids[:: max(1, len(nids) // 6)]:   # 代表6カ国
-                env = envs[nid]
+            for key in eval_keys:                    # 全ドメインから代表12環境
+                env = envs[key]
                 env.seed, env.horizon = s, args.horizon
                 vals.append(run_episode(env, net, train=False))
         return float(np.mean(vals))
@@ -142,9 +153,9 @@ def _train_generalist(args, train_scenario) -> int:
     curve.append({"episode": 0, "eval_reward": round(base, 3)})
     print(f"[gen] episode 0 eval={base:.2f}")
     for ep in range(1, args.episodes + 1):
-        nid = nids[(ep - 1) % len(nids)]
-        env = envs[nid]
-        env.seed = args.seed * 1000 + ((ep // len(nids)) % 8) + 1
+        key = keys[(ep - 1) % len(keys)]
+        env = envs[key]
+        env.seed = args.seed * 1000 + ((ep // len(keys)) % 8) + 1
         run_episode(env, net, train=True, lr=args.lr, entropy_coef=args.entropy)
         if ep % args.eval_every == 0:
             ev = evaluate()
@@ -235,6 +246,8 @@ def main(argv: list[str] | None = None) -> int:
                     help="weights path (single) or prefix (self-play); default models/rl_<nation>[.npz] or models/selfplay_<nation>.npz")
     ap.add_argument("--recurrent", action="store_true",
                     help="GRU再帰型戦術AI（隠れ状態で時系列を統合）を訓練")
+    ap.add_argument("--fine", action="store_true",
+                    help="細粒度行動空間（予算4軸x5水準の微調整）で訓練")
     args = ap.parse_args(argv)
 
     from ..sim.interventions import load_scenario as _load_scenario

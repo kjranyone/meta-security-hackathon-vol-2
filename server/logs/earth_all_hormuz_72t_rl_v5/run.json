@@ -38,7 +38,7 @@
   "wars": 3,
   "config": {
     "preset": "earth_all",
-    "policy": "rl(MLP-generalist retrained)",
+    "policy": "rl(従来(earth粗行動))",
     "rl_nation": "ALL",
     "scenario": "scenarios/earth_all_hormuz.yaml",
     "engine": "v4-realtime-clock"

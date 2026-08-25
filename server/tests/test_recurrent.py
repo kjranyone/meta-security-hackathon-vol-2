@@ -54,3 +54,27 @@ def test_runtime_hidden_is_deterministic():
     va = [a.act(o, deterministic=True)["value"] for o in seq]
     vb = [b.act(o, deterministic=True)["value"] for o in seq]
     assert va == vb
+
+
+def test_fine_action_space():
+    """細粒度行動(予算4軸x5水準)の往復と正規化。"""
+    import tempfile, pathlib as pl
+    from terrarium.rl.env import action_to_decisions
+    net = PolicyNet(obs_dim=48, seed=2, fine=True)
+    net.reset_state() if hasattr(net, "reset_state") else None
+    a = net.act(np.zeros(48))
+    assert "budget_levels" in a and len(a["budget_levels"]) == 4
+    d = action_to_decisions(a)
+    assert abs(sum(d.budget.values()) - 1.0) < 0.01, "fine budget must normalize"
+    with tempfile.TemporaryDirectory() as tmp:
+        q = pl.Path(tmp) / "fine.npz"
+        net.save(q)
+        assert PolicyNet.load(q).fine is True
+    # 従来型のロードはfine=Falseのまま
+    net2 = PolicyNet(obs_dim=48, seed=2)
+    with tempfile.TemporaryDirectory() as tmp:
+        q = pl.Path(tmp) / "coarse.npz"
+        net2.save(q)
+        loaded = PolicyNet.load(q)
+        assert loaded.fine is False
+        assert "budget_idx" in loaded.act(np.zeros(48))

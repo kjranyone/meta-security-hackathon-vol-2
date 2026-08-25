@@ -99,10 +99,21 @@ class ExternalPolicy:
         return self.pending
 
 
+BUDGET_LEVELS = [0.05, 0.15, 0.30, 0.45, 0.60]   # 各軸5水準の微調整
+BUDGET_AXES = ("military", "welfare", "stockpile", "subsidy")
+
+
 def action_to_decisions(action: dict) -> Decisions:
     from .nets import BUDGET_PRESETS, POSTURES
+    if "budget_levels" in action:
+        # 細粒度行動: 4軸それぞれの水準を正規化して予算に
+        vals = {ax: BUDGET_LEVELS[lv] for ax, lv in zip(BUDGET_AXES, action["budget_levels"])}
+        tot = sum(vals.values()) or 1.0
+        budget = {ax: round(v / tot, 3) for ax, v in vals.items()}
+    else:
+        budget = dict(BUDGET_PRESETS[action["budget_idx"]])
     return Decisions(
-        budget=dict(BUDGET_PRESETS[action["budget_idx"]]),
+        budget=budget,
         diplomacy=[],
         military_posture=POSTURES[action["posture_idx"]],
         rationing=bool(action["rationing"]),

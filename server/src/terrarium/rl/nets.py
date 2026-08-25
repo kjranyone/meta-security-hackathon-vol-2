@@ -32,12 +32,15 @@ def _he_init(fan_in: int, fan_out: int, rng: np.random.Generator) -> np.ndarray:
 
 
 class PolicyNet:
-    def __init__(self, obs_dim: int, hidden: int = 64, seed: int = 0):
+    def __init__(self, obs_dim: int, hidden: int = 64, seed: int = 0, fine: bool = False):
         self.rng = np.random.default_rng(seed)
+        self.fine = fine
+        # fine=True: 予算は4軸×5水準の微調整（625通り）。False: 従来の6プリセット
+        self._n_budget = 4 * 5 if fine else len(BUDGET_PRESETS)
         self.W1 = _he_init(obs_dim, hidden, self.rng)
         self.b1 = np.zeros(hidden)
-        self.Wb = _he_init(hidden, len(BUDGET_PRESETS), self.rng)  # budget head
-        self.bb = np.zeros(len(BUDGET_PRESETS))
+        self.Wb = _he_init(hidden, self._n_budget, self.rng)  # budget head (fine: 4x5)
+        self.bb = np.zeros(self._n_budget)
         self.Wp = _he_init(hidden, 3, self.rng)     # posture head
         self.bp = np.zeros(3)
         self.Wr = _he_init(hidden, 1, self.rng)     # rationing (bernoulli)
@@ -68,23 +71,37 @@ class PolicyNet:
     # ---------------------------------------------------------------- actions
     def act(self, obs: np.ndarray, deterministic: bool = False) -> dict:
         out = self.forward(obs)
+        z_b = out["budget_logits"]
         if deterministic:
-            b = int(np.argmax(out["budget_logits"]))
-            p = int(np.argmax(out["posture_logits"]))
             r = 1 if out["ration_logit"] > 0 else 0
             g = 1 if out["propa_logit"] > 0 else 0
             logp = 0.0
+            p = int(np.argmax(out["posture_logits"]))
+            if self.fine:
+                action = {"budget_levels": [int(np.argmax(z_b[a * 5:(a + 1) * 5])) for a in range(4)]}
+            else:
+                action = {"budget_idx": int(np.argmax(z_b))}
         else:
-            b = int(self.rng.choice(len(BUDGET_PRESETS), p=_softmax(out["budget_logits"])))
+            logp = 0.0
+            if self.fine:
+                lv = []
+                for a in range(4):
+                    za = z_b[a * 5:(a + 1) * 5]
+                    k = int(self.rng.choice(5, p=_softmax(za)))
+                    lv.append(k)
+                    logp += _log_softmax(za)[k]
+                action = {"budget_levels": lv}
+            else:
+                b = int(self.rng.choice(len(z_b), p=_softmax(z_b)))
+                action = {"budget_idx": b}
+                logp += _log_softmax(z_b)[b]
             p = int(self.rng.choice(3, p=_softmax(out["posture_logits"])))
+            logp += _log_softmax(out["posture_logits"])[p]
             r = int(self.rng.random() < _sigmoid(out["ration_logit"]))
             g = int(self.rng.random() < _sigmoid(out["propa_logit"]))
-            logp = (_log_softmax(out["budget_logits"])[b]
-                    + _log_softmax(out["posture_logits"])[p]
-                    + _bern_logp(out["ration_logit"], r)
-                    + _bern_logp(out["propa_logit"], g))
+            logp += _bern_logp(out["ration_logit"], r) + _bern_logp(out["propa_logit"], g)
         return {
-            "budget_idx": b, "posture_idx": p, "rationing": r, "propaganda": g,
+            **action, "posture_idx": p, "rationing": r, "propaganda": g,
             "logp": logp, "value": out["value"], "out": out,
         }
 
@@ -100,14 +117,27 @@ class PolicyNet:
                ("Wg", self.Wg), ("bg", self.bg), ("Wv", self.Wv), ("bv", self.bv)]}
 
         # policy gradients (negative-loss direction)
-        pg_budget = -advantage * _softmax_grad_neglog(out["budget_logits"], action["budget_idx"])
+        if self.fine:
+            pg_budget = np.zeros_like(out["budget_logits"])
+            for a in range(4):
+                za = out["budget_logits"][a * 5:(a + 1) * 5]
+                pg_budget[a * 5:(a + 1) * 5] = -advantage * _softmax_grad_neglog(
+                    za, action["budget_levels"][a])
+        else:
+            pg_budget = -advantage * _softmax_grad_neglog(out["budget_logits"], action["budget_idx"])
         pg_posture = -advantage * _softmax_grad_neglog(out["posture_logits"], action["posture_idx"])
         # d/dlogit of -log p(a) for bernoulli: a - sigmoid(logit)
         pg_rat = -advantage * (action["rationing"] - _sigmoid(out["ration_logit"]))
         pg_prop = -advantage * (action["propaganda"] - _sigmoid(out["propa_logit"]))
 
         # entropy gradients (encourage exploration): d/dz of -H
-        ent_b = _entropy_grad_softmax(out["budget_logits"])
+        if self.fine:
+            ent_b = np.zeros_like(out["budget_logits"])
+            for a in range(4):
+                ent_b[a * 5:(a + 1) * 5] = _entropy_grad_softmax(
+                    out["budget_logits"][a * 5:(a + 1) * 5])
+        else:
+            ent_b = _entropy_grad_softmax(out["budget_logits"])
         ent_p = _entropy_grad_softmax(out["posture_logits"])
         ent_r = _entropy_grad_bern(out["ration_logit"])
         ent_g = _entropy_grad_bern(out["propa_logit"])
@@ -173,13 +203,15 @@ class PolicyNet:
     # ------------------------------------------------------------------- io
     def save(self, path) -> None:
         np.savez(path, obs_dim=np.array([self.W1.shape[0]]),
+                 fine=np.array([1 if self.fine else 0]),
                  **{f"p{i}": p for i, p in enumerate(self.params)})
 
     @classmethod
     def load(cls, path) -> "PolicyNet":
         data = np.load(path)
         obs_dim = int(data["obs_dim"][0])
-        net = cls(obs_dim=obs_dim, seed=0)
+        fine = bool(int(data["fine"][0])) if "fine" in data.files else False
+        net = cls(obs_dim=obs_dim, seed=0, fine=fine)
         for i in range(len(net.params)):
             net.params[i][...] = data[f"p{i}"]
         return net
