@@ -233,35 +233,72 @@
 
 <!-- ================= 7. Hybrid AI ================= -->
 <section class="slide">
-  <h2>6. 複合戦略AI: 学習した国家、学習しなかった国家</h2>
+  <h2>6. 学習AIスタック: 長期戦略・微操作・分布シフト耐性</h2>
   <div class="cols">
     <div class="col">
       <img src="../analysis/out/rl_curves.png"
-           style="height:300px; width:100%; object-fit:contain; background:var(--panel);">
-      <h3>RL戦術層（numpy Actor-Critic、DLフレームワーク不要）</h3>
+           style="height:260px; width:100%; object-fit:contain; background:var(--panel);">
+      <h3>3つの訓練技術（全部numpy・CPUのみ）</h3>
       <ul>
-        <li>学習評価報酬: SAH（旱魃下の脆弱国）<span class="good">−164.9 → −131.6 (+33.3)</span>、
-            VLT <span class="good">−4.3 → +7.2</span></li>
-        <li>36tickの最終指標は手調整heuristicと<b>互角</b> — ドクトリンを書かずに同等性能へ</li>
-        <li><b>自己対戦</b>（複数学習者が同一世界で共進化）: EGY <span class="good">+13.5</span> / JPN +0.5 / USA +0.1 —
-            脆弱な債務国ほど学習利得が大</li>
-        <li>報酬設計も介入点: <code>--default-penalty</code> で「成長最適化⇔債務規律」を切替</li>
+        <li><b>GAE(λ)</b> + 訓練地平96ヶ月 — 長期戦略の信用割当て。訓練評価
+            <span class="good">610→733 (+122)</span></li>
+        <li><b>細粒度行動</b>: 予算6プリセット→4軸×5水準（625通り）の微操作</li>
+        <li><b>ドメインランダム化</b>: earth+生成世界3種を巡回し分布シフトに耐性</li>
+        <li>GRU再帰型も実装（単一国で+2.9/400eps）— ただし16→176カ国転移で
+            <b>47カ国崩壊</b>の分布シフトを起こし、DRで解消（教訓として記録）</li>
       </ul>
     </div>
     <div class="col">
-      <h3>正直な結果: 介入点の階層性</h3>
-      <div class="box">
-        金融危機下（債務252%+封鎖+利上げ8%）でRL戦術層は予算ドクトリンを変えた
-        （福祉35/備蓄1・防御20tick → 福祉36・中立36）。<br><br>
-        しかし<b>構造的デフォルトは国内予算配分では防げず、連鎖は不変</b>
-        （JPN t7 → EU t12 → JPN t20 → USA t22）。<br><br>
-        連鎖を変えたのは<b>神のベイルアウト</b>（破綻4件→3件）。
+      <h3>転移評価: 訓練に無い176カ国世界・ホルムズ72ヶ月</h3>
+      <table>
+        <tr><th>指標</th><th>earth専修</th><th>generalist_lh</th></tr>
+        <tr><td>世界GDP</td><td>121.2</td><td><b>124.8 (+3.0%)</b></td></tr>
+        <tr><td>平均失業率</td><td>5.4%</td><td><b>3.3%</b></td></tr>
+        <tr><td>平均安定度</td><td>43.2</td><td><b>47.0</b></td></tr>
+        <tr><td>崩壊</td><td>9</td><td>10（同等）</td></tr>
+      </table>
+      <h3>両義性（正直な結果）</h3>
+      <div class="box" style="font-size:14px;">
+        全カ国学習AI化は破綴を減らす一方、<b>分布外の脆弱国家の安定を犠牲にする
+        場合がある</b>（訓練分布の平均を最適化するため）。拡散抑止下では戦争
+        49.5→<b>5.7件</b>と安定化するのに — AIの効果は<b>文脈依存</b>である。
       </div>
-      <p>→ 戦術層（国家AI）・戦略層（LLM）・神（プレイヤー）の3階層のうち、
-      <span class="hl">構造的危機を断てるのは神の介入のみ</span> — 本作テーマの裏付け。</p>
     </div>
   </div>
-  <div class="footer"><span>Geopolitics Terrarium</span><span>7 / 10</span></div>
+  <div class="footer"><span>Geopolitics Terrarium</span><span>7 / 12</span></div>
+</section>
+
+<!-- ================= 6b. Distillation ================= -->
+<section class="slide">
+  <h2>6b. LLM→RL蒸留: 思考AIが教師となり学習AIを訓練する</h2>
+  <div class="cols">
+    <div class="col">
+      <h3>パイプライン（rl/distill.py）</h3>
+      <ol style="font-size:16px; line-height:1.7;">
+        <li><b>収集</b>: glm-5.3政府を運転し (観測48次元→決定) を記録
+            — 118回の実API呼び出し</li>
+        <li><b>蒸留</b>: 30KBのnumpy MLPが行動クローニング
+            — 予算一致率 <b>86%</b>（チャンス17%）</li>
+        <li><b>微調整</b>: A2CでLLM戦術を出発点に改善
+            — 評価 78.4→<b>100.0</b></li>
+      </ol>
+      <p><span class="hl">LLMの戦略判断を、LLMなしで動く全国家に配布する</span>
+      — 1呼び出し数十秒の知性が30KB・即時動作に移植される。</p>
+    </div>
+    <div class="col">
+      <h3>実験の健全性監査（副産物）</h3>
+      <div class="box" style="font-size:14px;">
+        APIキー無しプロセスでLLMが<b>無音でheuristicフォールバック</b>する問題を
+        発見・修正（過去のGLM安定性数値の一部を撤回・再測定）。<br><br>
+        対策: .env自動読み込み + <code>calls/fallbacks</code> 計測 +
+        蒸留の実呼び出しゼロfail + 実験後の呼び出し比率報告。
+      </div>
+      <h3 style="margin-top:10px;">GLM安定性（実API検証済み）</h3>
+      <p style="font-size:15px;">24ヶ月で戦争20件・初回開戦 <b>t7</b>（ルールAI t4）・
+      核保有国が当事者の戦争ゼロ — 思考AIは危機の起点を遅らせる。</p>
+    </div>
+  </div>
+  <div class="footer"><span>Geopolitics Terrarium</span><span>8 / 12</span></div>
 </section>
 
 <!-- ================= 8. LLM thinking ================= -->
@@ -296,7 +333,7 @@
       リッチ観測（トレンド・海峡曝露・他国の核）を読んだ戦略が創発する。</p>
     </div>
   </div>
-  <div class="footer"><span>Geopolitics Terrarium</span><span>8 / 10</span></div>
+  <div class="footer"><span>Geopolitics Terrarium</span><span>9 / 12</span></div>
 </section>
 
 <!-- ================= 9. Reproducibility ================= -->
@@ -331,7 +368,7 @@
       <p class="sub">介入点×指標の感度行列（baseline差分）— make_figures.py が自動生成</p>
     </div>
   </div>
-  <div class="footer"><span>Geopolitics Terrarium</span><span>9 / 10</span></div>
+  <div class="footer"><span>Geopolitics Terrarium</span><span>10 / 12</span></div>
 </section>
 
 <!-- ================= 10. Summary ================= -->
@@ -358,7 +395,7 @@
     ⚠️ 本シミュレーションは公開されている概算データに基づく中立・分析目的のものです。
     特定の国・個人の標的化を意図するものではありません。地図データはNatural Earth（パブリックドメイン）を使用しています。
   </p>
-  <div class="footer"><span>Geopolitics Terrarium</span><span>10 / 10</span></div>
+  <div class="footer"><span>Geopolitics Terrarium</span><span>12 / 12</span></div>
 </section>
 
 <script>
