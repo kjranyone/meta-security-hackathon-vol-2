@@ -147,7 +147,10 @@ class Session:
                     self.running = False
                     await self.broadcast({"type": "end", **self.status()})
                     continue
-                eng.step()
+                # to_thread: llm/hybrid policy は eng.step 内で同期HTTP呼び出しを
+                # 行うため、イベントループ上で直接実行すると全WSクライアントが
+                # 固まる。エンジンは単一スレッド想定なので lock 下なら結果は不変
+                await asyncio.to_thread(eng.step)
                 self.t += 1
                 snap = eng.snapshots[-1] if eng.snapshots else None
             if snap:
@@ -156,7 +159,22 @@ class Session:
 
 
 session = Session()
-app = FastAPI(title="Geopolitics Terrarium — God Server")
+
+
+from contextlib import asynccontextmanager
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    session.build()
+    session.running = True
+    session.task = asyncio.create_task(session.loop())
+    yield
+    if session.task is not None:
+        session.task.cancel()
+
+
+app = FastAPI(title="Geopolitics Terrarium — God Server", lifespan=lifespan)
 
 # 開発時: Vite dev server (5173) からのreplay直接fetch用
 from fastapi.middleware.cors import CORSMiddleware
@@ -164,13 +182,6 @@ from fastapi.middleware.cors import CORSMiddleware
 app.add_middleware(CORSMiddleware,
                     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
                     allow_methods=["*"], allow_headers=["*"])
-
-
-@app.on_event("startup")
-async def _startup() -> None:
-    session.build()
-    session.running = True
-    session.task = asyncio.create_task(session.loop())
 
 
 @app.get("/")
@@ -183,7 +194,7 @@ async def reset(payload: dict) -> dict:
     async with session.lock:
         session.running = False
         session.build(
-            preset=payload.get("preset", "earth"),
+            preset=payload.get("preset", "earth_all"),
             policy=payload.get("policy", "rl"),
             seed=int(payload.get("seed", 42)),
             ticks=int(payload.get("ticks", 60)),
@@ -288,9 +299,14 @@ async def ws_endpoint(ws: WebSocket) -> None:
                 async with session.lock:
                     eng = session.engine
                     iv = Intervention(tick=session.t, type=data["type"], params=data.get("params", {}))
-                    eng.apply_intervention(iv)
-                    ev = eng.event_log.records[-1] if eng.event_log.records else None
-                    await session.broadcast({"type": "god", "event": ev.model_dump() if ev else None})
+                    try:
+                        eng.apply_intervention(iv)
+                        ev = eng.event_log.records[-1] if eng.event_log.records else None
+                        await session.broadcast({"type": "god", "event": ev.model_dump() if ev else None})
+                    except Exception as exc:
+                        # 不正な介入（未知パラメータ等）で接続を切らない
+                        await ws.send_text(json.dumps(
+                            {"type": "error", "message": f"intervention failed: {exc}"}))
             elif cmd == "pause":
                 session.running = False
                 await session.broadcast({"type": "status", **session.status()})
@@ -306,7 +322,7 @@ async def ws_endpoint(ws: WebSocket) -> None:
                     eng = session.engine
                     eng.tick_no = session.t
                     if session.t < session.max_ticks:
-                        eng.step()
+                        await asyncio.to_thread(eng.step)
                         session.t += 1
                         await session.broadcast({"type": "tick", **eng.snapshots[-1]})
                 await session.broadcast({"type": "status", **session.status()})
@@ -318,5 +334,8 @@ async def ws_endpoint(ws: WebSocket) -> None:
         session.clients.discard(ws)
 
 
-app.mount("/static", StaticFiles(directory=REPO_ROOT), name="repo")
+# /static は web成果物とリプレイログのみを公開する。リポジトリルートを丸ごと
+# マウントすると server/.env（APIキー）が HTTP経由で取得できてしまう。
+app.mount("/static/web", StaticFiles(directory=WEB_DIR), name="web")
+app.mount("/static/server/logs", StaticFiles(directory=REPO_ROOT / "server" / "logs"), name="logs")
 app.mount("/assets", StaticFiles(directory=REPO_ROOT / "web" / "assets"), name="assets")

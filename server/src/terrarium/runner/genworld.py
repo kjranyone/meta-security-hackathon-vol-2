@@ -12,7 +12,7 @@ from pathlib import Path
 
 import yaml
 
-from ..world.models import Commodity
+from ..world.models import Commodity, RESOURCE_TO_COMMODITY
 from ..world.worldgen import CONSUMPTION, YIELD_PER_UNIT, GenParams, generate_world
 
 SERVER_ROOT = Path(__file__).resolve().parents[3]
@@ -20,14 +20,12 @@ SERVER_ROOT = Path(__file__).resolve().parents[3]
 
 def world_summary(spec) -> str:
     lines = []
-    supply = {"energy": 0.0, "food": 0.0, "chips": 0.0}
+    supply = {c.value: 0.0 for c in Commodity}
     for n in spec.nations:
         for res in n.resources:
             if res.value == "finance":
                 continue
-            c = {"oil": "energy", "gas": "energy", "grain": "food", "fab": "chips",
-                 "mineral": "minerals", "orbit": "space"}[res.value]
-            supply[c] += YIELD_PER_UNIT
+            supply[RESOURCE_TO_COMMODITY[res].value] += YIELD_PER_UNIT
     demand = {k: v * len(spec.nations) for k, v in CONSUMPTION.items()}
     lines.append(f"nations={len(spec.nations)} chokepoints={len(spec.chokepoints)} routes={len(spec.routes)}")
     for c in ("energy", "food", "chips", "minerals", "space"):

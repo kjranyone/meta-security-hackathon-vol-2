@@ -47,6 +47,13 @@ OBS_DESC = [
 OBS_DIM = len(OBS_DESC)
 COMMODITIES = ("energy", "food", "chips", "minerals", "space")
 
+# 観測意味の版: sem1 は war_intensity_max / refugee_burden_* が常に0（未配線）で
+# 訓練された旧モデル。sem2 から実供給される。旧npz（obs_semなし）は sem1 とみなし、
+# 推論時にこれらの次元を0でマスクすれば訓練時の入力分布・bit等価が保たれる。
+OBS_SEM = 2
+OBS_SEM2_LIVE_IDX = tuple(OBS_DESC.index(k) for k in
+                          ("war_intensity_max", "refugee_burden_in", "refugee_burden_out"))
+
 
 def obs_from_view(view: NationView) -> np.ndarray:
     me, prices, god = view.me, view.prices, view.god_params
@@ -101,7 +108,7 @@ def obs_from_view(view: NationView) -> np.ndarray:
         1.0 if me.get("regime") == "autocracy" else 0.0,
         1.0 if me.get("ideology") == "ai_cult" else 0.0,
         1.0 if me.get("ideology") == "techno_nationalist" else 0.0,
-        float(getattr(view, "_war_intensity_max", 0.0)) if hasattr(view, "_war_intensity_max") else 0.0,
+        float(me.get("war_intensity_max", 0.0)) / 3.0,
         float(me.get("refugees_in_m", 0.0)) / max(1.0, me.get("population_m", 1.0)),
         float(me.get("refugees_out_m", 0.0)) / max(1.0, me.get("population_m", 1.0)),
         min(1.0, float(me.get("sanctioned_by", 0)) / 10.0),

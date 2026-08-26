@@ -100,7 +100,7 @@ class NationSpec(BaseModel):
 class NationState(BaseModel):
     id: str
     # --- realism layer ---
-    population_m: float = 50.0         # 人口（百万人）
+    population_m: float                # 人口（百万人）
     unemployment: float = 6.0          # 失業率 %
     fx: float = 1.0                    # 為替指数（初期1.0、下落=通貨安）
     fx_reserves: float = 8.0           # 外貨準備（輸入月数）
@@ -118,7 +118,6 @@ class NationState(BaseModel):
     gdp: float                      # trillions
     gdp_growth: float = 0.02
     inflation: float = 0.02
-    population_m: float
     military: float
     stability: float
     approval: float

@@ -13,6 +13,7 @@ class EventLog:
         self.records: list[EventRecord] = []
         self._out = out
         self._counter = 0
+        self._index: dict[str, EventRecord] = {}   # id -> record（by_idを線形探索させない）
 
     def emit(
         self,
@@ -36,13 +37,14 @@ class EventLog:
             text=text,
         )
         self.records.append(rec)
+        self._index[rec.id] = rec
         if self._out is not None:
             self._out.write(json.dumps(rec.model_dump(), ensure_ascii=False) + "\n")
             self._out.flush()
         return rec
 
     def by_id(self, eid: str) -> Optional[EventRecord]:
-        return next((r for r in self.records if r.id == eid), None)
+        return self._index.get(eid)
 
     def cascade_ancestors(self, eid: str) -> list[str]:
         """All transitive ancestors (the causal upstream of an event)."""

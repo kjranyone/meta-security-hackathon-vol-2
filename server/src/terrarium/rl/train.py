@@ -32,9 +32,11 @@ def _make_net(args):
         return RecurrentPolicyNet(obs_dim=OBS_DIM, seed=args.seed)
     fine = bool(getattr(args, "fine", False))
     hidden = int(getattr(args, "hidden", 64))
-    print(f"[net] PolicyNet obs={OBS_DIM} hidden={hidden} fine={fine} "
+    diplomacy = bool(getattr(args, "diplomacy", False))
+    print(f"[net] PolicyNet obs={OBS_DIM} hidden={hidden} fine={fine} diplomacy={diplomacy} "
           f"budget_head={'4x5' if fine else '6 presets'}", flush=True)
-    return PolicyNet(obs_dim=OBS_DIM, hidden=hidden, seed=args.seed, fine=fine)
+    return PolicyNet(obs_dim=OBS_DIM, hidden=hidden, seed=args.seed, fine=fine,
+                     diplomacy=diplomacy)
 
 
 def run_episode(env, net, train: bool, gamma: float = 0.97,
@@ -255,6 +257,9 @@ def main(argv: list[str] | None = None) -> int:
                     help="細粒度行動空間（予算4軸x5水準の微調整）で訓練")
     ap.add_argument("--hidden", type=int, default=64,
                     help="隠れ層幅（既定64。npzに記録され混在運用可）")
+    ap.add_argument("--diplomacy", action="store_true",
+                    help="外交3頭(改善/制裁/脅迫)を有効化して訓練 — 不可逆的escalation"
+                         "への探索が方策学習を壊す再現実験用（既定は無効）")
     args = ap.parse_args(argv)
 
     from ..sim.interventions import load_scenario as _load_scenario
@@ -271,9 +276,6 @@ def main(argv: list[str] | None = None) -> int:
     out = Path(args.out) if args.out else SERVER_ROOT / "models" / f"rl_{args.nation}.npz"
     out.parent.mkdir(parents=True, exist_ok=True)
 
-    from ..sim.interventions import load_scenario as _load_scenario
-
-    train_scenario = _load_scenario(args.scenario) if args.scenario else None
     env = NationEnv(args.preset, args.nation, seed=args.seed, horizon=args.horizon,
                     scenario=train_scenario, default_penalty=args.default_penalty)
     net = _make_net(args)

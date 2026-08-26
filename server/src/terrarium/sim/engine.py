@@ -472,6 +472,11 @@ class Engine:
             if nid is None:
                 return
             param, value = p["param"], float(p["value"])
+            # UI/WebSocket経由の任意入力が NationState へ setattr されないよう
+            # 神が書き換え可能なフィールドをホワイトリストで制限する
+            if param not in ("aggression", "paranoia"):
+                raise ValueError(
+                    f"set_param: '{param}' is not settable (allowed: aggression, paranoia)")
             setattr(self.nations[nid], param, value)
             self.event_log.emit(
                 self.tick_no, "god_intervention",
@@ -479,6 +484,10 @@ class Engine:
                 actor="GOD", targets=[nid], data={"nation": nid, "param": param, "value": value},
             )
         elif iv.type == "global_slider":
+            if p["param"] not in type(self.god).model_fields:
+                raise ValueError(
+                    f"global_slider: unknown world param '{p['param']}' "
+                    f"(allowed: {', '.join(sorted(type(self.god).model_fields))})")
             setattr(self.god, p["param"], float(p["value"]))
             self.event_log.emit(
                 self.tick_no, "god_intervention", f"神が世界パラメータ {p['param']} を {p['value']} にした",
@@ -881,6 +890,12 @@ class Engine:
         me_view = dict(nat.view())
         me_view["techs"] = self._techs_of(nid)
         me_view["sanctioned_by"] = self._sanctioned_count.get(nid, 0)
+        # v9拡張観測の実供給: 戦争強度と難民負担（RL観測・LLMプロンプトから見える）
+        me_view["war_intensity_max"] = max(
+            (inten for (a, b), inten in self._war_intensity.items() if nid in (a, b)),
+            default=0.0)
+        me_view["refugees_out_m"] = round(self._refugees_out.get(nid, 0.0), 4)
+        me_view["refugees_in_m"] = round(self._refugees_in.get(nid, 0.0), 4)
 
         # --- 時系列トレンド（snapshotsからlag特徴量を計算） ---
         hist = self.snapshots[-13:]

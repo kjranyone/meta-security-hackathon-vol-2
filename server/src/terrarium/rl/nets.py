@@ -33,7 +33,7 @@ def _he_init(fan_in: int, fan_out: int, rng: np.random.Generator) -> np.ndarray:
 
 class PolicyNet:
     def __init__(self, obs_dim: int, hidden: int = 64, seed: int = 0, fine: bool = False,
-                 diplomacy: bool = False):
+                 diplomacy: bool = False, obs_sem: int = 2):
         """diplomacy=True は外交3頭(改善/制裁/脅迫)を有効化するが、
         不可逆的escalationへの探索が方策学習を一貫して壊すため既定は無効
         (SAH学習: 61次元+外交なし +6.0、外交あり -3.7)。外交行動は
@@ -41,6 +41,7 @@ class PolicyNet:
         self.rng = np.random.default_rng(seed)
         self.fine = fine
         self.diplomacy = diplomacy
+        self.obs_sem = obs_sem
         self._n_diplo = 3 if diplomacy else 0
         # fine=True: 予算は4軸×5水準の微調整（625通り）。False: 従来の6プリセット
         self._n_budget = 4 * 5 if fine else len(BUDGET_PRESETS)
@@ -241,6 +242,7 @@ class PolicyNet:
                  hidden=np.array([self.W1.shape[1]]),
                  fine=np.array([1 if self.fine else 0]),
                  diplomacy=np.array([1 if self.diplomacy else 0]),
+                 obs_sem=np.array([self.obs_sem]),
                  **{f"p{i}": p for i, p in enumerate(self.params)})
 
     @classmethod
@@ -250,7 +252,10 @@ class PolicyNet:
         hidden = int(data["hidden"][0]) if "hidden" in data.files else 64
         fine = bool(int(data["fine"][0])) if "fine" in data.files else False
         diplo = bool(int(data["diplomacy"][0])) if "diplomacy" in data.files else False
-        net = cls(obs_dim=obs_dim, hidden=hidden, seed=0, fine=fine, diplomacy=diplo)
+        # obs_semなしの旧npzは sem1（war_intensity/refugee次元が未配線=常に0）
+        obs_sem = int(data["obs_sem"][0]) if "obs_sem" in data.files else 1
+        net = cls(obs_dim=obs_dim, hidden=hidden, seed=0, fine=fine, diplomacy=diplo,
+                  obs_sem=obs_sem)
         for i, param in enumerate(net.params):
             key = f"p{i}"
             if key in data.files:
@@ -312,9 +317,10 @@ class RecurrentPolicyNet:
     訓練は各エピソード終了後に系列を再計算して打ち切り長16のBPTTを回す。
     """
 
-    def __init__(self, obs_dim: int, hidden: int = 64, seed: int = 0):
+    def __init__(self, obs_dim: int, hidden: int = 64, seed: int = 0, obs_sem: int = 2):
         self.rng = np.random.default_rng(seed)
         self.obs_dim, self.hidden = obs_dim, hidden
+        self.obs_sem = obs_sem
         H = hidden
         self.Wz = _he_init(obs_dim, H, self.rng); self.Uz = _he_init(H, H, self.rng) * 0.1; self.bz = np.zeros(H)
         self.Wr_ = _he_init(obs_dim, H, self.rng); self.Ur_ = _he_init(H, H, self.rng) * 0.1; self.br_ = np.zeros(H)
@@ -447,13 +453,15 @@ class RecurrentPolicyNet:
     # ------------------------------------------------------------------- io
     def save(self, path) -> None:
         np.savez(path, kind=np.array(["gru"]), obs_dim=np.array([self.obs_dim]),
+                 obs_sem=np.array([self.obs_sem]),
                  **{f"p{i}": p for i, p in enumerate(self.params)})
 
     @classmethod
     def load(cls, path) -> "RecurrentPolicyNet":
         data = np.load(path)
         obs_dim = int(data["obs_dim"][0])
-        net = cls(obs_dim=obs_dim, seed=0)
+        obs_sem = int(data["obs_sem"][0]) if "obs_sem" in data.files else 1
+        net = cls(obs_dim=obs_dim, seed=0, obs_sem=obs_sem)
         for i in range(len(net.params)):
             net.params[i][...] = data[f"p{i}"]
         return net

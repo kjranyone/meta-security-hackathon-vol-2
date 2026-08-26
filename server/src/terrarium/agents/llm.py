@@ -86,10 +86,17 @@ class ZaiLLMPolicy:
         self.client = OpenAI(
             base_url=base_url or os.environ.get("ZAI_BASE_URL", "https://api.z.ai/api/coding/paas/v4"),
             api_key=api_key or os.environ.get("ZAI_API_KEY", "missing"),
+            timeout=180.0,   # 無期限ハングでエンジンごと固めない
         )
         self.calls = 0
         self.fallbacks = 0   # API失敗でheuristicに落ちた回数（実験の健全性監査用）
         self.raw_log: list[dict] = []
+
+    def _log_raw(self, entry: dict) -> None:
+        # 長時間runでメモリが無界に増えないよう直近のみ保持（監査にはcalls/fallbacks）
+        self.raw_log.append(entry)
+        if len(self.raw_log) > 600:
+            del self.raw_log[:300]
 
     def decide(self, view: NationView) -> Decisions:
         prompt = build_user_prompt(self.persona, view)
@@ -105,10 +112,10 @@ class ZaiLLMPolicy:
             raw = resp.choices[0].message.content or ""
         except Exception as exc:  # network / quota / parse -> heuristic fallback
             self.fallbacks += 1
-            self.raw_log.append({"tick": view.tick, "nation": self.nation_id, "error": str(exc)})
+            self._log_raw({"tick": view.tick, "nation": self.nation_id, "error": str(exc)})
             return self.fallback.decide(view)
         self.calls += 1
-        self.raw_log.append({"tick": view.tick, "nation": self.nation_id, "raw": raw})
+        self._log_raw({"tick": view.tick, "nation": self.nation_id, "raw": raw})
         return self._parse(raw, view)
 
     def _parse(self, raw: str, view: NationView) -> Decisions:
@@ -201,6 +208,16 @@ def make_policy_factory(mode: str, seed: int = 0, rl_nation: str | None = None,
         if not slots:
             raise ValueError(f"--rl-nation is required for --policy {mode}")
         from .rl_policy import RLPolicy
+
+        if mode == "rl" and rl_nation.strip() == "ALL":
+            # 全国家に同一重みを配備する汎用AIモード（全RL世界）。
+            # --rl-weights は必須（国別既定 rl_<nid>.npz は全国家分は存在しない）
+            if not rl_weights:
+                raise ValueError("--rl-nation ALL needs --rl-weights (generalist .npz)")
+
+            def make_all(spec):
+                return RLPolicy(spec.id, rl_weights)
+            return make_all
 
         rls = {nid: RLPolicy(nid, w) for nid, w in slots.items()}
         if mode == "rl":
