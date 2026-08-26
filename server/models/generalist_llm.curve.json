@@ -1,1 +1,1 @@
-[{"phase": "bc", "eval_reward": 78.39929044489067}, {"phase": "bc+a2c", "eval_reward": 99.98991215221545, "episodes": 800}]
+[{"phase": "bc", "eval_reward": 110.57679161691414}, {"phase": "bc+a2c", "eval_reward": 131.2474459847148, "episodes": 600}]

@@ -135,6 +135,7 @@ def main(argv=None) -> int:
     ap.add_argument("--finetune", type=int, default=800, help="A2C fine-tune episodes (0=skip)")
     ap.add_argument("--eval-nation", default="JPN")
     ap.add_argument("--out", default=None)
+    ap.add_argument("--hidden", type=int, default=64, help="target net hidden width")
     args = ap.parse_args(argv)
 
     from ..sim.interventions import load_scenario
@@ -156,7 +157,7 @@ def main(argv=None) -> int:
             f.write(json.dumps({"obs": s["obs"].tolist(), "action": s["action"]}) + "\n")
     print(f"[distill] {len(data)} samples cached -> {cache}")
 
-    net = PolicyNet(obs_dim=OBS_DIM, seed=args.seed)
+    net = PolicyNet(obs_dim=OBS_DIM, hidden=int(getattr(args, 'hidden', 64)), seed=args.seed)
     behavior_clone(net, data, epochs=args.bc_epochs)
 
     # 蒸留前後の評価（教師なしのA2C純訓練との比較用に同じ評価プロトコル）
