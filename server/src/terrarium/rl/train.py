@@ -31,9 +31,10 @@ def _make_net(args):
         print(f"[net] RecurrentPolicyNet (GRU) obs={OBS_DIM}", flush=True)
         return RecurrentPolicyNet(obs_dim=OBS_DIM, seed=args.seed)
     fine = bool(getattr(args, "fine", False))
-    print(f"[net] PolicyNet obs={OBS_DIM} fine={fine} "
+    hidden = int(getattr(args, "hidden", 64))
+    print(f"[net] PolicyNet obs={OBS_DIM} hidden={hidden} fine={fine} "
           f"budget_head={'4x5' if fine else '6 presets'}", flush=True)
-    return PolicyNet(obs_dim=OBS_DIM, seed=args.seed, fine=fine)
+    return PolicyNet(obs_dim=OBS_DIM, hidden=hidden, seed=args.seed, fine=fine)
 
 
 def run_episode(env, net, train: bool, gamma: float = 0.97,
@@ -252,6 +253,8 @@ def main(argv: list[str] | None = None) -> int:
                     help="GRU再帰型戦術AI（隠れ状態で時系列を統合）を訓練")
     ap.add_argument("--fine", action="store_true",
                     help="細粒度行動空間（予算4軸x5水準の微調整）で訓練")
+    ap.add_argument("--hidden", type=int, default=64,
+                    help="隠れ層幅（既定64。npzに記録され混在運用可）")
     args = ap.parse_args(argv)
 
     from ..sim.interventions import load_scenario as _load_scenario

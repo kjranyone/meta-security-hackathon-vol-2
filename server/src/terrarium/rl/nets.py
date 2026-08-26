@@ -32,9 +32,16 @@ def _he_init(fan_in: int, fan_out: int, rng: np.random.Generator) -> np.ndarray:
 
 
 class PolicyNet:
-    def __init__(self, obs_dim: int, hidden: int = 64, seed: int = 0, fine: bool = False):
+    def __init__(self, obs_dim: int, hidden: int = 64, seed: int = 0, fine: bool = False,
+                 diplomacy: bool = False):
+        """diplomacy=True は外交3頭(改善/制裁/脅迫)を有効化するが、
+        不可逆的escalationへの探索が方策学習を一貫して壊すため既定は無効
+        (SAH学習: 61次元+外交なし +6.0、外交あり -3.7)。外交行動は
+        heuristic/LLM層が担う。実装と知見は残す(失敗の記録)。"""
         self.rng = np.random.default_rng(seed)
         self.fine = fine
+        self.diplomacy = diplomacy
+        self._n_diplo = 3 if diplomacy else 0
         # fine=True: 予算は4軸×5水準の微調整（625通り）。False: 従来の6プリセット
         self._n_budget = 4 * 5 if fine else len(BUDGET_PRESETS)
         self.W1 = _he_init(obs_dim, hidden, self.rng)
@@ -49,8 +56,13 @@ class PolicyNet:
         self.bg = np.zeros(1)
         self.Wv = _he_init(hidden, 1, self.rng)     # value head
         self.bv = np.zeros(1)
+        self.Wd = _he_init(hidden, self._n_diplo, self.rng) if diplomacy else np.zeros((hidden, 0))
+        # 外交ヘッド: デフォルトは無効(学習阻害が実証されたため)。diplomacy=Trueで
+        # 明示的に有効化 — 不可逆的escalationへの探索が方策を壊す(§失敗の記録)
+        self.bd = np.full(self._n_diplo, -2.5) if diplomacy else np.zeros(0)
         self.params = [self.W1, self.b1, self.Wb, self.bb, self.Wp, self.bp,
-                       self.Wr, self.br, self.Wg, self.bg, self.Wv, self.bv]
+                       self.Wr, self.br, self.Wg, self.bg, self.Wv, self.bv,
+                       self.Wd, self.bd]
         self._m = [np.zeros_like(p) for p in self.params]
         self._v = [np.zeros_like(p) for p in self.params]
         self._t = 0
@@ -65,6 +77,7 @@ class PolicyNet:
             "posture_logits": h @ self.Wp + self.bp,
             "ration_logit": float((h @ self.Wr + self.br)[0]),
             "propa_logit": float((h @ self.Wg + self.bg)[0]),
+            "diplo_logits": (h @ self.Wd + self.bd) if self.diplomacy else np.zeros(0),
             "value": float((h @ self.Wv + self.bv)[0]),
         }
 
@@ -100,6 +113,17 @@ class PolicyNet:
             r = int(self.rng.random() < _sigmoid(out["ration_logit"]))
             g = int(self.rng.random() < _sigmoid(out["propa_logit"]))
             logp += _bern_logp(out["ration_logit"], r) + _bern_logp(out["propa_logit"], g)
+            dl = out.get("diplo_logits", np.zeros(0))
+            for i, name in enumerate(("diplo_improve", "diplo_sanction", "diplo_threaten")):
+                if i < len(dl):
+                    k = int(self.rng.random() < _sigmoid(float(dl[i])))
+                    action[name] = k
+                    logp += _bern_logp(float(dl[i]), k)
+        if deterministic:
+            dl = out.get("diplo_logits", np.zeros(0))
+            for i, name in enumerate(("diplo_improve", "diplo_sanction", "diplo_threaten")):
+                if i < len(dl):
+                    action[name] = 1 if float(dl[i]) > 0 else 0
         return {
             **action, "posture_idx": p, "rationing": r, "propaganda": g,
             "logp": logp, "value": out["value"], "out": out,
@@ -114,7 +138,8 @@ class PolicyNet:
         dW = {k: np.zeros_like(v) for k, v in
               [("W1", self.W1), ("b1", self.b1), ("Wb", self.Wb), ("bb", self.bb),
                ("Wp", self.Wp), ("bp", self.bp), ("Wr", self.Wr), ("br", self.br),
-               ("Wg", self.Wg), ("bg", self.bg), ("Wv", self.Wv), ("bv", self.bv)]}
+               ("Wg", self.Wg), ("bg", self.bg), ("Wv", self.Wv), ("bv", self.bv),
+               ("Wd", self.Wd), ("bd", self.bd)]}
 
         # policy gradients (negative-loss direction)
         if self.fine:
@@ -155,15 +180,26 @@ class PolicyNet:
         dW["Wg"] += np.outer(h, [gG]); dW["bg"] += np.array([gG])
         dW["Wv"] += np.outer(h, gV);  dW["bv"] += gV
 
+        gD = np.zeros(self._n_diplo)
+        if self.diplomacy:
+            dl = out.get("diplo_logits", np.zeros(0))
+            for i, name in enumerate(("diplo_improve", "diplo_sanction", "diplo_threaten")):
+                if i < len(dl):
+                    # 外交ヘッドにentropy正則をかけない(不可逆的escalationへの
+                    # 探索奨励が学習を壊すため — 予算や姿勢と同じに扱わない)
+                    gD[i] = -advantage * (action.get(name, 0) - _sigmoid(float(dl[i])))
+            dW["Wd"] += np.outer(h, gD); dW["bd"] += gD
         dh = (gB @ self.Wb.T + gP @ self.Wp.T + gR * self.Wr[:, 0]
-              + gG * self.Wg[:, 0] + gV * self.Wv[:, 0])
+              + gG * self.Wg[:, 0] + gV * self.Wv[:, 0]
+              + (self.Wd @ gD if self.diplomacy else 0.0))
         dz = dh * (1.0 - h ** 2)     # tanh'
         dW["W1"] += np.outer(obs, dz); dW["b1"] += dz
 
         # Adam ascent (grad of objective = -loss)
         self._t += 1
         grads = [dW["W1"], dW["b1"], dW["Wb"], dW["bb"], dW["Wp"], dW["bp"],
-                 dW["Wr"], dW["br"], dW["Wg"], dW["bg"], dW["Wv"], dW["bv"]]
+                 dW["Wr"], dW["br"], dW["Wg"], dW["bg"], dW["Wv"], dW["bv"],
+                 dW["Wd"], dW["bd"]]
         for i, (p, g) in enumerate(zip(self.params, grads)):
             self._m[i] = 0.9 * self._m[i] + 0.1 * g
             self._v[i] = 0.999 * self._v[i] + 0.001 * g * g
@@ -185,7 +221,7 @@ class PolicyNet:
         dW = {k: np.zeros_like(v) for k, v in
               [("W1", self.W1), ("b1", self.b1), ("Wb", self.Wb), ("bb", self.bb),
                ("Wp", self.Wp), ("bp", self.bp), ("Wr", self.Wr), ("br", self.br),
-               ("Wg", self.Wg), ("bg", self.bg)]}
+               ("Wg", self.Wg), ("bg", self.bg), ("Wd", self.Wd), ("bd", self.bd)]}
         dW["Wb"] += np.outer(h, gB); dW["bb"] += gB
         dW["Wp"] += np.outer(h, gP); dW["bp"] += gP
         dW["Wr"] += np.outer(h, [gR]); dW["br"] += np.array([gR])
@@ -193,8 +229,7 @@ class PolicyNet:
         dh = gB @ self.Wb.T + gP @ self.Wp.T + gR * self.Wr[:, 0] + gG * self.Wg[:, 0]
         dz = dh * (1.0 - h ** 2)
         dW["W1"] += np.outer(obs, dz); dW["b1"] += dz
-        grads = [dW["W1"], dW["b1"], dW["Wb"], dW["bb"], dW["Wp"], dW["bp"],
-                 dW["Wr"], dW["br"], dW["Wg"], dW["bg"]]
+        grads = [dW[k] for k in ("W1", "b1", "Wb", "bb", "Wp", "bp", "Wr", "br", "Wg", "bg")]
         params = [self.W1, self.b1, self.Wb, self.bb, self.Wp, self.bp,
                   self.Wr, self.br, self.Wg, self.bg]
         for i, (pp, g) in enumerate(zip(params, grads)):
@@ -203,17 +238,23 @@ class PolicyNet:
     # ------------------------------------------------------------------- io
     def save(self, path) -> None:
         np.savez(path, obs_dim=np.array([self.W1.shape[0]]),
+                 hidden=np.array([self.W1.shape[1]]),
                  fine=np.array([1 if self.fine else 0]),
+                 diplomacy=np.array([1 if self.diplomacy else 0]),
                  **{f"p{i}": p for i, p in enumerate(self.params)})
 
     @classmethod
     def load(cls, path) -> "PolicyNet":
         data = np.load(path)
         obs_dim = int(data["obs_dim"][0])
+        hidden = int(data["hidden"][0]) if "hidden" in data.files else 64
         fine = bool(int(data["fine"][0])) if "fine" in data.files else False
-        net = cls(obs_dim=obs_dim, seed=0, fine=fine)
-        for i in range(len(net.params)):
-            net.params[i][...] = data[f"p{i}"]
+        diplo = bool(int(data["diplomacy"][0])) if "diplomacy" in data.files else False
+        net = cls(obs_dim=obs_dim, hidden=hidden, seed=0, fine=fine, diplomacy=diplo)
+        for i, param in enumerate(net.params):
+            key = f"p{i}"
+            if key in data.files:
+                param[...] = data[key]
         return net
 
 

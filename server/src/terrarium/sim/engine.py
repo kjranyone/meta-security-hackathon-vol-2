@@ -94,6 +94,7 @@ class Engine:
         self._war_casualties: dict[str, float] = {}   # nid -> 人口損失(百万人)
         self._refugees_out: dict[str, float] = {}     # nid -> 難民流出累計(百万人)
         self._refugees_in: dict[str, float] = {}      # nid -> 難民受入累計(百万人)
+        self._sanctioned_count: dict[str, int] = {}   # nid -> 被制裁主体数
         self._regime_counter: dict = {}               # 政体遷移の持続カウンタ
         self._pending_alliance: list[dict] = []
         self._seq = 0
@@ -879,6 +880,7 @@ class Engine:
         nat = self.nations[nid]
         me_view = dict(nat.view())
         me_view["techs"] = self._techs_of(nid)
+        me_view["sanctioned_by"] = self._sanctioned_count.get(nid, 0)
 
         # --- 時系列トレンド（snapshotsからlag特徴量を計算） ---
         hist = self.snapshots[-13:]

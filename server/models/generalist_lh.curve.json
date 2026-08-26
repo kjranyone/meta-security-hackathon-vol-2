@@ -1,86 +1,86 @@
 [
  {
   "episode": 0,
-  "eval_reward": 610.329
+  "eval_reward": 699.085
  },
  {
   "episode": 250,
-  "eval_reward": 696.839
+  "eval_reward": 638.735
  },
  {
   "episode": 500,
-  "eval_reward": 723.404
+  "eval_reward": 647.335
  },
  {
   "episode": 750,
-  "eval_reward": 692.189
+  "eval_reward": 660.312
  },
  {
   "episode": 1000,
-  "eval_reward": 730.877
+  "eval_reward": 689.177
  },
  {
   "episode": 1250,
-  "eval_reward": 723.805
+  "eval_reward": 706.542
  },
  {
   "episode": 1500,
-  "eval_reward": 725.619
+  "eval_reward": 685.391
  },
  {
   "episode": 1750,
-  "eval_reward": 722.02
+  "eval_reward": 675.335
  },
  {
   "episode": 2000,
-  "eval_reward": 706.714
+  "eval_reward": 663.807
  },
  {
   "episode": 2250,
-  "eval_reward": 726.184
+  "eval_reward": 682.815
  },
  {
   "episode": 2500,
-  "eval_reward": 717.004
+  "eval_reward": 670.12
  },
  {
   "episode": 2750,
-  "eval_reward": 731.042
+  "eval_reward": 670.742
  },
  {
   "episode": 3000,
-  "eval_reward": 717.211
+  "eval_reward": 675.877
  },
  {
   "episode": 3250,
-  "eval_reward": 723.266
+  "eval_reward": 624.532
  },
  {
   "episode": 3500,
-  "eval_reward": 708.82
+  "eval_reward": 672.133
  },
  {
   "episode": 3750,
-  "eval_reward": 684.801
+  "eval_reward": 699.273
  },
  {
   "episode": 4000,
-  "eval_reward": 726.33
+  "eval_reward": 684.09
  },
  {
   "episode": 4250,
-  "eval_reward": 720.911
+  "eval_reward": 675.163
  },
  {
   "episode": 4500,
-  "eval_reward": 729.005
+  "eval_reward": 680.822
  },
  {
   "episode": 4750,
-  "eval_reward": 726.12
+  "eval_reward": 694.982
  },
  {
   "episode": 4800,
-  "eval_reward": 732.673
+  "eval_reward": 680.095
  }
 ]

@@ -33,6 +33,16 @@ OBS_DESC = [
     # --- 思想・ドクトリン（自国の性質。政策の異質性が観測に入る） ---
     "doc_risk", "doc_militarism", "doc_revisionism", "doc_vengeance",
     "doc_treaty_fidelity", "posture_counterforce", "posture_nfu",
+    # --- 拡張観測(v9): 政体・紛争・難民・制裁・選挙・エネルギー ---
+    "regime_democracy", "regime_hybrid", "regime_autocracy",
+    "ideology_ai_cult", "ideology_techno_nat",
+    "war_intensity_max",          # 自国が絡む戦争の最大強度/3
+    "refugee_burden_in", "refugee_burden_out",  # 人口比
+    "sanctioned_by",              # 被制裁主体数/10
+    "months_to_election",         # 民主政体の選挙接近度(無い場合は1)
+    "unemployment_level",         # 失業率水準(トレンドではなく水準)/20
+    "renew_eff",                  # エネルギー転換の進捗
+    "co2_national",               # 自国CO2累積/1000
 ]
 OBS_DIM = len(OBS_DESC)
 COMMODITIES = ("energy", "food", "chips", "minerals", "space")
@@ -85,6 +95,21 @@ def obs_from_view(view: NationView) -> np.ndarray:
         float(me.get("doctrine_treaty_fidelity", 0.7)),
         1.0 if me.get("nuclear_posture") == "counterforce" else 0.0,
         1.0 if me.get("nuclear_posture") == "nfu" else 0.0,
+        # 拡張観測(v9)
+        1.0 if me.get("regime") == "democracy" else 0.0,
+        1.0 if me.get("regime") == "hybrid" else 0.0,
+        1.0 if me.get("regime") == "autocracy" else 0.0,
+        1.0 if me.get("ideology") == "ai_cult" else 0.0,
+        1.0 if me.get("ideology") == "techno_nationalist" else 0.0,
+        float(getattr(view, "_war_intensity_max", 0.0)) if hasattr(view, "_war_intensity_max") else 0.0,
+        float(me.get("refugees_in_m", 0.0)) / max(1.0, me.get("population_m", 1.0)),
+        float(me.get("refugees_out_m", 0.0)) / max(1.0, me.get("population_m", 1.0)),
+        min(1.0, float(me.get("sanctioned_by", 0)) / 10.0),
+        min(1.0, (float(me.get("next_election", -1) - float(view.tick)) / 36.0)
+            if me.get("next_election", -1) > view.tick else 1.0),
+        float(me.get("unemployment", 5.0)) / 20.0,
+        float(me.get("renew_eff", 0.1)),
+        float(me.get("co2_cum", 0.0)) / 1000.0,
     ], dtype=np.float32)
     return np.clip(obs, -5.0, 5.0)
 
@@ -103,18 +128,33 @@ BUDGET_LEVELS = [0.05, 0.15, 0.30, 0.45, 0.60]   # 各軸5水準の微調整
 BUDGET_AXES = ("military", "welfare", "stockpile", "subsidy")
 
 
-def action_to_decisions(action: dict) -> Decisions:
+def action_to_decisions(action: dict, view=None) -> Decisions:
+    """行動→決定。viewがある場合、外交ヘッドのターゲットを文脈から選ぶ
+    (最も信頼の低い相手=脅迫/制裁、最も信頼の高い非同盟国=改善)。"""
     from .nets import BUDGET_PRESETS, POSTURES
+    from ..agents.base import DiplomaticAction
     if "budget_levels" in action:
-        # 細粒度行動: 4軸それぞれの水準を正規化して予算に
         vals = {ax: BUDGET_LEVELS[lv] for ax, lv in zip(BUDGET_AXES, action["budget_levels"])}
         tot = sum(vals.values()) or 1.0
         budget = {ax: round(v / tot, 3) for ax, v in vals.items()}
     else:
         budget = dict(BUDGET_PRESETS[action["budget_idx"]])
+    diplomacy = []
+    if view is not None:
+        rels = [(r.get("trust", 0.0), o) for o, r in view.relations.items()
+                if not r.get("war")]
+        if rels:
+            worst = min(rels)[1]
+            best = max(rels)[1]
+            if action.get("diplo_improve") and best != worst:
+                diplomacy.append(DiplomaticAction(kind="improve", target=best))
+            if action.get("diplo_sanction") and worst:
+                diplomacy.append(DiplomaticAction(kind="sanction", target=worst))
+            if action.get("diplo_threaten") and worst:
+                diplomacy.append(DiplomaticAction(kind="threaten", target=worst))
     return Decisions(
         budget=budget,
-        diplomacy=[],
+        diplomacy=diplomacy,
         military_posture=POSTURES[action["posture_idx"]],
         rationing=bool(action["rationing"]),
         propaganda=bool(action["propaganda"]),
@@ -203,7 +243,8 @@ class NationEnv:
 
     def step(self, action: dict):
         eng = self.eng
-        self.learner.pending = action_to_decisions(action)
+        self.learner.pending = action_to_decisions(
+            action, view=eng.nation_view(self.nation_id))
         eng.tick_no = eng.snapshots[-1]["tick"] + 1 if eng.snapshots else 0
         # apply due scenario interventions
         for iv in self.scenario.interventions:
@@ -261,7 +302,8 @@ class SelfPlayEnv:
     def step(self, actions: dict[str, dict]):
         eng = self.eng
         for nid, act in actions.items():
-            self.learners[nid].pending = action_to_decisions(act)
+            self.learners[nid].pending = action_to_decisions(
+                act, view=eng.nation_view(nid))
         eng.tick_no = eng.snapshots[-1]["tick"] + 1 if eng.snapshots else 0
         for iv in self.scenario.interventions:
             if iv.tick == eng.tick_no:

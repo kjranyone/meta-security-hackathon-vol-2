@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import numpy as np
+
 from ..rl.env import action_to_decisions, obs_from_view
 from ..rl.nets import load_net
 from .base import Decisions, NationView
@@ -27,6 +29,12 @@ class RLPolicy:
 
     def decide(self, view: NationView) -> Decisions:
         obs = obs_from_view(view)
+        # 旧モデル(小さい観測次元)との後方互換: 次元を合わせる
+        want = self.net.W1.shape[0]
+        if obs.shape[0] < want:
+            obs = np.concatenate([obs, np.zeros(want - obs.shape[0], dtype=np.float32)])
+        elif obs.shape[0] > want:
+            obs = obs[:want]
         # 再帰型の場合、隠れ状態はこの政策オブジェクトの寿命の間ローリングする
         # （世界の履歴の内部表現。世界再構築でリセット=決定論を保つ）
         action = self.net.act(obs, deterministic=True)
