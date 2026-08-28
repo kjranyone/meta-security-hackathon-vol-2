@@ -467,8 +467,340 @@ class RecurrentPolicyNet:
         return net
 
 
+class DeepPolicyNet:
+    """多層MLP戦術AI(大規模蒸留用)。PolicyNetと同じ行動インターフェースを持ち、
+    hiddenは層幅のリスト(例 [2048]*4 ≈ 12.7M params ≈ 51MB npz)。
+
+    - trunk: tanh多層。BCはミニバッチ交差エントロピー+Adam、A2CはPolicyNetと
+      同じ頭部勾配式を単一Adamで適用(train.run_episodeからそのまま呼べる)
+    - save/loadはkind="deep"。load_netが自動判別するためRLPolicyから
+      そのまま配備できる(obs_dim/obs_sem/act契約を維持)
+    """
+
+    def __init__(self, obs_dim: int, hidden=(512, 512), seed: int = 0, fine: bool = False,
+                 diplomacy: bool = False, obs_sem: int = 2):
+        if isinstance(hidden, int):
+            hidden = [hidden]
+        self.rng = np.random.default_rng(seed)
+        self.hidden = list(hidden)
+        self.obs_dim = obs_dim
+        self.fine = fine
+        self.diplomacy = diplomacy
+        self.obs_sem = obs_sem
+        self._n_diplo = 3 if diplomacy else 0
+        self._n_budget = 4 * 5 if fine else len(BUDGET_PRESETS)
+        dims = [obs_dim] + self.hidden
+        self.Ws = [_he_init(dims[i], dims[i + 1], self.rng) for i in range(len(dims) - 1)]
+        self.bs = [np.zeros(w) for w in self.hidden]
+        top = self.hidden[-1]
+        self.Wb = _he_init(top, self._n_budget, self.rng); self.bb = np.zeros(self._n_budget)
+        self.Wp = _he_init(top, 3, self.rng); self.bp = np.zeros(3)
+        self.Wr = _he_init(top, 1, self.rng); self.br = np.zeros(1)
+        self.Wg = _he_init(top, 1, self.rng); self.bg = np.zeros(1)
+        self.Wv = _he_init(top, 1, self.rng); self.bv = np.zeros(1)
+        self.Wd = _he_init(top, self._n_diplo, self.rng) if diplomacy else np.zeros((top, 0))
+        self.bd = np.full(self._n_diplo, -2.5) if diplomacy else np.zeros(0)
+        self.params = [*self.Ws, *self.bs,
+                       self.Wb, self.bb, self.Wp, self.bp,
+                       self.Wr, self.br, self.Wg, self.bg,
+                       self.Wv, self.bv, self.Wd, self.bd]
+        self._m = [np.zeros_like(p) for p in self.params]
+        self._v = [np.zeros_like(p) for p in self.params]
+        self._t = 0
+        self._adam_lr = 1e-3
+        self._cache: dict = {}
+
+    # ---------------------------------------------------------------- forward
+    def _trunk(self, X: np.ndarray) -> list[np.ndarray]:
+        """X: (B, obs_dim) or (obs_dim,) -> 各層激活のリスト(先頭は入力)。"""
+        acts = [np.atleast_2d(X).astype(np.float64)]
+        h = acts[0]
+        for W, b in zip(self.Ws, self.bs):
+            h = np.tanh(h @ W + b)
+            acts.append(h)
+        return acts
+
+    def forward(self, obs: np.ndarray) -> dict:
+        acts = self._trunk(obs)
+        h = acts[-1][0]
+        self._cache = {"acts": acts}
+        return {
+            "budget_logits": h @ self.Wb + self.bb,
+            "posture_logits": h @ self.Wp + self.bp,
+            "ration_logit": float((h @ self.Wr + self.br)[0]),
+            "propa_logit": float((h @ self.Wg + self.bg)[0]),
+            "diplo_logits": (h @ self.Wd + self.bd) if self.diplomacy else np.zeros(0),
+            "value": float((h @ self.Wv + self.bv)[0]),
+        }
+
+    def _heads_forward(self, H: np.ndarray) -> dict:
+        return {
+            "budget_logits": H @ self.Wb + self.bb,
+            "posture_logits": H @ self.Wp + self.bp,
+            "ration_logit": (H @ self.Wr + self.br)[:, 0],
+            "propa_logit": (H @ self.Wg + self.bg)[:, 0],
+            "value": (H @ self.Wv + self.bv)[:, 0],
+        }
+
+    # ---------------------------------------------------------------- actions
+    def act(self, obs: np.ndarray, deterministic: bool = False) -> dict:
+        out = self.forward(obs)
+        z_b = out["budget_logits"]
+        if deterministic:
+            r = 1 if out["ration_logit"] > 0 else 0
+            g = 1 if out["propa_logit"] > 0 else 0
+            logp = 0.0
+            p = int(np.argmax(out["posture_logits"]))
+            if self.fine:
+                action = {"budget_levels": [int(np.argmax(z_b[a * 5:(a + 1) * 5])) for a in range(4)]}
+            else:
+                action = {"budget_idx": int(np.argmax(z_b))}
+        else:
+            logp = 0.0
+            if self.fine:
+                lv = []
+                for a in range(4):
+                    za = z_b[a * 5:(a + 1) * 5]
+                    k = int(self.rng.choice(5, p=_softmax(za)))
+                    lv.append(k)
+                    logp += _log_softmax(za)[k]
+                action = {"budget_levels": lv}
+            else:
+                b = int(self.rng.choice(len(z_b), p=_softmax(z_b)))
+                action = {"budget_idx": b}
+                logp += _log_softmax(z_b)[b]
+            p = int(self.rng.choice(3, p=_softmax(out["posture_logits"])))
+            logp += _log_softmax(out["posture_logits"])[p]
+            r = int(self.rng.random() < _sigmoid(out["ration_logit"]))
+            g = int(self.rng.random() < _sigmoid(out["propa_logit"]))
+            logp += _bern_logp(out["ration_logit"], r) + _bern_logp(out["propa_logit"], g)
+        if deterministic:
+            dl = out.get("diplo_logits", np.zeros(0))
+            for i, name in enumerate(("diplo_improve", "diplo_sanction", "diplo_threaten")):
+                if i < len(dl):
+                    action[name] = 1 if float(dl[i]) > 0 else 0
+        return {
+            **action, "posture_idx": p, "rationing": r, "propaganda": g,
+            "logp": logp, "value": out["value"], "out": out,
+        }
+
+    # ------------------------------------------------------------ grad engine
+    def _apply_adam(self, dirs: list[np.ndarray], ascend: bool) -> None:
+        self._t += 1
+        sign = 1.0 if ascend else -1.0
+        # 勾配ノルム clipping(巨大ネットのBC/A2Cでの発振対策。閾値は緩く)
+        gnorm = float(np.sqrt(sum(float(np.sum(g * g)) for g in dirs if g.size)))
+        if gnorm > 10.0:
+            scale = 10.0 / (gnorm + 1e-12)
+            dirs = [g * scale for g in dirs]
+        for i, (p, g) in enumerate(zip(self.params, dirs)):
+            self._m[i] = 0.9 * self._m[i] + 0.1 * g
+            self._v[i] = 0.999 * self._v[i] + 0.001 * g * g
+            mhat = self._m[i] / (1.0 - 0.9 ** self._t)
+            vhat = self._v[i] / (1.0 - 0.999 ** self._t)
+            p += sign * self._adam_lr * mhat / (np.sqrt(vhat) + 1e-8)
+
+    def _backward(self, acts: list[np.ndarray], gB, gP, gR, gG, gV, gD=None,
+                  scale: float = 1.0) -> list[np.ndarray]:
+        """頭部のdL/dz行列(B,n)から全パラメータの勾配を返す(バッチ和×scale=平均)。"""
+        n_Ws = len(self.Ws)
+        grads = [np.zeros_like(p) for p in self.params]
+        top = acts[-1]
+        grads[n_Ws * 2] = top.T @ gB * scale          # Wb
+        grads[n_Ws * 2 + 1] = gB.sum(axis=0) * scale
+        grads[n_Ws * 2 + 2] = top.T @ gP * scale
+        grads[n_Ws * 2 + 3] = gP.sum(axis=0) * scale
+        grads[n_Ws * 2 + 4] = (top.T @ gR).reshape(self.Wr.shape) * scale
+        grads[n_Ws * 2 + 5] = np.array([gR.sum()]) * scale
+        grads[n_Ws * 2 + 6] = (top.T @ gG).reshape(self.Wg.shape) * scale
+        grads[n_Ws * 2 + 7] = np.array([gG.sum()]) * scale
+        grads[n_Ws * 2 + 8] = (top.T @ gV).reshape(self.Wv.shape) * scale
+        grads[n_Ws * 2 + 9] = np.array([gV.sum()]) * scale
+        if self.diplomacy and gD is not None:
+            grads[n_Ws * 2 + 10] = top.T @ gD * scale
+            grads[n_Ws * 2 + 11] = gD.sum(axis=0) * scale
+        dtop = (gB @ self.Wb.T + gP @ self.Wp.T
+                + np.outer(gR, self.Wr[:, 0]) + np.outer(gG, self.Wg[:, 0])
+                + np.outer(gV, self.Wv[:, 0])
+                + ((gD @ self.Wd.T) if (self.diplomacy and gD is not None) else 0.0)) * scale
+        dh = dtop
+        for i in reversed(range(n_Ws)):
+            dz = dh * (1.0 - acts[i + 1] ** 2)
+            grads[i] = acts[i].T @ dz * scale
+            grads[n_Ws + i] = dz.sum(axis=0) * scale
+            dh = dz @ self.Ws[i].T
+        return grads
+
+    # ------------------------------------------------------------ batch BC
+    def imitate_batch(self, batch: list[tuple], lr: float = 1e-3,
+                      weights: np.ndarray | None = None,
+                      soft_budget: np.ndarray | None = None) -> float:
+        """ミニバッチ行動クローニング: 交差エントロピーの平均をAdamで降下。
+        batch: [(obs, budget_idx, posture_idx, rationing, propaganda), ...]
+        weights: サンプル重み(逆頻度等)。Noneなら均一。損失は重み付き平均。
+        soft_budget: (B, 6)のsoft target分布(同一状態のk回教師サンプルの経験分布)。
+        与えられた場合はone-hotの代わりに分布への交差エントロピー(KL+エントロピ項)。"""
+        self._adam_lr = lr
+        X = np.stack([b[0] for b in batch])
+        tb = np.array([b[1] for b in batch])
+        tp = np.array([b[2] for b in batch])
+        tr = np.array([b[3] for b in batch], dtype=np.float64)
+        tg = np.array([b[4] for b in batch], dtype=np.float64)
+        acts = self._trunk(X)
+        out = self._heads_forward(acts[-1])
+        B = len(batch)
+        P = _softmax_rows(out["budget_logits"])
+        if soft_budget is not None:
+            gB = P - soft_budget
+        else:
+            gB = P - np.eye(self._n_budget)[tb]
+        gP = _softmax_rows(out["posture_logits"]) - np.eye(3)[tp]
+        gR = _sigmoid_rows(out["ration_logit"]) - tr
+        gG = _sigmoid_rows(out["propa_logit"]) - tg
+        if weights is not None:
+            w = np.asarray(weights, dtype=np.float64) / np.sum(weights)
+            gB = gB * w[:, None]
+            gP = gP * w[:, None]
+            gR = gR * w
+            gG = gG * w
+        else:
+            w = np.full(B, 1.0 / B)
+        grads = self._backward(acts, gB, gP, gR, gG, np.zeros(B))
+        self._apply_adam(grads, ascend=False)
+        pp = _softmax_rows(out["posture_logits"])[np.arange(B), tp]
+        pr = np.where(tr > 0, _sigmoid_rows(out["ration_logit"]), 1 - _sigmoid_rows(out["ration_logit"]))
+        pg = np.where(tg > 0, _sigmoid_rows(out["propa_logit"]), 1 - _sigmoid_rows(out["propa_logit"]))
+        # budget項: softなら分布への交差エントロピー、hardなら正解クラスのNLL
+        if soft_budget is not None:
+            pce = -(soft_budget * np.log(P + 1e-12)).sum(axis=1)
+        else:
+            pce = -np.log(P[np.arange(B), tb] + 1e-12)
+        per = pce - np.log(pp + 1e-12) - np.log(pr + 1e-12) - np.log(pg + 1e-12)
+        return float(np.sum(w * per))
+
+    # ------------------------------------------------------------ backward/A2C
+    def update(self, obs: np.ndarray, action: dict, advantage: float,
+               ret: float, lr: float = 3e-4, entropy_coef: float = 0.01) -> dict:
+        """PolicyNet.updateと同じ頭部勾配式の単一サンプルAdam(上昇)。"""
+        self._adam_lr = lr
+        out = self.forward(obs)
+        acts = self._cache["acts"]
+        if self.fine:
+            gB = np.zeros((1, self._n_budget))
+            for a in range(4):
+                za = out["budget_logits"][a * 5:(a + 1) * 5]
+                gB[0, a * 5:(a + 1) * 5] = (-advantage * _softmax_grad_neglog(za, action["budget_levels"][a])
+                                            - entropy_coef * _entropy_grad_softmax(za))
+        else:
+            gB = np.array([(-advantage * _softmax_grad_neglog(out["budget_logits"], action["budget_idx"])
+                            - entropy_coef * _entropy_grad_softmax(out["budget_logits"]))])
+        gP = np.array([(-advantage * _softmax_grad_neglog(out["posture_logits"], action["posture_idx"])
+                        - entropy_coef * _entropy_grad_softmax(out["posture_logits"]))])
+        gR = np.array([-advantage * (action["rationing"] - _sigmoid(out["ration_logit"]))
+                       - entropy_coef * _entropy_grad_bern(out["ration_logit"])])
+        gG = np.array([-advantage * (action["propaganda"] - _sigmoid(out["propa_logit"]))
+                       - entropy_coef * _entropy_grad_bern(out["propa_logit"])])
+        gV = np.array([ret - out["value"]])
+        gD = None
+        if self.diplomacy:
+            dl = out.get("diplo_logits", np.zeros(0))
+            gD = np.zeros((1, self._n_diplo))
+            for i, name in enumerate(("diplo_improve", "diplo_sanction", "diplo_threaten")):
+                if i < len(dl):
+                    gD[0, i] = -advantage * (action.get(name, 0) - _sigmoid(float(dl[i])))
+        grads = self._backward(acts, gB, gP, gR, gG, gV, gD=gD)
+        self._apply_adam(grads, ascend=True)
+        return {}
+
+    # ------------------------------------------------------------ batch PG
+    def update_batch(self, batch: list[tuple], lr: float = 1e-4,
+                     entropy_coef: float = 0.0, kl_coef: float = 0.0,
+                     ref_budget_logits: np.ndarray | None = None) -> None:
+        """バッチpolicy-gradient更新(エピソード蓄積用・KLアンカー対応)。
+        batch: [(obs, action, advantage, ret), ...]
+        kl_coef + ref_budget_logits: 凍結参照方策(ref)のbudgetロジット(B,6)に対する
+        **分布KLの真の勾配**を罰則として加える(降下方向)。
+        注意: RLHF流の「有効advantage = adv - β」はAdamのm̂/√v̂が勾配の
+        一様スケールを消すため機能しない(実測: β=0/0.05/0.2が完全同一更新に
+        なる)。KL勾配は方向を変えるのでAdam下でも有効。"""
+        self._adam_lr = lr
+        X = np.stack([b[0] for b in batch])
+        acts = [b[1] for b in batch]
+        advs = np.array([b[2] for b in batch], dtype=np.float64)
+        rets = np.array([b[3] for b in batch], dtype=np.float64)
+        acts_m = self._trunk(X)
+        out = self._heads_forward(acts_m[-1])
+        B = len(batch)
+        P = _softmax_rows(out["budget_logits"])
+        gB = np.zeros((B, self._n_budget))
+        gP = np.zeros((B, 3))
+        gR = np.zeros(B)
+        gG = np.zeros(B)
+        for i, a in enumerate(acts):
+            adv = advs[i]
+            if self.fine:
+                for ax in range(4):
+                    za = out["budget_logits"][i, ax * 5:(ax + 1) * 5]
+                    gB[i, ax * 5:(ax + 1) * 5] = (
+                        -adv * _softmax_grad_neglog(za, a["budget_levels"][ax])
+                        - entropy_coef * _entropy_grad_softmax(za))
+            else:
+                gB[i] = (-adv * (P[i] - np.eye(self._n_budget)[a["budget_idx"]])
+                         - entropy_coef * _entropy_grad_softmax(out["budget_logits"][i]))
+            gP[i] = (-adv * _softmax_grad_neglog(out["posture_logits"][i], a["posture_idx"])
+                     - entropy_coef * _entropy_grad_softmax(out["posture_logits"][i]))
+            gR[i] = -adv * (a["rationing"] - _sigmoid(out["ration_logit"][i])) \
+                - entropy_coef * _entropy_grad_bern(out["ration_logit"][i])
+            gG[i] = -adv * (a["propaganda"] - _sigmoid(out["propa_logit"][i])) \
+                - entropy_coef * _entropy_grad_bern(out["propa_logit"][i])
+        # KL(π‖π_ref)の真の勾配(罰則=降下方向なので減算):
+        # dKL/dz_j = p_j[(log p_j - log ρ_j) - KL]
+        if kl_coef > 0.0 and ref_budget_logits is not None:
+            R = _softmax_rows(ref_budget_logits)
+            logP = np.log(P + 1e-12)
+            logR = np.log(R + 1e-12)
+            KL = (P * (logP - logR)).sum(axis=1)                    # (B,)
+            dkl = P * ((logP - logR) - KL[:, None])                 # (B, C)
+            gB = gB - kl_coef * dkl
+        gV = out["value"] - rets
+        grads = self._backward(acts_m, gB, gP, gR, gG, gV)
+        self._apply_adam(grads, ascend=True)
+
+    # ------------------------------------------------------------------- io
+    def save(self, path) -> None:
+        # float32で保存(容量半減: [2048]*4 ≈ 48.6MB。load時にfloat64へ昇格)
+        np.savez(path, kind=np.array(["deep"]), obs_dim=np.array([self.obs_dim]),
+                 hidden=np.array(self.hidden),
+                 fine=np.array([1 if self.fine else 0]),
+                 diplomacy=np.array([1 if self.diplomacy else 0]),
+                 obs_sem=np.array([self.obs_sem]),
+                 **{f"p{i}": p.astype(np.float32) for i, p in enumerate(self.params)})
+
+    @classmethod
+    def load(cls, path) -> "DeepPolicyNet":
+        data = np.load(path)
+        net = cls(obs_dim=int(data["obs_dim"][0]), hidden=list(data["hidden"]),
+                  fine=bool(int(data["fine"][0])), diplomacy=bool(int(data["diplomacy"][0])),
+                  obs_sem=int(data["obs_sem"][0]))
+        for i, param in enumerate(net.params):
+            key = f"p{i}"
+            if key in data.files:
+                param[...] = data[key]
+        return net
+
+
 def _acc(gW, i, g) -> None:
     gW[i] += g
+
+
+def _softmax_rows(Z: np.ndarray) -> np.ndarray:
+    Z = Z - Z.max(axis=1, keepdims=True)
+    E = np.exp(Z)
+    return E / E.sum(axis=1, keepdims=True)
+
+
+def _sigmoid_rows(x: np.ndarray) -> np.ndarray:
+    return 1.0 / (1.0 + np.exp(-np.clip(x, -30, 30)))
 
 
 def _sigmoid_vec(a: np.ndarray) -> np.ndarray:
@@ -476,8 +808,11 @@ def _sigmoid_vec(a: np.ndarray) -> np.ndarray:
 
 
 def load_net(path):
-    """npzを読んでMLP/GRUを自動判別して復元する。"""
+    """npzを読んでMLP/GRU/多層MLPを自動判別して復元する。"""
     data = np.load(path)
-    if "kind" in data and str(data["kind"][0]) == "gru":
+    kind = str(data["kind"][0]) if "kind" in data.files else ""
+    if kind == "gru":
         return RecurrentPolicyNet.load(path)
+    if kind == "deep":
+        return DeepPolicyNet.load(path)
     return PolicyNet.load(path)

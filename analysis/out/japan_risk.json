@@ -1,0 +1,784 @@
+{
+ "baseline": {
+  "gdp": 4.0538,
+  "stab": 52.39,
+  "unemp": 9.7,
+  "debt": 294.8,
+  "defaults": 0,
+  "collapsed": false,
+  "at_war": false,
+  "infl": 0.054,
+  "fx": 0.983,
+  "p_energy": 1.0,
+  "p_food": 1.002,
+  "p_chips": 1.0,
+  "j_events": [
+   [
+    5,
+    "shortage",
+    [
+     "JPN"
+    ],
+    []
+   ]
+  ]
+ },
+ "hormuz": {
+  "gdp": 3.1356,
+  "stab": 29.27,
+  "unemp": 17.94,
+  "debt": 218.3,
+  "defaults": 1,
+  "collapsed": false,
+  "at_war": false,
+  "infl": 0.1257,
+  "fx": 0.624,
+  "p_energy": 2.9273,
+  "p_food": 1.0,
+  "p_chips": 1.4496,
+  "j_events": [
+   [
+    5,
+    "shortage",
+    [
+     "JPN"
+    ],
+    []
+   ],
+   [
+    10,
+    "sovereign_default",
+    [
+     "JPN"
+    ],
+    []
+   ],
+   [
+    13,
+    "shortage",
+    [
+     "JPN"
+    ],
+    [
+     "e000366"
+    ]
+   ],
+   [
+    26,
+    "mobilization",
+    [
+     "JPN",
+     "KOR"
+    ],
+    []
+   ],
+   [
+    27,
+    "war_start",
+    [
+     "JPN",
+     "KOR"
+    ],
+    [
+     "e000793",
+     "e000793"
+    ]
+   ],
+   [
+    28,
+    "cyber_attack",
+    [
+     "KOR"
+    ],
+    []
+   ],
+   [
+    29,
+    "cyber_attack",
+    [
+     "JPN"
+    ],
+    []
+   ],
+   [
+    30,
+    "cyber_attack",
+    [
+     "JPN"
+    ],
+    []
+   ],
+   [
+    31,
+    "peace_settlement",
+    [
+     "JPN",
+     "KOR"
+    ],
+    []
+   ]
+  ]
+ },
+ "taiwan": {
+  "gdp": 3.3407,
+  "stab": 24.44,
+  "unemp": 20.65,
+  "debt": 207.1,
+  "defaults": 1,
+  "collapsed": false,
+  "at_war": false,
+  "infl": 0.1644,
+  "fx": 0.642,
+  "p_energy": 1.2779,
+  "p_food": 1.0028,
+  "p_chips": 1.2155,
+  "j_events": [
+   [
+    5,
+    "shortage",
+    [
+     "JPN"
+    ],
+    []
+   ],
+   [
+    11,
+    "shortage",
+    [
+     "JPN"
+    ],
+    [
+     "e000264"
+    ]
+   ],
+   [
+    24,
+    "mobilization",
+    [
+     "JPN",
+     "TWN"
+    ],
+    []
+   ],
+   [
+    25,
+    "war_start",
+    [
+     "JPN",
+     "TWN"
+    ],
+    [
+     "e000606",
+     "e000606"
+    ]
+   ],
+   [
+    25,
+    "peace_settlement",
+    [
+     "JPN",
+     "TWN"
+    ],
+    []
+   ],
+   [
+    26,
+    "sovereign_default",
+    [
+     "JPN"
+    ],
+    []
+   ],
+   [
+    31,
+    "mobilization",
+    [
+     "JPN",
+     "SAU"
+    ],
+    []
+   ],
+   [
+    32,
+    "war_start",
+    [
+     "JPN",
+     "SAU"
+    ],
+    [
+     "e000800",
+     "e000800"
+    ]
+   ],
+   [
+    32,
+    "peace_settlement",
+    [
+     "JPN",
+     "SAU"
+    ],
+    []
+   ],
+   [
+    32,
+    "mobilization",
+    [
+     "JPN",
+     "TWN"
+    ],
+    []
+   ],
+   [
+    33,
+    "war_start",
+    [
+     "JPN",
+     "TWN"
+    ],
+    [
+     "e000827",
+     "e000827"
+    ]
+   ],
+   [
+    33,
+    "peace_settlement",
+    [
+     "JPN",
+     "TWN"
+    ],
+    []
+   ]
+  ]
+ },
+ "triple": {
+  "gdp": 3.0008,
+  "stab": 31.19,
+  "unemp": 20.46,
+  "debt": 201.2,
+  "defaults": 1,
+  "collapsed": false,
+  "at_war": false,
+  "infl": 0.1473,
+  "fx": 0.616,
+  "p_energy": 4.0,
+  "p_food": 1.966,
+  "p_chips": 1.4864,
+  "j_events": [
+   [
+    5,
+    "shortage",
+    [
+     "JPN"
+    ],
+    []
+   ],
+   [
+    10,
+    "sovereign_default",
+    [
+     "JPN"
+    ],
+    []
+   ],
+   [
+    13,
+    "shortage",
+    [
+     "JPN"
+    ],
+    [
+     "e000394",
+     "e000395"
+    ]
+   ],
+   [
+    13,
+    "shortage",
+    [
+     "JPN"
+    ],
+    [
+     "e000394",
+     "e000395",
+     "e000403"
+    ]
+   ],
+   [
+    14,
+    "insurgency",
+    [
+     "JPN"
+    ],
+    []
+   ],
+   [
+    23,
+    "shortage",
+    [
+     "JPN"
+    ],
+    [
+     "e000776"
+    ]
+   ],
+   [
+    26,
+    "shortage",
+    [
+     "JPN"
+    ],
+    [
+     "e000880"
+    ]
+   ],
+   [
+    26,
+    "mobilization",
+    [
+     "IRN",
+     "JPN"
+    ],
+    []
+   ],
+   [
+    27,
+    "war_start",
+    [
+     "IRN",
+     "JPN"
+    ],
+    [
+     "e000904",
+     "e000904"
+    ]
+   ],
+   [
+    27,
+    "peace_settlement",
+    [
+     "IRN",
+     "JPN"
+    ],
+    []
+   ],
+   [
+    35,
+    "mobilization",
+    [
+     "IRN",
+     "JPN"
+    ],
+    []
+   ]
+  ]
+ },
+ "fin_crisis": {
+  "gdp": 2.9305,
+  "stab": 10.04,
+  "unemp": 29.27,
+  "debt": 125.7,
+  "defaults": 2,
+  "collapsed": true,
+  "at_war": false,
+  "infl": 0.2874,
+  "fx": 0.425,
+  "p_energy": 3.1101,
+  "p_food": 1.0036,
+  "p_chips": 1.4496,
+  "j_events": [
+   [
+    5,
+    "shortage",
+    [
+     "JPN"
+    ],
+    []
+   ],
+   [
+    14,
+    "shortage",
+    [
+     "JPN"
+    ],
+    [
+     "e000391"
+    ]
+   ],
+   [
+    18,
+    "sovereign_default",
+    [
+     "JPN"
+    ],
+    []
+   ],
+   [
+    30,
+    "mobilization",
+    [
+     "IND",
+     "JPN"
+    ],
+    []
+   ],
+   [
+    31,
+    "war_start",
+    [
+     "IND",
+     "JPN"
+    ],
+    [
+     "e000913",
+     "e000913",
+     "e000914"
+    ]
+   ],
+   [
+    32,
+    "cyber_attack",
+    [
+     "IND"
+    ],
+    []
+   ],
+   [
+    32,
+    "sovereign_default",
+    [
+     "JPN"
+    ],
+    []
+   ],
+   [
+    33,
+    "cyber_attack",
+    [
+     "JPN"
+    ],
+    []
+   ],
+   [
+    33,
+    "peace_settlement",
+    [
+     "IND",
+     "JPN"
+    ],
+    []
+   ]
+  ]
+ },
+ "chaos": {
+  "gdp": 3.9588,
+  "stab": 50.33,
+  "unemp": 10.3,
+  "debt": 301.0,
+  "defaults": 0,
+  "collapsed": false,
+  "at_war": false,
+  "infl": 0.0718,
+  "fx": 0.98,
+  "p_energy": 1.15,
+  "p_food": 1.0,
+  "p_chips": 1.0,
+  "j_events": [
+   [
+    5,
+    "shortage",
+    [
+     "JPN"
+    ],
+    []
+   ],
+   [
+    15,
+    "mobilization",
+    [
+     "IRN",
+     "JPN"
+    ],
+    []
+   ],
+   [
+    16,
+    "war_start",
+    [
+     "IRN",
+     "JPN"
+    ],
+    [
+     "e000365",
+     "e000365"
+    ]
+   ],
+   [
+    16,
+    "cyber_attack",
+    [
+     "IRN"
+    ],
+    []
+   ],
+   [
+    17,
+    "peace_settlement",
+    [
+     "IRN",
+     "JPN"
+    ],
+    []
+   ],
+   [
+    26,
+    "mobilization",
+    [
+     "IRN",
+     "JPN"
+    ],
+    []
+   ],
+   [
+    27,
+    "war_start",
+    [
+     "IRN",
+     "JPN"
+    ],
+    [
+     "e000656",
+     "e000655",
+     "e000656"
+    ]
+   ],
+   [
+    27,
+    "peace_settlement",
+    [
+     "IRN",
+     "JPN"
+    ],
+    []
+   ],
+   [
+    34,
+    "mobilization",
+    [
+     "JPN",
+     "SAU"
+    ],
+    [
+     "e000855",
+     "e000856"
+    ]
+   ],
+   [
+    35,
+    "war_start",
+    [
+     "JPN",
+     "SAU"
+    ],
+    [
+     "e000863",
+     "e000861",
+     "e000862",
+     "e000863",
+     "e000864"
+    ]
+   ],
+   [
+    35,
+    "peace_settlement",
+    [
+     "JPN",
+     "SAU"
+    ],
+    []
+   ]
+  ]
+ },
+ "disinfo_jpn": {
+  "gdp": 3.9655,
+  "stab": 47.43,
+  "unemp": 11.34,
+  "debt": 303.2,
+  "defaults": 0,
+  "collapsed": false,
+  "at_war": false,
+  "infl": 0.0611,
+  "fx": 0.98,
+  "p_energy": 1.0,
+  "p_food": 1.0025,
+  "p_chips": 1.0,
+  "j_events": [
+   [
+    5,
+    "shortage",
+    [
+     "JPN"
+    ],
+    []
+   ],
+   [
+    28,
+    "mobilization",
+    [
+     "BRA",
+     "JPN"
+    ],
+    []
+   ],
+   [
+    29,
+    "war_start",
+    [
+     "BRA",
+     "JPN"
+    ],
+    [
+     "e000640",
+     "e000640"
+    ]
+   ],
+   [
+    30,
+    "shortage",
+    [
+     "JPN"
+    ],
+    [
+     "e000662"
+    ]
+   ],
+   [
+    30,
+    "peace_settlement",
+    [
+     "BRA",
+     "JPN"
+    ],
+    []
+   ],
+   [
+    30,
+    "mobilization",
+    [
+     "BRA",
+     "JPN"
+    ],
+    []
+   ],
+   [
+    31,
+    "war_start",
+    [
+     "BRA",
+     "JPN"
+    ],
+    [
+     "e000687",
+     "e000687"
+    ]
+   ],
+   [
+    31,
+    "cyber_attack",
+    [
+     "BRA"
+    ],
+    []
+   ],
+   [
+    31,
+    "peace_settlement",
+    [
+     "BRA",
+     "JPN"
+    ],
+    []
+   ]
+  ]
+ },
+ "ban_fusion": {
+  "gdp": 3.2629,
+  "stab": 24.85,
+  "unemp": 21.36,
+  "debt": 190.4,
+  "defaults": 1,
+  "collapsed": false,
+  "at_war": false,
+  "infl": 0.1567,
+  "fx": 0.642,
+  "p_energy": 2.7432,
+  "p_food": 1.0,
+  "p_chips": 1.4496,
+  "j_events": [
+   [
+    5,
+    "shortage",
+    [
+     "JPN"
+    ],
+    []
+   ],
+   [
+    23,
+    "sovereign_default",
+    [
+     "JPN"
+    ],
+    []
+   ],
+   [
+    28,
+    "shortage",
+    [
+     "JPN"
+    ],
+    [
+     "e000756"
+    ]
+   ],
+   [
+    30,
+    "mobilization",
+    [
+     "EGY",
+     "JPN"
+    ],
+    []
+   ],
+   [
+    31,
+    "war_start",
+    [
+     "EGY",
+     "JPN"
+    ],
+    [
+     "e000839",
+     "e000839"
+    ]
+   ],
+   [
+    31,
+    "cyber_attack",
+    [
+     "JPN"
+    ],
+    []
+   ],
+   [
+    31,
+    "peace_settlement",
+    [
+     "EGY",
+     "JPN"
+    ],
+    []
+   ]
+  ]
+ }
+}

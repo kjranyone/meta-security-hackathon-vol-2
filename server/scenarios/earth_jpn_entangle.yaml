@@ -1,0 +1,15 @@
+name: earth_jpn_entangle
+description: "巻き込み検証: 台湾海峡の緊張が意図的に臨界を超える。CHN・TWNの攻撃性を上げ、同盟網(USA-TWN, USA-JPN)の履行・協議・連鎖を観測する。"
+interventions:
+  - tick: 2
+    type: global_slider
+    params: {param: ai_aggression, value: 1.4}
+  - tick: 2
+    type: set_param
+    params: {nation: CHN, param: aggression, value: 0.85}
+  - tick: 2
+    type: set_param
+    params: {nation: TWN, param: aggression, value: 0.75}
+  - tick: 4
+    type: disinfo
+    params: {target: TWN, intensity: 2.0}

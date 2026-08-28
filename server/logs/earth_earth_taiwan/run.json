@@ -4,31 +4,39 @@
   "ticks": 36,
   "final_metrics": {
     "tick": 35,
-    "world_gdp": 164.211,
-    "mean_stability": 50.56,
-    "wars": 0,
+    "world_gdp": 79.7851,
+    "mean_stability": 42.16,
+    "wars": 3,
     "collapsed": 0,
-    "price_energy": 1.0094,
-    "price_food": 1.0,
-    "price_chips": 1.0447,
-    "mean_inflation": 0.0233,
-    "mean_debt_gdp": 81.6,
-    "defaults": 2,
-    "mean_unemployment": 6.4,
-    "global_co2": 597.1
+    "price_energy": 1.2779,
+    "price_food": 1.0028,
+    "price_chips": 1.2155,
+    "mean_inflation": 0.03876,
+    "mean_debt_gdp": 92.0,
+    "defaults": 1,
+    "mean_unemployment": 10.57,
+    "global_co2": 579.3,
+    "war_casualties_m": 0.02
   },
   "event_counts": {
     "policy_shift": 576,
-    "shortage": 390,
-    "factor_acquired": 28,
-    "tech_emergence": 13,
-    "tech_adopted": 146,
+    "shortage": 40,
+    "factor_acquired": 25,
     "god_intervention": 1,
-    "trade_throttled": 83,
-    "sovereign_default": 2,
-    "credibility_hit": 6
+    "tech_emergence": 13,
+    "tech_adopted": 124,
+    "trade_throttled": 90,
+    "price_spike": 7,
+    "mobilization": 10,
+    "war_start": 10,
+    "peace_settlement": 7,
+    "sovereign_default": 1,
+    "credibility_hit": 3,
+    "fx_crisis": 5,
+    "factor_relinquished": 2,
+    "cyber_attack": 3
   },
-  "wars": 0,
+  "wars": 3,
   "config": {
     "preset": "earth",
     "gen_seed": null,
@@ -36,6 +44,7 @@
     "policy": "mock_llm",
     "rl_nation": null,
     "rl_weights": null,
-    "scenario": "scenarios/earth_taiwan.yaml"
+    "scenario": "scenarios/earth_taiwan.yaml",
+    "engine": "v4-realtime-clock"
   }
 }

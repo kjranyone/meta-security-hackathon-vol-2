@@ -1,0 +1,110 @@
+[
+ {
+  "alliance": "none",
+  "nuclear": "current",
+  "jpn_war_rate": 0.7,
+  "jpn_activated": 0,
+  "any_activation": 1,
+  "jpn_default_rate": 0.1,
+  "jpn_collapse_rate": 0.0,
+  "world_wars_mean": 37.2,
+  "jpn_gdp_mean": 3.9429021681819636,
+  "jpn_stab_mean": 45.96610071659201
+ },
+ {
+  "alliance": "none",
+  "nuclear": "diffusion",
+  "jpn_war_rate": 1.0,
+  "jpn_activated": 0,
+  "any_activation": 0,
+  "jpn_default_rate": 0.0,
+  "jpn_collapse_rate": 0.0,
+  "world_wars_mean": 32.2,
+  "jpn_gdp_mean": 3.9692048726230937,
+  "jpn_stab_mean": 47.86529136967544
+ },
+ {
+  "alliance": "none",
+  "nuclear": "jpn_armed",
+  "jpn_war_rate": 0.0,
+  "jpn_activated": 0,
+  "any_activation": 0,
+  "jpn_default_rate": 0.0,
+  "jpn_collapse_rate": 0.0,
+  "world_wars_mean": 37.3,
+  "jpn_gdp_mean": 4.007344017809291,
+  "jpn_stab_mean": 48.04074784977408
+ },
+ {
+  "alliance": "us_hub",
+  "nuclear": "current",
+  "jpn_war_rate": 0.0,
+  "jpn_activated": 0,
+  "any_activation": 0,
+  "jpn_default_rate": 0.0,
+  "jpn_collapse_rate": 0.0,
+  "world_wars_mean": 2.1,
+  "jpn_gdp_mean": 4.018320164637283,
+  "jpn_stab_mean": 48.303359081620485
+ },
+ {
+  "alliance": "us_hub",
+  "nuclear": "diffusion",
+  "jpn_war_rate": 0.0,
+  "jpn_activated": 0,
+  "any_activation": 0,
+  "jpn_default_rate": 0.0,
+  "jpn_collapse_rate": 0.0,
+  "world_wars_mean": 2.8,
+  "jpn_gdp_mean": 4.017452211141396,
+  "jpn_stab_mean": 48.509980799649945
+ },
+ {
+  "alliance": "us_hub",
+  "nuclear": "jpn_armed",
+  "jpn_war_rate": 0.0,
+  "jpn_activated": 0,
+  "any_activation": 0,
+  "jpn_default_rate": 0.0,
+  "jpn_collapse_rate": 0.0,
+  "world_wars_mean": 2.1,
+  "jpn_gdp_mean": 4.018320164637283,
+  "jpn_stab_mean": 48.303359081620485
+ },
+ {
+  "alliance": "us_hub_ambig",
+  "nuclear": "current",
+  "jpn_war_rate": 0.0,
+  "jpn_activated": 0,
+  "any_activation": 0,
+  "jpn_default_rate": 0.0,
+  "jpn_collapse_rate": 0.0,
+  "world_wars_mean": 27.1,
+  "jpn_gdp_mean": 3.9927262604357154,
+  "jpn_stab_mean": 48.67811059058091
+ },
+ {
+  "alliance": "us_hub_ambig",
+  "nuclear": "diffusion",
+  "jpn_war_rate": 0.0,
+  "jpn_activated": 0,
+  "any_activation": 0,
+  "jpn_default_rate": 0.0,
+  "jpn_collapse_rate": 0.0,
+  "world_wars_mean": 23.4,
+  "jpn_gdp_mean": 4.0094885433863015,
+  "jpn_stab_mean": 49.564489315799776
+ },
+ {
+  "alliance": "us_hub_ambig",
+  "nuclear": "jpn_armed",
+  "jpn_war_rate": 0.0,
+  "jpn_activated": 0,
+  "any_activation": 0,
+  "jpn_default_rate": 0.0,
+  "jpn_collapse_rate": 0.0,
+  "world_wars_mean": 27.1,
+  "jpn_gdp_mean": 3.9927262604357154,
+  "jpn_stab_mean": 48.67811059058091
+ }
+]

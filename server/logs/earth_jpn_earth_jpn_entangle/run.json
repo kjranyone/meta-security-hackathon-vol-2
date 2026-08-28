@@ -1,0 +1,48 @@
+{
+  "run_name": "earth_jpn_earth_jpn_entangle",
+  "seed": 42,
+  "ticks": 36,
+  "final_metrics": {
+    "tick": 35,
+    "world_gdp": 86.0054,
+    "mean_stability": 44.45,
+    "wars": 1,
+    "collapsed": 0,
+    "price_energy": 1.15,
+    "price_food": 1.002,
+    "price_chips": 1.0,
+    "mean_inflation": 0.03044,
+    "mean_debt_gdp": 94.6,
+    "defaults": 0,
+    "mean_unemployment": 10.02,
+    "global_co2": 603.4,
+    "war_casualties_m": 0.0203
+  },
+  "event_counts": {
+    "policy_shift": 576,
+    "god_intervention": 3,
+    "shortage": 37,
+    "factor_acquired": 29,
+    "disinfo": 1,
+    "tech_emergence": 13,
+    "tech_adopted": 128,
+    "threat": 6,
+    "sanction": 3,
+    "mobilization": 3,
+    "war_start": 3,
+    "price_spike": 1,
+    "cyber_attack": 2,
+    "peace_settlement": 2
+  },
+  "wars": 1,
+  "config": {
+    "preset": "earth_jpn",
+    "gen_seed": null,
+    "gen_nations": 8,
+    "policy": "mock_llm",
+    "rl_nation": null,
+    "rl_weights": null,
+    "scenario": "scenarios/earth_jpn_entangle.yaml",
+    "engine": "v4-realtime-clock"
+  }
+}

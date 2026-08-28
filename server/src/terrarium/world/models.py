@@ -178,6 +178,10 @@ class WorldSpec(BaseModel):
     chokepoints: list[Chokepoint] = []
     routes: list[TradeRoute] = []
     map_geojson: str = "world.geojson"   # viewer hint (web/<file>)
+    # 初期同盟網(様式化・中立的な分析用)。[[A,B],...] の国家対。未指定なら空。
+    # 例: earth_jpn は米国ハブの二国同盟を宣言し、同盟履行の巻き込み
+    # (alliance_activation)を初期条件から再現できる
+    initial_alliances: list[list[str]] = []
     # ---- シミュレーション時計: 1tickの実時間（時間）。動力学は実時間で校正済み ----
     # 720 = 月次圧縮時計（実験・訓練・旧互換）。1 = 神モードのRTS時計。
     hours_per_tick: float = 720.0

@@ -1,0 +1,35 @@
+{
+  "d1": {
+    "n": 180,
+    "all_agree": 0.9388888888888889,
+    "majority_ge_2of3": 1.0,
+    "mean_top_share": 0.9796296296296295
+  },
+  "hidden": [
+    512,
+    512
+  ],
+  "corpus": 180,
+  "results": {
+    "hard": {
+      "macro_f1": 1.0,
+      "acc": 1.0,
+      "best_epoch": 22,
+      "soft_nll": 0.16559791950147734,
+      "per_class": {
+        "0": 1.0,
+        "3": 1.0
+      }
+    },
+    "soft": {
+      "macro_f1": 1.0,
+      "acc": 1.0,
+      "best_epoch": 25,
+      "soft_nll": 0.1330404802263786,
+      "per_class": {
+        "0": 1.0,
+        "3": 1.0
+      }
+    }
+  }
+}

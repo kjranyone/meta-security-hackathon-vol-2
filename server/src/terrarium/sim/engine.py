@@ -166,6 +166,18 @@ class Engine:
                 base_paranoia=ns.paranoia,
                 trust={o.id: 20.0 for o in spec.nations if o.id != ns.id},
             )
+        # 初期同盟網(プリセットで宣言された様式化同盟)。双方向に張り、
+        # 同盟対の信頼を72に底上げする(協議の発火条件はtrust>=35 —
+        # 信頼20のままでは同盟が装飾になるため。無指定時は挙動不変)
+        for pair in getattr(spec, "initial_alliances", []) or []:
+            if len(pair) == 2 and pair[0] in self.nations and pair[1] in self.nations:
+                a, b = pair
+                if b not in self.nations[a].alliances:
+                    self.nations[a].alliances.append(b)
+                if a not in self.nations[b].alliances:
+                    self.nations[b].alliances.append(a)
+                self.nations[a].trust[b] = max(self.nations[a].trust.get(b, 0.0), 72.0)
+                self.nations[b].trust[a] = max(self.nations[b].trust.get(a, 0.0), 72.0)
         # active resource units per nation (destroy_resource removes units)
         self.nation_resources: dict[str, list[ResourceKind]] = {
             ns.id: list(ns.resources) for ns in sorted(spec.nations, key=lambda n: n.id)
@@ -1150,7 +1162,45 @@ class Engine:
                     nat.trust[act.target] = min(100.0, nat.trust[act.target] + 3.0 * dm)
                     other.trust[nid] = min(100.0, other.trust[nid] + 3.0 * dm)
 
-    # ---------------------------------------------------------------- conflict
+        # -------------------------------------------------- 慢性疑心(月次)
+        # 偽情報チャネルの増強(v12): paranoiaは基準値へゆっくり回帰し(半減期~17ヶ月)、
+        # 高度の慢性疑信(>0.55)は国内の安定・支持を蝕う(疑心暗鬼の政治費用)。
+        # 従来は偽情報のtrust打撃が負値に達するまで緊張に乗らず効果が薄かった
+        # (trustは負になって初めて緊張項に入る)ため、国内チャネルを追加した。
+        fm0 = self._fm()
+        for nid in sorted(self.nations):
+            nat = self.nations[nid]
+            if nat.collapsed:
+                continue
+            nat.paranoia += (nat.base_paranoia - nat.paranoia) * min(0.6, 0.04 * fm0)
+            if nat.paranoia > 0.55:
+                drag = (nat.paranoia - 0.55) * 6.0 * fm0
+                nat.stability = max(0.0, nat.stability - drag)
+                nat.approval = max(0.0, nat.approval - drag * 0.5)
+
+        # -------------------------------------------------- 平時サイバー(v12)
+        # cyber_arsenal保有国は低信頼(trust<-10)の相手に月~2%で諜報・破壊を
+        # 行う: インフラの漸減と信頼の毀損(戦時サイバーとは別の常設チャネル)。
+        for x in sorted(self.nations):
+            xnat = self.nations[x]
+            if xnat.collapsed or "cyber_arsenal" not in self._techs_of(x):
+                continue
+            for y in sorted(self.nations):
+                if y == x or self.nations[y].collapsed:
+                    continue
+                if xnat.trust.get(y, 0.0) >= -10.0:
+                    continue
+                if self.rng.random() < self._hazard(0.02 * fm0):
+                    ynat = self.nations[y]
+                    ynat.infra = max(0.3, ynat.infra * (1.0 - 0.02 * fm0))
+                    ynat.trust[x] = max(-100.0, ynat.trust.get(x, 0.0) - 1.0)
+                    self.event_log.emit(
+                        t, "cyber_attack",
+                        f"{xnat.name} の平時サイバー作戦が {ynat.name} のインフラを静かに蝕う",
+                        actor=x, targets=[y], data={"peacetime": True},
+                    )
+
+        # ---------------------------------------------------------------- conflict
     def _conflict(self) -> None:
         t = self.tick_no
         fm = self._fm()

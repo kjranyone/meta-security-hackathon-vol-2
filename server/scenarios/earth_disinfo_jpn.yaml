@@ -1,0 +1,9 @@
+name: earth_disinfo_jpn
+description: "日本を標的とした偽情報キャンペーン。疑心暗鬼の上昇から緊張・軍拡競争への伝播を観測する。"
+interventions:
+  - tick: 4
+    type: disinfo
+    params: {target: JPN, intensity: 1.5}
+  - tick: 12
+    type: disinfo
+    params: {target: JPN, intensity: 1.0}

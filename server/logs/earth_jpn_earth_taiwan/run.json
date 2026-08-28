@@ -1,0 +1,48 @@
+{
+  "run_name": "earth_jpn_earth_taiwan",
+  "seed": 42,
+  "ticks": 36,
+  "final_metrics": {
+    "tick": 35,
+    "world_gdp": 78.642,
+    "mean_stability": 40.19,
+    "wars": 1,
+    "collapsed": 0,
+    "price_energy": 2.18,
+    "price_food": 1.0,
+    "price_chips": 1.3021,
+    "mean_inflation": 0.06667,
+    "mean_debt_gdp": 92.1,
+    "defaults": 1,
+    "mean_unemployment": 12.07,
+    "global_co2": 575.8,
+    "war_casualties_m": 0.0021
+  },
+  "event_counts": {
+    "policy_shift": 576,
+    "shortage": 40,
+    "factor_acquired": 29,
+    "god_intervention": 1,
+    "tech_emergence": 13,
+    "tech_adopted": 126,
+    "trade_throttled": 90,
+    "price_spike": 5,
+    "insurgency": 1,
+    "sovereign_default": 1,
+    "credibility_hit": 3,
+    "mobilization": 1,
+    "fx_crisis": 1,
+    "war_start": 1
+  },
+  "wars": 1,
+  "config": {
+    "preset": "earth_jpn",
+    "gen_seed": null,
+    "gen_nations": 8,
+    "policy": "mock_llm",
+    "rl_nation": null,
+    "rl_weights": null,
+    "scenario": "scenarios/earth_taiwan.yaml",
+    "engine": "v4-realtime-clock"
+  }
+}
