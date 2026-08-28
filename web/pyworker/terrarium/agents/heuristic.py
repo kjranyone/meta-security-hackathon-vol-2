@@ -1,0 +1,113 @@
+"""Deterministic rule-based nation bots: baseline policy layer."""
+from __future__ import annotations
+
+from .base import Decisions, DiplomaticAction, NationView
+
+
+def _shortage(view: NationView) -> list[str]:
+    me = view.me
+    return [c for c in ("energy", "food", "chips") if me.get("stocks", {}).get(c, 99) < 2.0]
+
+
+class HeuristicPolicy:
+    """Simple survival doctrine: stockpile scarce goods, punish untrusted rivals,
+    rally military when threatened, ride out the rest."""
+
+    def _doctrines(self, view: NationView) -> dict:
+        """戦略因子のheuristic doctrine: 脅威を受けていれば追求、崩壊寸前なら放棄。"""
+        out = {}
+        allied_nuclear = any(r.get("alliance") and r.get("nuclear")
+                             for r in view.relations.values())
+        at_war_nuclear = any(r.get("war") and r.get("nuclear")
+                             for r in view.relations.values())
+        for fid in ("nuclear", "export_control", "nuclear_umbrella", "currency_bloc"):
+            holds = fid in view.me.get("factors", [])
+            if holds:
+                if fid == "nuclear_umbrella":
+                    out[fid] = "abandon" if at_war_nuclear else "hold"
+                else:
+                    out[fid] = "abandon" if view.me.get("stability", 50) < 25 else "hold"
+            elif fid == "nuclear":
+                threatened = bool(view.me.get("at_war_with")) or view.me.get("stability", 50) < 40
+                # 核拡散連鎖: 敵性核保有国の出現が対抗核追求を誘発する
+                rival_nuclear = any(r.get("nuclear") and r.get("trust", 0.0) < 10
+                                    for r in view.relations.values())
+                out[fid] = "pursue" if (threatened or rival_nuclear) else "hold"
+            elif fid == "nuclear_umbrella":
+                out[fid] = "pursue" if allied_nuclear else "hold"
+            elif fid == "currency_bloc":
+                big = view.me.get("gdp", 0.0) > 0.8
+                strained = view.me.get("fx_reserves", 8.0) < 2.0
+                out[fid] = "pursue" if (big or strained) else "hold"
+            else:  # export_control: 製裁を受けている・大国・戦時は加盟へ
+                sanctioned = any(r.get("sanction") for r in view.relations.values())
+                big = view.me.get("gdp", 0.0) > 1.0
+                war = bool(view.me.get("at_war_with"))
+                out[fid] = "pursue" if (sanctioned or big or war) else "hold"
+        return out
+
+    def decide(self, view: NationView) -> Decisions:
+        me = view.me
+        short = _shortage(view)
+        at_war = bool(me.get("at_war_with"))
+        stability = me.get("stability", 50.0)
+        inflation = me.get("inflation", 0.02)
+        aggression = me.get("aggression", 0.3)
+
+        budget = {"military": 0.2, "welfare": 0.3, "stockpile": 0.2, "subsidy": 0.3}
+        if short:
+            budget["stockpile"] += 0.2
+            budget["subsidy"] -= 0.1
+        if at_war or aggression > 0.6:
+            budget["military"] += 0.2
+            budget["welfare"] -= 0.1
+        if stability < 40 or inflation > 0.08:
+            budget["welfare"] += 0.2
+            budget["military"] -= 0.1
+        # 思想の反映: 軍事偏重の政府は平時でも軍備に傾ける
+        budget["military"] += 0.4 * (me.get("doctrine_militarism", 0.3) - 0.3)
+        # エピソード記憶: 直近6ヶ月以内に脅迫・偽情報の標的にされた経験
+        recent_threats = [m for m in getattr(view, "memory", [])
+                          if not m.get("i_acted") and m.get("event") in ("threat", "disinfo")
+                          and view.tick - m.get("tick", 0) <= 6]
+        if recent_threats:
+            budget["military"] += 0.15
+        # normalize to sum 1
+        total = sum(max(v, 0.0) for v in budget.values())
+        budget = {k: round(max(v, 0.0) / total, 3) for k, v in budget.items()}
+
+        diplomacy: list[DiplomaticAction] = []
+        revisionism = me.get("doctrine_revisionism", 0.2)
+        for other, rel in view.relations.items():
+            trust = rel.get("trust", 0.0)
+            if rel.get("war"):
+                continue
+            if trust < -30 and rel.get("alliance") is False:
+                diplomacy.append(DiplomaticAction(kind="sanction", target=other))
+            elif trust > 40 and not rel.get("alliance"):
+                diplomacy.append(DiplomaticAction(kind="alliance_offer", target=other))
+            elif trust < -10 and (aggression > 0.5 or revisionism > 0.55):
+                diplomacy.append(DiplomaticAction(kind="threaten", target=other))
+
+        posture = "aggressive" if (at_war or aggression > 0.65) else ("defensive" if short else "neutral")
+        rationing = "food" in short or "energy" in short
+        propaganda = stability < 45
+
+        drivers = []
+        if short:
+            drivers.append(f"shortage:{'+'.join(short)}")
+        if at_war:
+            drivers.append("at_war")
+        if stability < 40:
+            drivers.append("low_stability")
+        rationale = "doctrine: survive and secure supply (" + (", ".join(drivers) or "steady state") + ")"
+
+        return Decisions(
+            budget=budget,
+            diplomacy=diplomacy[:3],
+            military_posture=posture,
+            rationing=rationing,
+            propaganda=propaganda,
+            doctrines=self._doctrines(view),
+            rationale=rationale,
+        )

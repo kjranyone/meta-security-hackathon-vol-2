@@ -1,0 +1,32 @@
+{
+ "py": [
+  "pydantic.py",
+  "yaml.py",
+  "driver.py",
+  "terrarium/__init__.py",
+  "terrarium/agents/__init__.py",
+  "terrarium/agents/base.py",
+  "terrarium/agents/heuristic.py",
+  "terrarium/agents/rl_policy.py",
+  "terrarium/sim/__init__.py",
+  "terrarium/sim/engine.py",
+  "terrarium/sim/events.py",
+  "terrarium/sim/interventions.py",
+  "terrarium/rl/__init__.py",
+  "terrarium/rl/env.py",
+  "terrarium/rl/nets.py",
+  "terrarium/world/__init__.py",
+  "terrarium/world/clock.py",
+  "terrarium/world/factors.py",
+  "terrarium/world/models.py",
+  "terrarium/world/presets.py",
+  "terrarium/world/tech.py"
+ ],
+ "worlds": [
+  "earth",
+  "earth_jpn",
+  "default",
+  "earth_all"
+ ],
+ "weights": "models/generalist_llm_deep_bc.npz"
+}

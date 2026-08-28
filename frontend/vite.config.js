@@ -39,6 +39,7 @@ export default defineConfig({
         index: resolve(__dirname, "index.html"),   // リプレイギャラリー(Pagesの入口)
         god: resolve(__dirname, "god.html"),
         viewer: resolve(__dirname, "viewer.html"),
+        live: resolve(__dirname, "live.html"),     // ブラウザ実行のライブ神モード(Pyodide)
       },
       output: {
         entryFileNames: "assets/[name]-[hash].js",

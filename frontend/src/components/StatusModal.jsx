@@ -3,12 +3,13 @@ import { policyLabel } from "../lib/policies";
 
 // 現在のセッション状態モーダル（タイトル/接続チップから開く。純粋な状態値のみ）
 export default function StatusModal({ onClose, conn, status, tick, meta,
-                                      preset, policy, seed, nations }) {
+                                      preset, policy, seed, nations,
+                                      serverLabel }) {
   const m = tick?.metrics;
   const mdl = status.model;
   const rows = [
     ["状態", conn ? "接続中" : "切断"],
-    ["サーバ", `ws://${location.host}/ws`],
+    ["サーバ", serverLabel || `ws://${location.host}/ws`],
     ["世界", preset === "gen" ? `gen（自動生成 seed=${seed}）` : preset],
     ["seed", seed],
     ["国家AI", policyLabel(policy)],
