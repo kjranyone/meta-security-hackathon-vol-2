@@ -21,7 +21,7 @@ export default function CreateWorldDialog({ open, preset, policy, seed, rlNation
   return (
     <div className="modal-back" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
-        <h2>世界を創る</h2>
+        <h2>新しいシミュレーション</h2>
         <label className="modalfield">世界
           <select value={preset} onChange={e => onPreset(e.target.value)}>
             <option value="earth_all">earth_all — 全世界176カ国</option>

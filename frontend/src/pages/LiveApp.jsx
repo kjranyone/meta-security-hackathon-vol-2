@@ -170,7 +170,6 @@ export default function LiveApp() {
               title="状態と配備モデルを見る(ブラウザ内実行)">●</span>
 
         <span className="spacer" />
-        <button onClick={() => setCreateOpen(true)}>世界を創る</button>
         <button onClick={() => setSel(s => (s.kind === "world" ? { kind: null, id: null } : { kind: "world", id: null }))}>世界</button>
         <button className="helpbtn" onClick={() => setLegendOpen(true)}>?</button>
       </header>
@@ -201,6 +200,7 @@ export default function LiveApp() {
       {legendOpen && <LegendModal onClose={() => setLegendOpen(false)} />}
       {statusOpen && (
         <StatusModal onClose={() => setStatusOpen(false)} conn={conn} status={status} serverLabel="ブラウザ内で実行中(Pyodide WASM — ネットワーク不使用)"
+                         onNewSim={() => { setStatusOpen(false); setCreateOpen(true); }}
                      tick={tick} meta={meta} preset={preset} policy={policy} seed={seed} />
       )}
         </MapCanvas>

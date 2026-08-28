@@ -165,7 +165,6 @@ export default function GodApp() {
               title="状態と配備モデルを見る">{conn ? "●" : "● 切断"}</span>
 
         <span className="spacer" />
-        <button onClick={() => setCreateOpen(true)}>世界を創る</button>
         <button onClick={() => setSel(s => (s.kind === "world" ? { kind: null, id: null } : { kind: "world", id: null }))}>世界</button>
         <button className="helpbtn" onClick={() => setLegendOpen(true)}>?</button>
       </header>
@@ -195,6 +194,7 @@ export default function GodApp() {
       {legendOpen && <LegendModal onClose={() => setLegendOpen(false)} />}
       {statusOpen && (
         <StatusModal onClose={() => setStatusOpen(false)} conn={conn} status={status}
+                         onNewSim={() => { setStatusOpen(false); setCreateOpen(true); }}
                      tick={tick} meta={meta} preset={preset} policy={policy} seed={seed} />
       )}
         </MapCanvas>
