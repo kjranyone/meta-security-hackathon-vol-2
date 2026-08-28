@@ -109,18 +109,18 @@ export default function ViewerApp() {
   useEffect(() => {
     if (!playing || !ticks.length) return;
     playTimer.current = setInterval(() => {
-      setCur(c => {
-        const next = c + 1 >= ticks.length ? 0 : c + 1;
-        const t = ticks[next]?.tick;
-        if (major[t] && lastBeep.current !== t) {
-          lastBeep.current = t;
-          setFlash(f => f + 1);
-          if (!muted) beep(MAJOR_TONES[majorEventAt(next)?.type] || 330);
-          const ev = majorEventAt(next);
-          if (ev) pushToast(ev.type, ev.text);
-        }
-        return next;
-      });
+      const c = curRef.current;
+      if (c + 1 >= ticks.length) { setPlaying(false); return; }   // 末尾で停止(最初へ戻らない)
+      const next = c + 1;
+      setCur(next);
+      const t = ticks[next]?.tick;
+      if (major[t] && lastBeep.current !== t) {
+        lastBeep.current = t;
+        setFlash(f => f + 1);
+        if (!muted) beep(MAJOR_TONES[majorEventAt(next)?.type] || 330);
+        const ev = majorEventAt(next);
+        if (ev) pushToast(ev.type, ev.text);
+      }
     }, period);
     const t0 = Date.now();
     clockTimer.current = setInterval(() =>
@@ -130,6 +130,8 @@ export default function ViewerApp() {
 
   const tick = ticks[cur] || null;
   const baseName = (urlInput.match(/logs\/([^/]+)\/replay\.jsonl/) || [])[1] || "";
+  const curRef = useRef(0);   // 再生タイマーから読む現在位置(ループ停止判定に使う)
+  curRef.current = cur;
 
   // 現在tickのイベントを地図上の発光パルスに(scrubでも再生でも、そのtickを
   // 見た瞬間に関係が光り、約4秒で消える — 常時表示との差別化)
@@ -222,7 +224,12 @@ export default function ViewerApp() {
 
       <TimelineBar
         playing={playing}
-        onTogglePlay={() => { initAudio(); setPlaying(p => !p); }}
+        onTogglePlay={() => {
+          initAudio();
+          // 末尾で停止した後の再生は最初から(そのまま再生すると即停止してしまうため)
+          if (!playing && ticks.length && cur >= ticks.length - 1) { setCur(0); lastBeep.current = -1; }
+          setPlaying(p => !p);
+        }}
         cur={cur} ticks={ticks} major={major} onScrub={scrub}
         speed={speed} onSpeed={setSpeed}
         muted={muted} onMute={() => { initAudio(); setMuted(m => !m); }}
