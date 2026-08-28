@@ -161,7 +161,8 @@ export default function GodApp() {
     <div className="app">
       <header>
         <h1 onClick={() => setStatusOpen(true)}>Geopolitics Terrarium — 神の玉座</h1>
-        <span id="conn" className={conn ? "ok" : "bad"} onClick={() => setStatusOpen(true)}>{conn ? "接続中" : "切断"}</span>
+        <span id="conn" className={conn ? "ok" : "bad"} onClick={() => setStatusOpen(true)}
+              title="状態と配備モデルを見る">{conn ? "●" : "● 切断"}</span>
 
         <span className="spacer" />
         <button onClick={() => setCreateOpen(true)}>世界を創る</button>
