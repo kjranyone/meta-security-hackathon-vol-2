@@ -113,7 +113,7 @@ export default function GodApp() {
           }
         } else if (m.type === "status") {
           setStatus({ running: m.running, tick: m.tick, max_ticks: m.max_ticks,
-                      speed_ms: m.speed_ms, model: m.model });
+                      speed_ms: m.speed_ms, eff_ms: m.eff_ms, model: m.model });
         }
       };
       ws.onclose = () => { setConn(false); if (!closed) setTimeout(connect, 1500); };
@@ -235,10 +235,12 @@ export default function GodApp() {
         <label className="speedlabel" style={{ flex: 1 }}><span>速度</span>
           <input type="range" min="30" max="3000" value={3030 - (status.speed_ms || 1200)}
                  onChange={e => send({ cmd: "speed", ms: 3030 - +e.target.value })} />
-          <output>{(() => {
+          <output title="推論はサーバCPUで走るため、要求速度に計算が追いつかない場合は実効値が下がる(世界サイズとマシン性能依存)">{(() => {
             const ms = status.speed_ms || 1200;
-            const x = 1200 / ms;
-            return `×${x >= 10 ? Math.round(x) : x.toFixed(1).replace(/\.0$/, "")}`;
+            const fmt = v => `×${v >= 10 ? Math.round(v) : v.toFixed(1).replace(/\.0$/, "")}`;
+            const eff = status.eff_ms;
+            if (eff && eff > ms * 1.25) return `${fmt(1200 / ms)} (実効${fmt(1200 / eff)})`;
+            return fmt(1200 / ms);
           })()}</output>
         </label>
         <button className="tlbtn mutebtn" onClick={() => { initAudio(); setMuted(m => !m); }}>

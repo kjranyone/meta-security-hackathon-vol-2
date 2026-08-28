@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -46,6 +47,8 @@ class Session:
         self.scenario_schedule: list[Intervention] = []
         self.t: int = 0
         self.model_info: Optional[dict] = None
+        self.tick_times: list[float] = []   # 直近のtick完了時刻(実効速度の測定用)
+        self.eff_ms: Optional[float] = None
 
 
     # ------------------------------------------------------------- lifecycle
@@ -81,6 +84,8 @@ class Session:
         policies = {ns.id: factory(ns) for ns in spec.nations}
         self.engine = Engine(spec, policies, seed=seed, out_dir=None)
         self.max_ticks = ticks
+        self.tick_times = []   # 世界再創造で実効速度の測定をリセット
+        self.eff_ms = None
         self.t = 0
         self.scenario_schedule = sorted(
             load_scenario(scenario).interventions, key=lambda i: i.tick
@@ -114,6 +119,7 @@ class Session:
 
     def status(self) -> dict:
         return {"running": self.running, "speed_ms": self.speed_ms,
+                "eff_ms": self.eff_ms,
                 "tick": self.t, "max_ticks": self.max_ticks,
                 "model": getattr(self, "model_info", None),
 }
@@ -150,6 +156,14 @@ class Session:
                 # 固まる。エンジンは単一スレッド想定なので lock 下なら結果は不変
                 await asyncio.to_thread(eng.step)
                 self.t += 1
+                # 実効tick間隔を測定(要求速度に計算が追いつくとは限らない:
+                # 推論はサーバCPUで走るので、世界サイズとマシン性能が上限を決める)
+                now = time.monotonic()
+                self.tick_times.append(now)
+                if len(self.tick_times) > 20:
+                    self.tick_times = self.tick_times[-20:]
+                if len(self.tick_times) > 1:
+                    self.eff_ms = (now - self.tick_times[0]) * 1000.0 / (len(self.tick_times) - 1)
                 snap = eng.snapshots[-1] if eng.snapshots else None
             if snap:
                 await self.broadcast({"type": "tick", **snap})
