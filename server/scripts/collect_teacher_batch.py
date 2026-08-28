@@ -85,16 +85,10 @@ def main(argv=None) -> int:
                 done = False
                 while not done:
                     view = env.eng.nation_view(nid)
+                    from terrarium.agents.llm import robust_decide
                     acts, fbs = [], []
                     for _ in range(max(1, args.samples_per_state)):
-                        for attempt in range(2):
-                            c0, f0 = teacher.calls, teacher.fallbacks
-                            d = teacher.decide(view)
-                            fb = (teacher.fallbacks > f0) or \
-                                str(d.rationale).startswith("[LLM parse fallback]")
-                            if not fb:
-                                break
-                            time.sleep(20)
+                        d, fb = robust_decide(teacher, view)
                         acts.append(decisions_to_action(d))
                         fbs.append(bool(fb))
                     if args.samples_per_state > 1:

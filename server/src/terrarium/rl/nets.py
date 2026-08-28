@@ -26,6 +26,54 @@ BUDGET_PRESETS = [
 ]
 
 
+def _act_from_outputs(rng, out: dict, *, fine: bool, deterministic: bool) -> dict:
+    """3ネット共通のact本体。サンプリング順序(budget→posture→ration→propa→外交)は
+    全クラスで厳密に同一 — rng消費順の保存=訓練再現のbit等価のため。
+    deterministic経路は値が独立なので内部順序の正規化は観測不能。"""
+    z_b = out["budget_logits"]
+    dl = out.get("diplo_logits", np.zeros(0))
+    if deterministic:
+        logp = 0.0
+        if fine:
+            action = {"budget_levels": [int(np.argmax(z_b[a * 5:(a + 1) * 5])) for a in range(4)]}
+        else:
+            action = {"budget_idx": int(np.argmax(z_b))}
+        p = int(np.argmax(out["posture_logits"]))
+        r = 1 if out["ration_logit"] > 0 else 0
+        g = 1 if out["propa_logit"] > 0 else 0
+        for i, name in enumerate(("diplo_improve", "diplo_sanction", "diplo_threaten")):
+            if i < len(dl):
+                action[name] = 1 if float(dl[i]) > 0 else 0
+    else:
+        logp = 0.0
+        if fine:
+            lv = []
+            for a in range(4):
+                za = z_b[a * 5:(a + 1) * 5]
+                k = int(rng.choice(5, p=_softmax(za)))
+                lv.append(k)
+                logp += _log_softmax(za)[k]
+            action = {"budget_levels": lv}
+        else:
+            b = int(rng.choice(len(z_b), p=_softmax(z_b)))
+            action = {"budget_idx": b}
+            logp += _log_softmax(z_b)[b]
+        p = int(rng.choice(3, p=_softmax(out["posture_logits"])))
+        logp += _log_softmax(out["posture_logits"])[p]
+        r = int(rng.random() < _sigmoid(out["ration_logit"]))
+        g = int(rng.random() < _sigmoid(out["propa_logit"]))
+        logp += _bern_logp(out["ration_logit"], r) + _bern_logp(out["propa_logit"], g)
+        for i, name in enumerate(("diplo_improve", "diplo_sanction", "diplo_threaten")):
+            if i < len(dl):
+                k = int(rng.random() < _sigmoid(float(dl[i])))
+                action[name] = k
+                logp += _bern_logp(float(dl[i]), k)
+    return {
+        **action, "posture_idx": p, "rationing": r, "propaganda": g,
+        "logp": logp, "value": out["value"], "out": out,
+    }
+
+
 def _he_init(fan_in: int, fan_out: int, rng: np.random.Generator) -> np.ndarray:
     x = rng.normal(0.0, 1.0, (fan_in, fan_out))
     return x * np.sqrt(2.0 / fan_in)
@@ -84,51 +132,8 @@ class PolicyNet:
 
     # ---------------------------------------------------------------- actions
     def act(self, obs: np.ndarray, deterministic: bool = False) -> dict:
-        out = self.forward(obs)
-        z_b = out["budget_logits"]
-        if deterministic:
-            r = 1 if out["ration_logit"] > 0 else 0
-            g = 1 if out["propa_logit"] > 0 else 0
-            logp = 0.0
-            p = int(np.argmax(out["posture_logits"]))
-            if self.fine:
-                action = {"budget_levels": [int(np.argmax(z_b[a * 5:(a + 1) * 5])) for a in range(4)]}
-            else:
-                action = {"budget_idx": int(np.argmax(z_b))}
-        else:
-            logp = 0.0
-            if self.fine:
-                lv = []
-                for a in range(4):
-                    za = z_b[a * 5:(a + 1) * 5]
-                    k = int(self.rng.choice(5, p=_softmax(za)))
-                    lv.append(k)
-                    logp += _log_softmax(za)[k]
-                action = {"budget_levels": lv}
-            else:
-                b = int(self.rng.choice(len(z_b), p=_softmax(z_b)))
-                action = {"budget_idx": b}
-                logp += _log_softmax(z_b)[b]
-            p = int(self.rng.choice(3, p=_softmax(out["posture_logits"])))
-            logp += _log_softmax(out["posture_logits"])[p]
-            r = int(self.rng.random() < _sigmoid(out["ration_logit"]))
-            g = int(self.rng.random() < _sigmoid(out["propa_logit"]))
-            logp += _bern_logp(out["ration_logit"], r) + _bern_logp(out["propa_logit"], g)
-            dl = out.get("diplo_logits", np.zeros(0))
-            for i, name in enumerate(("diplo_improve", "diplo_sanction", "diplo_threaten")):
-                if i < len(dl):
-                    k = int(self.rng.random() < _sigmoid(float(dl[i])))
-                    action[name] = k
-                    logp += _bern_logp(float(dl[i]), k)
-        if deterministic:
-            dl = out.get("diplo_logits", np.zeros(0))
-            for i, name in enumerate(("diplo_improve", "diplo_sanction", "diplo_threaten")):
-                if i < len(dl):
-                    action[name] = 1 if float(dl[i]) > 0 else 0
-        return {
-            **action, "posture_idx": p, "rationing": r, "propaganda": g,
-            "logp": logp, "value": out["value"], "out": out,
-        }
+        return _act_from_outputs(self.rng, self.forward(obs),
+                                 fine=self.fine, deterministic=deterministic)
 
     # ------------------------------------------------------------ backward/A2C
     def update(self, obs: np.ndarray, action: dict, advantage: float,
@@ -359,24 +364,14 @@ class RecurrentPolicyNet:
     def act(self, obs: np.ndarray, deterministic: bool = False) -> dict:
         z, r, n, h = self._cell(obs, self._h)
         self._h = h
-        budget_logits = h @ self.Wb + self.bb
-        posture_logits = h @ self.Wp + self.bp
-        ration_logit = float((h @ self.Wq + self.bq)[0])
-        propa_logit = float((h @ self.Wc + self.bc)[0])
-        value = float((h @ self.Wv + self.bv)[0])
-        if deterministic:
-            b = int(np.argmax(budget_logits)); p = int(np.argmax(posture_logits))
-            q = 1 if ration_logit > 0 else 0; c = 1 if propa_logit > 0 else 0
-            logp = 0.0
-        else:
-            b = int(self.rng.choice(len(BUDGET_PRESETS), p=_softmax(budget_logits)))
-            p = int(self.rng.choice(3, p=_softmax(posture_logits)))
-            q = int(self.rng.random() < _sigmoid(ration_logit))
-            c = int(self.rng.random() < _sigmoid(propa_logit))
-            logp = (_log_softmax(budget_logits)[b] + _log_softmax(posture_logits)[p]
-                    + _bern_logp(ration_logit, q) + _bern_logp(propa_logit, c))
-        return {"budget_idx": b, "posture_idx": p, "rationing": q, "propaganda": c,
-                "logp": logp, "value": value}
+        out = {
+            "budget_logits": h @ self.Wb + self.bb,
+            "posture_logits": h @ self.Wp + self.bp,
+            "ration_logit": float((h @ self.Wq + self.bq)[0]),
+            "propa_logit": float((h @ self.Wc + self.bc)[0]),
+            "value": float((h @ self.Wv + self.bv)[0]),
+        }
+        return _act_from_outputs(self.rng, out, fine=False, deterministic=deterministic)
 
     # -------------------------------------------------------- training (BPTT)
     def update_sequence(self, obs_list, act_list, advs, rets, lr: float = 1e-3,
@@ -544,45 +539,8 @@ class DeepPolicyNet:
 
     # ---------------------------------------------------------------- actions
     def act(self, obs: np.ndarray, deterministic: bool = False) -> dict:
-        out = self.forward(obs)
-        z_b = out["budget_logits"]
-        if deterministic:
-            r = 1 if out["ration_logit"] > 0 else 0
-            g = 1 if out["propa_logit"] > 0 else 0
-            logp = 0.0
-            p = int(np.argmax(out["posture_logits"]))
-            if self.fine:
-                action = {"budget_levels": [int(np.argmax(z_b[a * 5:(a + 1) * 5])) for a in range(4)]}
-            else:
-                action = {"budget_idx": int(np.argmax(z_b))}
-        else:
-            logp = 0.0
-            if self.fine:
-                lv = []
-                for a in range(4):
-                    za = z_b[a * 5:(a + 1) * 5]
-                    k = int(self.rng.choice(5, p=_softmax(za)))
-                    lv.append(k)
-                    logp += _log_softmax(za)[k]
-                action = {"budget_levels": lv}
-            else:
-                b = int(self.rng.choice(len(z_b), p=_softmax(z_b)))
-                action = {"budget_idx": b}
-                logp += _log_softmax(z_b)[b]
-            p = int(self.rng.choice(3, p=_softmax(out["posture_logits"])))
-            logp += _log_softmax(out["posture_logits"])[p]
-            r = int(self.rng.random() < _sigmoid(out["ration_logit"]))
-            g = int(self.rng.random() < _sigmoid(out["propa_logit"]))
-            logp += _bern_logp(out["ration_logit"], r) + _bern_logp(out["propa_logit"], g)
-        if deterministic:
-            dl = out.get("diplo_logits", np.zeros(0))
-            for i, name in enumerate(("diplo_improve", "diplo_sanction", "diplo_threaten")):
-                if i < len(dl):
-                    action[name] = 1 if float(dl[i]) > 0 else 0
-        return {
-            **action, "posture_idx": p, "rationing": r, "propaganda": g,
-            "logp": logp, "value": out["value"], "out": out,
-        }
+        return _act_from_outputs(self.rng, self.forward(obs),
+                                 fine=self.fine, deterministic=deterministic)
 
     # ------------------------------------------------------------ grad engine
     def _apply_adam(self, dirs: list[np.ndarray], ascend: bool) -> None:

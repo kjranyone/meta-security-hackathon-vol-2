@@ -29,34 +29,9 @@ from terrarium.rl.nets import DeepPolicyNet
 SERVER_ROOT = Path(__file__).resolve().parents[1]
 
 
-def _p(path: str) -> Path:
-    p = Path(path)
-    return p if p.exists() else SERVER_ROOT / path
-
-
-def load_items(paths: list[str], source: str, weight: float = 1.0):
-    items = []
-    for path in paths:
-        for line in open(_p(path)):
-            r = json.loads(line)
-            if r.get("fallback") or any(r.get("fallbacks", [])):
-                continue
-            if "actions" in r:  # soft形式 → 多数決+経験分布
-                k = len(r["actions"])
-                budgets = [a["budget_idx"] for a in r["actions"]]
-                maj = Counter(budgets).most_common(1)[0][0]
-                dist = np.zeros(6)
-                for b in budgets:
-                    dist[b] += 1.0 / k
-                act = dict(r["actions"][0])
-                act["budget_idx"] = maj
-            else:
-                act = r["action"]
-                dist = np.eye(6)[act["budget_idx"]]
-            items.append({"obs": np.asarray(r["obs"], dtype=np.float32),
-                          "action": act, "soft": dist,
-                          "source": source, "w": weight})
-    return items
+def load_items(hard, soft, dagger, dagger_weight):
+    from terrarium.rl.data import load_mixed
+    return load_mixed(hard or None, soft or None, dagger or None, dagger_weight)
 
 
 def main(argv=None) -> int:
@@ -73,10 +48,7 @@ def main(argv=None) -> int:
     ap.add_argument("--out", default="models/generalist_llm_v12.npz")
     args = ap.parse_args(argv)
 
-    data = load_items(args.hard.split(","), "hard") if args.hard else []
-    data += load_items(args.soft.split(","), "soft") if args.soft else []
-    data += (load_items(args.dagger.split(","), "dagger", args.dagger_weight)
-             if args.dagger else [])
+    data = load_items(args.hard, args.soft, args.dagger, args.dagger_weight)
     if not data:
         print("no data")
         return 1

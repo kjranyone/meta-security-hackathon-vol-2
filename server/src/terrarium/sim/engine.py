@@ -1162,43 +1162,7 @@ class Engine:
                     nat.trust[act.target] = min(100.0, nat.trust[act.target] + 3.0 * dm)
                     other.trust[nid] = min(100.0, other.trust[nid] + 3.0 * dm)
 
-        # -------------------------------------------------- 慢性疑心(月次)
-        # 偽情報チャネルの増強(v12): paranoiaは基準値へゆっくり回帰し(半減期~17ヶ月)、
-        # 高度の慢性疑信(>0.55)は国内の安定・支持を蝕う(疑心暗鬼の政治費用)。
-        # 従来は偽情報のtrust打撃が負値に達するまで緊張に乗らず効果が薄かった
-        # (trustは負になって初めて緊張項に入る)ため、国内チャネルを追加した。
-        fm0 = self._fm()
-        for nid in sorted(self.nations):
-            nat = self.nations[nid]
-            if nat.collapsed:
-                continue
-            nat.paranoia += (nat.base_paranoia - nat.paranoia) * min(0.6, 0.04 * fm0)
-            if nat.paranoia > 0.55:
-                drag = (nat.paranoia - 0.55) * 6.0 * fm0
-                nat.stability = max(0.0, nat.stability - drag)
-                nat.approval = max(0.0, nat.approval - drag * 0.5)
-
-        # -------------------------------------------------- 平時サイバー(v12)
-        # cyber_arsenal保有国は低信頼(trust<-10)の相手に月~2%で諜報・破壊を
-        # 行う: インフラの漸減と信頼の毀損(戦時サイバーとは別の常設チャネル)。
-        for x in sorted(self.nations):
-            xnat = self.nations[x]
-            if xnat.collapsed or "cyber_arsenal" not in self._techs_of(x):
-                continue
-            for y in sorted(self.nations):
-                if y == x or self.nations[y].collapsed:
-                    continue
-                if xnat.trust.get(y, 0.0) >= -10.0:
-                    continue
-                if self.rng.random() < self._hazard(0.02 * fm0):
-                    ynat = self.nations[y]
-                    ynat.infra = max(0.3, ynat.infra * (1.0 - 0.02 * fm0))
-                    ynat.trust[x] = max(-100.0, ynat.trust.get(x, 0.0) - 1.0)
-                    self.event_log.emit(
-                        t, "cyber_attack",
-                        f"{xnat.name} の平時サイバー作戦が {ynat.name} のインフラを静かに蝕う",
-                        actor=x, targets=[y], data={"peacetime": True},
-                    )
+        self._gap_channels_step(t)
 
         # ---------------------------------------------------------------- conflict
     def _conflict(self) -> None:
@@ -1334,6 +1298,43 @@ class Engine:
                     self._enqueue_mobilization(a, b, tension)
                     pending_pairs.add((a, b))
                     pending_pairs.add((b, a))
+
+    def _gap_channels_step(self, t: int) -> None:
+        """常設チャネル(v12、日本リスク被覆のギャップ解消):
+        1) 慢性疑心 — paranoiaは基準値へゆっくり回帰し(半減期~17ヶ月)、高度の
+           慢性疑信(>0.55)は国内の安定・支持を蝕う。従来は偽情報のtrust打撃が
+           負値に達するまで緊張に乗らず効果が薄かったため国内チャネルを追加した
+        2) 平時サイバー — cyber_arsenal保有国は低信頼(trust<-10)の相手に月~2%で
+           諜報・破壊: インフラ漸減と信頼毀損(peacetimeフラグ付きイベント)
+        """
+        fm0 = self._fm()
+        for nid in sorted(self.nations):
+            nat = self.nations[nid]
+            if nat.collapsed:
+                continue
+            nat.paranoia += (nat.base_paranoia - nat.paranoia) * min(0.6, 0.04 * fm0)
+            if nat.paranoia > 0.55:
+                drag = (nat.paranoia - 0.55) * 6.0 * fm0
+                nat.stability = max(0.0, nat.stability - drag)
+                nat.approval = max(0.0, nat.approval - drag * 0.5)
+        for x in sorted(self.nations):
+            xnat = self.nations[x]
+            if xnat.collapsed or "cyber_arsenal" not in self._techs_of(x):
+                continue
+            for y in sorted(self.nations):
+                if y == x or self.nations[y].collapsed:
+                    continue
+                if xnat.trust.get(y, 0.0) >= -10.0:
+                    continue
+                if self.rng.random() < self._hazard(0.02 * fm0):
+                    ynat = self.nations[y]
+                    ynat.infra = max(0.3, ynat.infra * (1.0 - 0.02 * fm0))
+                    ynat.trust[x] = max(-100.0, ynat.trust.get(x, 0.0) - 1.0)
+                    self.event_log.emit(
+                        t, "cyber_attack",
+                        f"{xnat.name} の平時サイバー作戦が {ynat.name} のインフラを静かに蝕う",
+                        actor=x, targets=[y], data={"peacetime": True},
+                    )
 
     def _pair_tension(self, a: str, b: str) -> float:
         na, nb = self.nations[a], self.nations[b]

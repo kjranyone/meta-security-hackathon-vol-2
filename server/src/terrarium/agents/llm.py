@@ -232,3 +232,24 @@ def make_policy_factory(mode: str, seed: int = 0, rl_nation: str | None = None,
             return _H()
         return make_hybrid
     raise ValueError(f"unknown policy mode: {mode}")
+
+
+def robust_decide(teacher: "ZaiLLMPolicy", view, retries: int = 1,
+                  sleep_s: float = 20.0):
+    """API失敗(fallbacksカウンタ増加)とparse失敗(rationaleタグ)の両方を検出し、
+    スロットル対策のリトライ付きで教師決定を取る。収集機共通の規律。
+    戻り値: (Decisions, fallback_flag)。リトライ後も失敗する場合は
+    フォールバック判定付きでそのまま返す(呼び出し側がタグ記録する)。"""
+    import time as _time
+    d = None
+    fb = True
+    for attempt in range(retries + 1):
+        f0 = teacher.fallbacks
+        d = teacher.decide(view)
+        fb = (teacher.fallbacks > f0) or \
+            str(d.rationale).startswith("[LLM parse fallback]")
+        if not fb:
+            break
+        if attempt < retries:
+            _time.sleep(sleep_s)
+    return d, fb

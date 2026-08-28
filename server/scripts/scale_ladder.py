@@ -24,15 +24,8 @@ LRS = [1e-3, 3e-4]
 
 
 def load_corpus():
-    data = []
-    for f in ["models/teacher_w1_clean.jsonl", "models/teacher_w2_d.jsonl",
-              "models/teacher_w2_e.jsonl"]:
-        for line in open(SERVER_ROOT / f):
-            r = json.loads(line)
-            if not r.get("fallback"):
-                data.append({"obs": np.asarray(r["obs"], dtype=np.float32),
-                             "action": r["action"]})
-    return data
+    from terrarium.rl.data import load_hard
+    return load_hard()
 
 
 def main() -> int:

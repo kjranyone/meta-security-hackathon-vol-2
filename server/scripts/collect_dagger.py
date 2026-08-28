@@ -64,14 +64,8 @@ def main(argv=None) -> int:
                 while not done:
                     view = env.eng.nation_view(nid)
                     # 教師ラベル(実行しない)
-                    for attempt in range(2):
-                        c0, f0 = teacher.calls, teacher.fallbacks
-                        d = teacher.decide(view)
-                        fb = (teacher.fallbacks > f0) or \
-                            str(d.rationale).startswith("[LLM parse fallback]")
-                        if not fb:
-                            break
-                        time.sleep(20)
+                    from terrarium.agents.llm import robust_decide
+                    d, fb = robust_decide(teacher, view)
                     n_fb += int(fb)
                     # 学生の行動で世界を進める
                     a = net.act(obs, deterministic=bool(args.deterministic))

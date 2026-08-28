@@ -28,46 +28,8 @@ SERVER_ROOT = Path(__file__).resolve().parents[1]
 
 
 def load_soft_corpus(paths: list[str]):
-    """soft corpus読み込み。kサンプルのいずれかがフォールバックなら状態ごと除外。"""
-    states = []
-    n_drop = 0
-    for p in paths:
-        for line in open(SERVER_ROOT / p):
-            r = json.loads(line)
-            if any(r.get("fallbacks", [])):
-                n_drop += 1
-                continue
-            acts = r["actions"]
-            k = len(acts)
-            budget_ids = [a["budget_idx"] for a in acts]
-            # 多数決(同数は先頭優先 — 決定論を保つ)
-            maj = Counter(budget_ids).most_common(1)[0][0]
-            dist = np.zeros(6)
-            for b in budget_ids:
-                dist[b] += 1.0 / k
-            maj_act = dict(acts[0])
-            maj_act["budget_idx"] = maj
-            states.append({
-                "obs": np.asarray(r["obs"], dtype=np.float32),
-                "action": maj_act, "soft": dist,
-                "postures": [a["posture_idx"] for a in acts],
-                "budgets": budget_ids,
-                "meta": {kk: r.get(kk) for kk in ("preset", "scenario", "nation")},
-            })
-    print(f"soft corpus: {len(states)} states (dropped {n_drop} fallback-contaminated)")
-    return states
-
-
-def self_consistency(states):
-    """D1: 同一状態でkサンプルがどれだけ一致するか。"""
-    n = len(states)
-    agree3 = sum(1 for s in states if len(set(s["budgets"])) == 1)
-    two_plus = sum(1 for s in states if Counter(s["budgets"]).most_common(1)[0][1] >= 2)
-    mean_max = float(np.mean([max(Counter(s["budgets"]).values()) / len(s["budgets"])
-                              for s in states]))
-    return {"n": n, "all_agree": agree3 / n, "majority_ge_2of3": two_plus / n,
-            "mean_top_share": mean_max}
-
+    from terrarium.rl.data import load_soft_items
+    return load_soft_items(paths)
 
 def train(net, data, soft: bool, epochs=60, lr=1e-3, batch_size=32, seed=0):
     """hard/soft BC。valid macro-F1でearly-stop。返り値: (best_metrics, history)"""
@@ -100,19 +62,6 @@ def train(net, data, soft: bool, epochs=60, lr=1e-3, batch_size=32, seed=0):
     return best["metrics"], best["epoch"]
 
 
-def soft_nll(net, states):
-    """-mean_k log p(a_k): kサンプル全てへの平均対数尤度(小さいほど良い)。"""
-    tot, n = 0.0, 0
-    for s in states:
-        p = net.forward(s["obs"])["budget_logits"]
-        z = p - p.max()
-        pr = np.exp(z) / np.exp(z).sum()
-        for b in s["budgets"]:
-            tot -= np.log(pr[b] + 1e-12)
-            n += 1
-    return tot / n
-
-
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--data", default="models/teacher_soft_f.jsonl,models/teacher_soft_g.jsonl")
@@ -126,6 +75,7 @@ def main(argv=None) -> int:
     if not states:
         print("no soft data yet")
         return 1
+    from terrarium.rl.data import self_consistency
     d1 = self_consistency(states)
     print("[D1] teacher self-consistency:", json.dumps(d1, indent=2))
 
@@ -134,6 +84,7 @@ def main(argv=None) -> int:
     for arm in ("hard", "soft"):
         net = DeepPolicyNet(obs_dim=OBS_DIM, hidden=hidden, seed=args.seed)
         m, ep = train(net, states, soft=(arm == "soft"), epochs=args.epochs)
+        from terrarium.rl.data import soft_nll
         nll = soft_nll(net, states)
         results[arm] = {"macro_f1": m["macro_f1"], "acc": m["budget_acc"],
                         "best_epoch": ep, "soft_nll": nll,
