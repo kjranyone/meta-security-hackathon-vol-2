@@ -23,8 +23,13 @@ const ACTIONS = {
   disaster: {
     title: "災害", sub: t => `${t} に降り注ぐ災害`,
     fields: [
-      { k: "kind", label: "種類", type: "select", options: ["drought", "earthquake", "epidemic"],
-        optionLabel: v => ({ drought: "旱魃", earthquake: "地震", epidemic: "疫病" }[v]) },
+      // 効き目の数字はエンジン側の実装(engine.pyの災害分岐)と対応。変える時は両方
+      { k: "kind", label: "種類", type: "radio", def: "drought",
+        options: [
+          { value: "drought", label: "旱魃", hint: "食料生産−60%が6ヶ月間 — 長期じわじわ型" },
+          { value: "earthquake", label: "大地震", hint: "安定−10・GDP−2% — 一撃型" },
+          { value: "epidemic", label: "疫病", hint: "人口−2%・安定−8%" },
+        ] },
     ],
     build: (v, ctx) => ({ nation: ctx, kind: v.kind }),
   },
@@ -100,7 +105,8 @@ export default function InterveneModal({ action, target, onRun, onClose }) {
   const [vals, setVals] = useState(() =>
     action === "global_sliders"
       ? Object.fromEntries(SLIDERS.map(p => [p, 1]))
-      : Object.fromEntries((def?.fields || []).map(f => [f.k, f.def ?? f.options[0]])));
+      : Object.fromEntries((def?.fields || []).map(f => [f.k,
+          f.def ?? (typeof f.options[0] === "object" ? f.options[0].value : f.options[0])])));
   const [ready, setReady] = useState(false);
   useEffect(() => { setReady(true); }, []);
 
@@ -153,6 +159,24 @@ export default function InterveneModal({ action, target, onRun, onClose }) {
                            onChange={e => setVals(v => ({ ...v, [f.k]: +e.target.value }))} />
                     <b style={{ fontSize: 13 }}>{f.fmt ? f.fmt(vals[f.k]) : vals[f.k]}</b>
                   </>
+                ) : f.type === "radio" ? (
+                  <div className="radioopts">
+                    {f.options.map(o => {
+                      const val = typeof o === "object" ? o.value : o;
+                      const label = typeof o === "object" ? o.label : (f.optionLabel ? f.optionLabel(o) : o);
+                      const hint = typeof o === "object" ? o.hint : null;
+                      return (
+                        <label key={val} className="radioopt">
+                          <input type="radio" name={f.k} checked={vals[f.k] === val}
+                                 onChange={() => setVals(v => ({ ...v, [f.k]: val }))} />
+                          <span className="radioopt-body">
+                            <b>{label}</b>
+                            {hint && <small>{hint}</small>}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
                 ) : (
                   <select value={vals[f.k]}
                           onChange={e => setVals(v => ({ ...v, [f.k]: f.type === "select" ? e.target.value : +e.target.value }))}>
