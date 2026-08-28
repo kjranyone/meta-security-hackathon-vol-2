@@ -1,0 +1,6 @@
+name: earth_hormuz_if_t5
+description: "IF史: ホルムズ海峡封鎖を通常より1tick早いt=5で発動(ベースはt=6)。介入時点の差が波及をどう変えるか。"
+interventions:
+  - tick: 5
+    type: close_chokepoint
+    params: {chokepoint: "Strait of Hormuz", duration: 31}
