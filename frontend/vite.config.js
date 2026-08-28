@@ -6,7 +6,7 @@ import { resolve } from "node:path";
 //   god UI     -> http://localhost:8788/            (serves web/god.html)
 //   replay     -> web/viewer.html                   (served by 8787 or /static)
 // Committed build output = judges need no npm install.
-// dev で "/" を神の玉座(god.html)へ（ビルド成果物と同じ導線にする）
+// dev で "/" を神モード(god.html)へ（ビルド成果物と同じ導線にする）
 const rootToGod = {
   name: "root-to-god",
   configureServer(server) {

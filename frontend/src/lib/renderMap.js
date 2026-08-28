@@ -12,7 +12,7 @@ const COMMO_FAINT = {
 };
 const COMMO_CLOSED = "rgba(248,81,73,.65)";
 
-// 統一地図レンダラ（神の玉座・リプレイビューア共通）
+// 統一地図レンダラ（神モード・リプレイビューア共通）
 // opts: { geo, meta, selectedNation, selectedChokepoint, showRoutes, pulses }
 // pulses: {kind: pair|self|choke|route, ..., color, age01} — イベント発生直後のみ
 // 関係が光る層(常時の関係アークは廃止。選択時のスター表示は明示操作なので残す)

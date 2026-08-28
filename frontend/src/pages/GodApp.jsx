@@ -160,7 +160,7 @@ export default function GodApp() {
   return (
     <div className="app">
       <header>
-        <h1 onClick={() => setStatusOpen(true)}>Geopolitics Terrarium — 神の玉座</h1>
+        <h1 onClick={() => setStatusOpen(true)}>Geopolitics Terrarium</h1>
         <span id="conn" className={conn ? "ok" : "bad"} onClick={() => setStatusOpen(true)}
               title="状態と配備モデルを見る">{conn ? "●" : "● 切断"}</span>
 

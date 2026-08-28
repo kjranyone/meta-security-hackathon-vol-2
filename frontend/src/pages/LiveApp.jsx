@@ -165,7 +165,7 @@ export default function LiveApp() {
         </div>
       )}
       <header>
-        <h1 onClick={() => setStatusOpen(true)}>Geopolitics Terrarium — 神の玉座(ブラウザ実行)</h1>
+        <h1 onClick={() => setStatusOpen(true)}>Geopolitics Terrarium <small style={{fontSize:13, color:"var(--dim)", fontWeight:400}}>ブラウザ実行</small></h1>
         <span id="conn" className={conn ? "ok" : "bad"} onClick={() => setStatusOpen(true)}
               title="状態と配備モデルを見る(ブラウザ内実行)">●</span>
 
