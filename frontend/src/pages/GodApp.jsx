@@ -13,12 +13,16 @@ import LegendModal from "../components/LegendModal";
 import StatusModal from "../components/StatusModal";
 import { loadGeojson } from "../lib/geo";
 import { pickAt } from "../lib/renderMap";
+import { eventsToPulses } from "../lib/pulses";
 import { setClock } from "../lib/calendar";
 import { initAudio, beep, toneForTypes, MAJOR_TONES } from "../lib/audio";
 
 export default function GodApp() {
   const [geo, setGeo] = useState(null);
   const [meta, setMeta] = useState(null);
+  const [pulses, setPulses] = useState([]);
+  const metaRef = useRef(null);
+  const pulseResetRef = useRef(0);
   const [ticks, setTicks] = useState([]);
   const [godEvents, setGodEvents] = useState([]);
   const [cur, setCur] = useState(0);
@@ -83,12 +87,16 @@ export default function GodApp() {
       ws.onmessage = ev => {
         const m = JSON.parse(ev.data);
         if (m.type === "meta") {
+          metaRef.current = m;
           setMeta(m); setTicks([]); setGodEvents([]); setCur(0);
+          setPulses([]); pulseResetRef.current++;
           setClock(m.clock?.hours_per_tick ?? 1);
         } else if (m.type === "tick") {
           setTicks(t => [...t, m]);
           if ((m.events || []).length && sideTabRef.current !== "event")
             setUnread(u => Math.min(99, u + m.events.length));
+          const ps = eventsToPulses(m.events || [], metaRef.current);
+          if (ps.length) setPulses(ps);
           const majors = (m.events || []).filter(e => MAJOR_TONES[e.type]);
           if (majors.length) {
             feedback(majors.map(e => e.type));
@@ -96,6 +104,8 @@ export default function GodApp() {
           }
         } else if (m.type === "god") {
           if (m.event) {
+            const gps = eventsToPulses([m.event], metaRef.current);
+            if (gps.length) setPulses(gps);
             setGodEvents(g => [...g, m.event]);
             feedback(["god_intervention"]);
             pushToast("god_intervention", m.event.text);
@@ -161,7 +171,7 @@ export default function GodApp() {
 
       <div className="main">
         <Toasts toasts={toasts} />
-        <MapCanvas tick={tick} geo={geo} meta={meta} god
+        <MapCanvas tick={tick} geo={geo} meta={meta} god pulses={pulses}
                    selectedNation={sel.kind === "nation" ? sel.id : null}
                    selectedChokepoint={sel.kind === "cp" ? sel.id : null}
                    onMapClick={onMapClick}>

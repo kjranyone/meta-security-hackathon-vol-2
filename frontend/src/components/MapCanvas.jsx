@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { renderMap } from "../lib/renderMap";
+import { PULSE_TTL } from "../lib/pulses";
 import { VIEW, fitView, clampVals, unprojectWith } from "../lib/projection";
 
 const MIN_SCALE = 1.2, MAX_SCALE = 60;
@@ -8,14 +9,19 @@ const WHEEL_K = 0.0005;
 const EASE = 0.22;                    // フレーム毎の補間率（イージング）
 
 // 地図canvas。Google Maps風のスムーズズーム（目標ビューへ補間）・ドラッグパン・クリック選択。
+// pulses: イベント発光パルス({...,born})。到着時に減衰アニメーション(約4秒)を開始し、
+// 全パルスが消えたら描画ループを止める(静穏時は静止地図のまま)。
 export default function MapCanvas({ tick, geo, meta, selectedNation, selectedChokepoint,
-                                    showRoutes = true, god = false, onMapClick, children }) {
+                                    showRoutes = false, god = false, pulses = null,
+                                    onMapClick, children }) {
   const wrapRef = useRef(null);
   const cvRef = useRef(null);
   const userView = useRef(false);   // ズーム/パン済みならリサイズで自動フィットしない
   const drag = useRef(null);
   const target = useRef(null);      // アニメーション目標 {scale, ox, oy}
   const raf = useRef(0);
+  const pulseRef = useRef([]);
+  const pulseRaf = useRef(0);
   const [zoomPct, setZoomPct] = useState(100);
 
   function updateZoomPct(cv) {
@@ -45,13 +51,33 @@ export default function MapCanvas({ tick, geo, meta, selectedNation, selectedCho
   }, [wrapRef, cvRef, tick != null]);
 
   useEffect(() => { draw(); });
-  useEffect(() => () => cancelAnimationFrame(raf.current), []);
+  useEffect(() => () => { cancelAnimationFrame(raf.current); cancelAnimationFrame(pulseRaf.current); }, []);
+
+  // イベントパルス: 到着時に蓄積し、減衰しきるまでrAFで再描画し続ける
+  useEffect(() => {
+    if (!pulses || !pulses.length) return;
+    pulseRef.current = pulseRef.current.concat(pulses).slice(-800);
+    if (!pulseRaf.current) {
+      const step = () => {
+        const now = Date.now();
+        pulseRef.current = pulseRef.current.filter(p => now - p.born < PULSE_TTL);
+        draw();
+        pulseRaf.current = pulseRef.current.length ? requestAnimationFrame(step) : 0;
+      };
+      pulseRaf.current = requestAnimationFrame(step);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pulses]);
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
   function draw() {
     const cv = cvRef.current;
     if (!cv || !tick) return;
+    const now = Date.now();
+    const aged = pulseRef.current.map(p => ({ ...p, age01: 1 - (now - p.born) / PULSE_TTL }));
     renderMap(cv.getContext("2d"), cv, tick,
-              { geo, meta, selectedNation, selectedChokepoint, showRoutes });
+              { geo, meta, selectedNation, selectedChokepoint, showRoutes,
+                pulses: aged });
   }
 
   // 目標ビューへイージング補間（連続ホイールで目標を上書き=地図アプリの挙動）

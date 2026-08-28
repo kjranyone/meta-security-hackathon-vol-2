@@ -13,6 +13,7 @@ import { loadGeojson } from "../lib/geo";
 import { ingestReplay, computeMajor } from "../lib/replay";
 import { initAudio, beep, MAJOR_TONES } from "../lib/audio";
 import { setClock } from "../lib/calendar";
+import { eventsToPulses } from "../lib/pulses";
 
 export default function ViewerApp() {
   const [geo, setGeo] = useState(null);
@@ -20,7 +21,8 @@ export default function ViewerApp() {
   const [ticks, setTicks] = useState([]);
   const [cur, setCur] = useState(0);
   const [selected, setSelected] = useState(null);
-  const [showRoutes, setShowRoutes] = useState(true);
+  const [showRoutes, setShowRoutes] = useState(false);
+  const [pulses, setPulses] = useState([]);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(5);
   const [muted, setMuted] = useState(false);
@@ -41,23 +43,30 @@ export default function ViewerApp() {
 
   useEffect(() => { loadGeojson().then(setGeo).catch(console.error); }, []);
 
-  const loadReplayText = useCallback(text => {
+  const loadReplayText = useCallback((text, initialTick) => {
     const { META, TICKS } = ingestReplay(text);
     if (!TICKS.length) { alert("replay.jsonl に tick がありません"); return; }
     setMeta(META); setTicks(TICKS); setCur(0); setSelected(null); setPlaying(false);
+    if (initialTick != null) {
+      const t0 = Math.max(0, Math.min(TICKS.length - 1, parseInt(initialTick, 10) || 0));
+      if (t0 > 0) setCur(t0);   // デイープリンク: 指定tickを即表示(イベント発光も即時)
+    }
     // リプレイの時計(1tick=何時間か)を暦表示に反映。旧月次リプレイは720
     setClock(META?.spec?.hours_per_tick ?? 720);
   }, []);
 
-  const loadUrl = useCallback(async url => {
-    try { loadReplayText(await (await fetch(url)).text()); setUrlInput(url); }
-    catch (e) { alert("読み込み失敗: " + e.message); }
+  const loadUrl = useCallback(async (url, initialTick) => {
+    try {
+      loadReplayText(await (await fetch(url)).text(), initialTick);
+      setUrlInput(url);
+    } catch (e) { alert("読み込み失敗: " + e.message); }
   }, [loadReplayText]);
 
   // ?replay= auto-load
   useEffect(() => {
-    const q = new URLSearchParams(location.search).get("replay");
-    if (q) loadUrl(q);
+    const q = new URLSearchParams(location.search);
+    const r = q.get("replay");
+    if (r) loadUrl(r, q.get("t"));
   }, [loadUrl]);
 
   // drag & drop
@@ -122,6 +131,14 @@ export default function ViewerApp() {
   const tick = ticks[cur] || null;
   const baseName = (urlInput.match(/logs\/([^/]+)\/replay\.jsonl/) || [])[1] || "";
 
+  // 現在tickのイベントを地図上の発光パルスに(scrubでも再生でも、そのtickを
+  // 見た瞬間に関係が光り、約4秒で消える — 常時表示との差別化)
+  useEffect(() => {
+    if (!tick) return;
+    setPulses(eventsToPulses(tick.events || [], meta));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tick]);
+
   return (
     <div className="app">
       <header>
@@ -150,7 +167,8 @@ export default function ViewerApp() {
         {tick ? (
           <>
             <MapCanvas tick={tick} geo={geo} meta={meta}
-                       selectedNation={selected} showRoutes={showRoutes}>
+                       selectedNation={selected} showRoutes={showRoutes}
+                       pulses={pulses}>
       {legendOpen && <LegendModal onClose={() => setLegendOpen(false)} />}
 
       <IfPanel

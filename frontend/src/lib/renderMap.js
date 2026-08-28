@@ -5,12 +5,20 @@ export const COMMO_COLOR = {
   energy: "rgba(227,179,65,.5)", food: "rgba(124,179,66,.5)", chips: "rgba(88,166,255,.5)",
   minerals: "rgba(210,168,255,.5)", space: "rgba(63,222,255,.5)",
 };
+// 航路の常時表示は淡い骨格のみ(構造のヒント)。イベント時の発光はpulses層が担う
+const COMMO_FAINT = {
+  energy: "rgba(227,179,65,.10)", food: "rgba(124,179,66,.10)", chips: "rgba(88,166,255,.10)",
+  minerals: "rgba(210,168,255,.10)", space: "rgba(63,222,255,.10)",
+};
 const COMMO_CLOSED = "rgba(248,81,73,.65)";
 
 // 統一地図レンダラ（神の玉座・リプレイビューア共通）
-// opts: { geo, meta, selectedNation, selectedChokepoint, showRoutes }
+// opts: { geo, meta, selectedNation, selectedChokepoint, showRoutes, pulses }
+// pulses: {kind: pair|self|choke|route, ..., color, age01} — イベント発生直後のみ
+// 関係が光る層(常時の関係アークは廃止。選択時のスター表示は明示操作なので残す)
 export function renderMap(ctx, cv, tick, opts) {
-  const { geo, meta, selectedNation, selectedChokepoint, showRoutes = true } = opts;
+  const { geo, meta, selectedNation, selectedChokepoint, showRoutes = false,
+          pulses = [] } = opts;
   ctx.clearRect(0, 0, cv.width, cv.height);
   ctx.fillStyle = "#16293d";
   ctx.fillRect(0, 0, cv.width, cv.height);
@@ -61,7 +69,7 @@ export function renderMap(ctx, cv, tick, opts) {
     ctx.stroke();
   });
 
-  // 航路
+  // 航路 — 淡い骨格のみ(トグル時)。封鎖航路はイベント状態なので赤破線のまま
   if (showRoutes) {
     for (const r of meta.geo.routes) {
       const imp = meta.geo.nations[r.importer], exp = meta.geo.nations[r.exporter];
@@ -70,7 +78,6 @@ export function renderMap(ctx, cv, tick, opts) {
       const [x1, y1] = project(...exp.centroid), [x2, y2] = project(...imp.centroid);
       const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
       const lift = Math.min(60, Math.hypot(x2 - x1, y2 - y1) * 0.18);
-      // 湾曲は常に極側へ（中間点の緯度で決定）— パン/ズームで反転しない
       const sign = (imp.centroid[1] + exp.centroid[1]) / 2 >= 0 ? -1 : 1;
       ctx.beginPath();
       ctx.moveTo(x1, y1);
@@ -78,22 +85,85 @@ export function renderMap(ctx, cv, tick, opts) {
       if (anyClosed) {
         ctx.strokeStyle = COMMO_CLOSED; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.8;
       } else {
-        ctx.strokeStyle = COMMO_COLOR[r.commodity] || "rgba(200,200,200,.35)";
-        ctx.setLineDash([]); ctx.lineWidth = 1.2;
+        ctx.strokeStyle = COMMO_FAINT[r.commodity] || "rgba(200,200,200,.10)";
+        ctx.setLineDash([]); ctx.lineWidth = 0.8;
       }
       ctx.stroke(); ctx.setLineDash([]);
     }
   }
 
-  // 友好度グラフ
-  for (const e of computeTrustEdges(tick, meta.geo.nations, selectedNation)) {
-    const { a: [x1, y1], b: [x2, y2] } = e;
-    const lift = Math.min(50, Math.hypot(x2 - x1, y2 - y1) * 0.16);
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.quadraticCurveTo((x1 + x2) / 2, (y1 + y2) / 2 - lift, x2, y2);
-    ctx.strokeStyle = e.color; ctx.lineWidth = e.width;
-    ctx.setLineDash(e.dash || []); ctx.stroke(); ctx.setLineDash([]);
+  // 友好度グラフ — 選択中の国家のスター表示のみ(常時の関係アークは廃止:
+  // 関係はイベント発生時にpulses層が光として示す)
+  if (selectedNation) {
+    for (const e of computeTrustEdges(tick, meta.geo.nations, selectedNation)) {
+      const { a: [x1, y1], b: [x2, y2] } = e;
+      const lift = Math.min(50, Math.hypot(x2 - x1, y2 - y1) * 0.16);
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.quadraticCurveTo((x1 + x2) / 2, (y1 + y2) / 2 - lift, x2, y2);
+      ctx.strokeStyle = e.color; ctx.lineWidth = e.width;
+      ctx.setLineDash(e.dash || []); ctx.stroke(); ctx.setLineDash([]);
+    }
+  }
+
+  // イベントパルス — 何かが起きた瞬間だけ関係が光る(減衰はage01=1→0)
+  if (pulses.length) {
+    ctx.save();
+    for (const p of pulses) {
+      const age = Math.max(0, Math.min(1, p.age01 ?? 1));
+      if (age <= 0) continue;
+      if (p.kind === "pair" || p.kind === "route") {
+        let x1, y1, x2, y2, lat1, lat2;
+        if (p.kind === "pair") {
+          const na = meta.geo.nations[p.a], nb = meta.geo.nations[p.b];
+          if (!na || !nb) continue;
+          [x1, y1] = project(...na.centroid); [x2, y2] = project(...nb.centroid);
+          [lat1, lat2] = [na.centroid[1], nb.centroid[1]];
+        } else {
+          const na = meta.geo.nations[p.exporter], nb = meta.geo.nations[p.importer];
+          if (!na || !nb) continue;
+          [x1, y1] = project(...na.centroid); [x2, y2] = project(...nb.centroid);
+          [lat1, lat2] = [na.centroid[1], nb.centroid[1]];
+        }
+        const lift = Math.min(60, Math.hypot(x2 - x1, y2 - y1) * 0.18);
+        const sign = (lat1 + lat2) / 2 >= 0 ? -1 : 1;   // 湾曲は常に極側へ
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.quadraticCurveTo((x1 + x2) / 2, (y1 + y2) / 2 + lift * sign, x2, y2);
+        ctx.globalAlpha = age;
+        ctx.shadowBlur = 16 * age; ctx.shadowColor = p.color;
+        ctx.strokeStyle = p.color; ctx.lineWidth = 2.2;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 0.30 * age;
+        ctx.lineWidth = 7;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      } else if (p.kind === "self") {
+        const na = meta.geo.nations[p.a];
+        if (!na) continue;
+        const [x, y] = project(...na.centroid);
+        const rr = 10 + 22 * (1 - age);
+        ctx.beginPath(); ctx.arc(x, y, rr, 0, Math.PI * 2);
+        ctx.globalAlpha = age;
+        ctx.shadowBlur = 14 * age; ctx.shadowColor = p.color;
+        ctx.strokeStyle = p.color; ctx.lineWidth = 2.2;
+        ctx.stroke();
+        ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+      } else if (p.kind === "choke") {
+        const cp = meta.geo.chokepoints.find(c => c.name === p.name);
+        if (!cp) continue;
+        const [x, y] = project(cp.lon, cp.lat);
+        const rr = 8 + 20 * (1 - age);
+        ctx.beginPath(); ctx.arc(x, y, rr, 0, Math.PI * 2);
+        ctx.globalAlpha = age;
+        ctx.shadowBlur = 18 * age; ctx.shadowColor = p.color;
+        ctx.strokeStyle = p.color; ctx.lineWidth = 2.4;
+        ctx.stroke();
+        ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+      }
+    }
+    ctx.restore();
   }
 
   // 海峡（円輪。封鎖=赤+斜線、選択=白強調）
