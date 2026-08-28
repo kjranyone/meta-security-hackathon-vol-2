@@ -80,7 +80,9 @@ export default function LiveApp() {
   useEffect(() => {
     const w = new Worker(new URL("../lib/live.worker.js", import.meta.url), { type: "module" });
     wsRef.current = w;
-    const base = location.href.replace(/[^/]*$/, "");
+    // SPAのハッシュ(#/live)はbase計算から除外する — さもないとmanifest fetchが
+    // index.html自身を拾ってJSONパースが死ぬ
+    const base = location.href.split("#")[0].replace(/[^/]*$/, "");
     w.onmessage = ev => {
       const m = ev.data;
       if (m.type === "boot") { setBoot(m); return; }
