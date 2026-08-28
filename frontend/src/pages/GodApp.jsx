@@ -91,6 +91,7 @@ export default function GodApp() {
           setMeta(m); setTicks([]); setGodEvents([]); setCur(0);
           setPulses([]); pulseResetRef.current++;
           setClock(m.clock?.hours_per_tick ?? 1);
+          if (m.status) setStatus(s => ({ ...s, ...m.status }));   // 世界再創造直後の配備モデル表示を更新
         } else if (m.type === "tick") {
           setTicks(t => [...t, m]);
           if ((m.events || []).length && sideTabRef.current !== "event")
@@ -111,7 +112,7 @@ export default function GodApp() {
             pushToast("god_intervention", m.event.text);
           }
         } else if (m.type === "status") {
-          setStatus({ running: m.running, tick: m.tick, max_ticks: m.max_ticks });
+          setStatus({ running: m.running, tick: m.tick, max_ticks: m.max_ticks, model: m.model });
         }
       };
       ws.onclose = () => { setConn(false); if (!closed) setTimeout(connect, 1500); };
@@ -135,7 +136,7 @@ export default function GodApp() {
       preset: preset === "gen" ? "default" : preset, policy,
       seed: +seed || 42, ticks: 24 * 400,
     };
-    if (preset === "gen") body.gen_seed = 7;
+    if (preset === "gen") body.gen_seed = +seed || 42;   // 生成世界の初期値もseed欄で差し替え
     await fetch("/api/reset", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -176,7 +177,7 @@ export default function GodApp() {
                    selectedChokepoint={sel.kind === "cp" ? sel.id : null}
                    onMapClick={onMapClick}>
       <CreateWorldDialog open={createOpen} preset={preset} policy={policy} seed={seed}
-                         rlNation={rlNation} onPreset={setPreset} onPolicy={setPolicy}
+                         rlNation={rlNation} modelInfo={status.model} onPreset={setPreset} onPolicy={setPolicy}
                          onSeed={setSeed} onRlNation={setRlNation}
                          onCreate={resetWorld} onClose={() => setCreateOpen(false)} />
       <InterveneModal action={ivModal}

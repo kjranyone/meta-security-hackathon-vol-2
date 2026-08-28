@@ -5,12 +5,15 @@ import { policyLabel } from "../lib/policies";
 export default function StatusModal({ onClose, conn, status, tick, meta,
                                       preset, policy, seed, nations }) {
   const m = tick?.metrics;
+  const mdl = status.model;
   const rows = [
     ["状態", conn ? "接続中" : "切断"],
     ["サーバ", `ws://${location.host}/ws`],
-    ["世界", preset === "gen" ? "gen（自動生成 seed=7）" : preset],
+    ["世界", preset === "gen" ? `gen（自動生成 seed=${seed}）` : preset],
     ["seed", seed],
     ["国家AI", policyLabel(policy)],
+    ...(mdl ? [["配備モデル",
+      `${mdl.file} (${(mdl.bytes / 1048576).toFixed(1)}MB・全${mdl.nations}カ国に1本)`]] : []),
     ["進行", `tick ${status.tick} / ${status.max_ticks} ${status.running ? "▶" : "⏸"}`],
     ["暦", tick ? simDate(tick.tick) : "—"],
     ["主体", nations ?? meta?.geo?.nations ? `${Object.keys(meta?.geo?.nations || {}).length}カ国` : "—"],

@@ -45,6 +45,7 @@ class Session:
         self.task: Optional[asyncio.Task] = None
         self.scenario_schedule: list[Intervention] = []
         self.t: int = 0
+        self.model_info: Optional[dict] = None
 
 
     # ------------------------------------------------------------- lifecycle
@@ -60,26 +61,22 @@ class Session:
         # 動力学は実時間で校正されているので、介入の波及には現実的な遅延が乗る。
         spec.hours_per_tick = 1.0
         spec.decision_every_hours = 168.0
+        self.model_info = None
         if policy == "rl" and not rl_nation:
-            # 学習AI: 個別学習済み国 + 汎用ポリシー(generalist)で全国家を賄う
-            import glob
-            import re as _re
+            # 学習AI: 「モデル1本」のデモ原則 — 全国家に同一の汎用重みを配備する。
+            # 提出物の頭脳(教師LLM蒸留・深いBC)を最優先し、無ければ旧汎用へ後退。
             models_dir = Path(__file__).resolve().parents[3] / "models"
-            found: dict[str, str] = {}
-            for f in sorted(glob.glob(str(models_dir / "selfplay_*_*.npz"))):
-                m = _re.search(r"selfplay_[A-Za-z0-9]+_([A-Z]{2,4})\.npz$", f)
-                nid = m.group(1) if m else None
-                if nid:
-                    found[nid] = f
-            gen = models_dir / "generalist.npz"
-            in_world = {ns.id for ns in spec.nations}
-            found = {k: v for k, v in found.items() if k in in_world}
-            if gen.exists():
-                for nid in sorted(in_world - set(found)):
-                    found[nid] = str(gen)
-            if found:
-                rl_nation = ",".join(found)
-                rl_weights = ",".join(found.values())
+            single = next((models_dir / n for n in
+                           ("generalist_llm_deep_bc.npz", "generalist_llm_v12.npz",
+                            "generalist.npz") if (models_dir / n).exists()), None)
+            if single is not None:
+                rl_nation = "ALL"
+                rl_weights = str(single)
+                self.model_info = {
+                    "file": single.name,
+                    "bytes": single.stat().st_size,
+                    "nations": len(spec.nations),
+                }
         factory = make_policy_factory(policy, seed=seed, rl_nation=rl_nation, rl_weights=rl_weights)
         policies = {ns.id: factory(ns) for ns in spec.nations}
         self.engine = Engine(spec, policies, seed=seed, out_dir=None)
@@ -118,6 +115,7 @@ class Session:
     def status(self) -> dict:
         return {"running": self.running, "speed_ms": self.speed_ms,
                 "tick": self.t, "max_ticks": self.max_ticks,
+                "model": getattr(self, "model_info", None),
 }
 
 

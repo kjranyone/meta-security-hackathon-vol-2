@@ -12,6 +12,11 @@ from .base import Decisions, NationView
 SERVER_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_WEIGHTS = SERVER_ROOT / "models"
 
+# 重みパス→ネットの共有キャッシュ。全国家配備(ALL)で同一モデルを載せる時、
+# 国ごとにload_netすると176カ国×50MB≈8GB超でOOMする。MLPの推論は状態を
+# 持たないため共有安全。再帰型(隠れ状態が国ごとにローリング)は共有しない。
+_NET_CACHE: dict[str, object] = {}
+
 
 class RLPolicy:
     """Deterministic (argmax) tactical policy: budget preset + posture +
@@ -23,7 +28,13 @@ class RLPolicy:
             raise FileNotFoundError(
                 f"RL weights not found: {path}. Train first: "
                 f"uv run python -m terrarium.rl.train --nation {nation_id}")
-        self.net = load_net(path)
+        key = str(path.resolve())
+        net = _NET_CACHE.get(key)
+        if net is None:
+            net = load_net(path)
+            if type(net).__name__ != "RecurrentPolicyNet":
+                _NET_CACHE[key] = net
+        self.net = net
         self.nation_id = nation_id
         self.weights_path = str(path)
 
