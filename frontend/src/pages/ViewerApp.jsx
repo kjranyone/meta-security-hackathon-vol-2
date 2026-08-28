@@ -15,7 +15,7 @@ import { initAudio, beep, MAJOR_TONES } from "../lib/audio";
 import { setClock } from "../lib/calendar";
 import { eventsToPulses } from "../lib/pulses";
 
-export default function ViewerApp() {
+export default function ViewerApp({ params }) {
   const [geo, setGeo] = useState(null);
   const [meta, setMeta] = useState(null);
   const [ticks, setTicks] = useState([]);
@@ -64,10 +64,10 @@ export default function ViewerApp() {
 
   // ?replay= auto-load
   useEffect(() => {
-    const q = new URLSearchParams(location.search);
+    const q = params || new URLSearchParams(location.search);
     const r = q.get("replay");
     if (r) loadUrl(r, q.get("t"));
-  }, [loadUrl]);
+  }, [loadUrl, params]);
 
   // drag & drop
   useEffect(() => {

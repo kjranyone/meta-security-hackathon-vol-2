@@ -99,9 +99,9 @@
 から分岐）、初期値差（世界選択: earth 16カ国 / earth_all 176カ国 / earth_jpn 同盟網 / 生成世界）は
 即座に構造を変えます。重みはプロセス内で共有されるため176カ国配備でもメモリ約0.4GBです。
 
-### ブラウザ実行版(live.html): エンジンと学習モデル1本をWASMで走らせる
+### ブラウザ実行版(#/live): エンジンと学習モデル1本をWASMで走らせる
 
-`live.html` は**サーバ不要**のライブ介入モードです。力学をJavaScriptへ移植するのではなく、
+`#/live` は**サーバ不要**のライブ介入モードです。力学をJavaScriptへ移植するのではなく、
 **本物の `engine.py` とRL推論(numpy)を Pyodide(CPython+WASM) がそのまま実行**します —
 「モックではなく同一コード・同一重み」であることが構造的に保証され、実際に
 
@@ -370,7 +370,7 @@ uv run python -m terrarium.runner.ab \
 # ローカルでも同じものが動く（リポジトリルートから静的サーバを起動）
 python3 -m http.server 8787
 # ブラウザで開く（?replay= で自動読み込み、&t= で任意tickから）
-open "http://localhost:8787/web/viewer.html?replay=http://localhost:8787/server/logs/earth_hormuz/replay.jsonl&t=6"
+open "http://localhost:8787/web/#/viewer?replay=http://localhost:8787/server/logs/earth_hormuz/replay.jsonl&t=6"
 ```
 
 Natural EarthのGeoJSONで実世界を描画: 国家の領土塗り（崩壊で暗転）・実在7海峡の⚓/⛔マーカー・
@@ -415,7 +415,7 @@ IF世界で新たに起きた:   t9 JPN破綻（債務252%は一度の救済で�
 → **救済は日本の破綻自体は防げなかったが、EU・米国への感染の連鎖を断ち切った**。
 「最後の貸し手」の効果は破綻件数ではなく感染経路の遮断にある、という示唆が読み取れる。
 
-**ビューアからも**（サーバ経由で `http://localhost:8788/static/web/viewer.html?replay=...` を開き「⏪ IF史」）:
+**ビューアからも**（サーバ経由で `http://localhost:8788/static/web/#/viewer?replay=...` を開き「⏪ IF史」）:
 分岐tickと介入カードを選ぶとサーバが再実行し、分岐レポートとIF世界のリプレイを返します。
 `run.json` の `config` に元runの (preset, policy, scenario) が記録されるため、IFは自動で同じ条件下から分岐します
 （LLM run は非決定論的なため mock_llm にフォールバック+警告）。
@@ -550,7 +550,7 @@ server/
   tests/       # 決定論・需給バランス・カオス伝播のテスト
 frontend/      # UIソース（Vite + React）。コンポーネント/ロジックはここで共有
 web/           # ビルド済み成果物（コミット済み → 利用者は npm 不要）
-  god.html / viewer.html / assets/
+  index.html(SPA) / #/god #/viewer #/live / assets/
   world.geojson  # Natural Earth 110m admin-0（パブリックドメイン）
 ```
 
@@ -564,9 +564,9 @@ web/           # ビルド済み成果物（コミット済み → 利用者は 
 cd server && uv run uvicorn terrarium.server.app:app --port 8788   # バックエンド
 cd frontend && npm install && npm run dev                          # HMR開発サーバ(5173)
 #   → http://localhost:5173/            介入モード（WS/APIは8788へ自動プロキシ）
-#   → http://localhost:5173/viewer.html ビューア（?replay=/static/server/logs/<run>/replay.jsonl）
+#   → http://localhost:5173/#/viewer ビューア（?replay=/static/server/logs/<run>/replay.jsonl）
 
-npm run build   # 変更を確定するとき: web/god.html + web/viewer.html + web/assets/（ハッシュ付き）を再生成してコミット
+npm run build   # 変更を確定するとき: web/#/god + web/#/viewer + web/assets/（ハッシュ付き）を再生成してコミット
 ```
 
 共有コンポーネント/ロジック（両UIで再利用）: 地図レンダラ（領土・航路・海峡・友好度グラフ）、

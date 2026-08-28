@@ -1,7 +1,7 @@
 """Real-time god server: FastAPI + WebSocket.
 
 Runs the Terrarium engine tick-by-tick in the background and streams
-snapshots/events to all connected clients. The god client (web/god.html)
+snapshots/events to all connected clients. The god client (SPA #/god)
 sends intervention commands that are applied between ticks.
 
 Run:
@@ -198,7 +198,7 @@ app.add_middleware(CORSMiddleware,
 
 @app.get("/")
 async def index() -> FileResponse:
-    return FileResponse(WEB_DIR / "god.html")
+    return FileResponse(WEB_DIR / "index.html")   # SPA(介入モードは #/god)
 
 
 @app.post("/api/reset")

@@ -35,12 +35,6 @@ export default defineConfig({
     outDir: resolve(__dirname, "../web"),
     emptyOutDir: false,          // keep world.geojson etc. in web/
     rollupOptions: {
-      input: {
-        index: resolve(__dirname, "index.html"),   // リプレイギャラリー(Pagesの入口)
-        god: resolve(__dirname, "god.html"),
-        viewer: resolve(__dirname, "viewer.html"),
-        live: resolve(__dirname, "live.html"),     // ブラウザ実行のライブ神モード(Pyodide)
-      },
       output: {
         entryFileNames: "assets/[name]-[hash].js",
         chunkFileNames: "assets/chunk-[name]-[hash].js",
