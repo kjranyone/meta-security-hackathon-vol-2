@@ -112,7 +112,8 @@ export default function GodApp() {
             pushToast("god_intervention", m.event.text);
           }
         } else if (m.type === "status") {
-          setStatus({ running: m.running, tick: m.tick, max_ticks: m.max_ticks, model: m.model });
+          setStatus({ running: m.running, tick: m.tick, max_ticks: m.max_ticks,
+                      speed_ms: m.speed_ms, model: m.model });
         }
       };
       ws.onclose = () => { setConn(false); if (!closed) setTimeout(connect, 1500); };
@@ -228,12 +229,17 @@ export default function GodApp() {
         <button className="tlbtn" onClick={() => send({ cmd: status.running ? "pause" : "play" })}>
           {status.running ? "⏸ 停止" : "▶ 再生"}
         </button>
-        <button className="tlbtn" onClick={() => send({ cmd: "step" })}>1tick</button>
+        <button className="tlbtn" onClick={() => send({ cmd: "step" })}
+                title="停止中にシミュレーション時間で1時間だけ進める(介入の因果を少しずつ観察)">+1時間</button>
         <DateBar tick={status.tick} suffix={` / ${status.max_ticks} ${status.running ? "▶" : "⏸"}`} />
         <label className="speedlabel" style={{ flex: 1 }}><span>速度</span>
-          <input type="range" min="30" max="3000" defaultValue="1200"
-                 onChange={e => send({ cmd: "speed", ms: +e.target.value })} />
-          <output>ms</output>
+          <input type="range" min="30" max="3000" value={3030 - (status.speed_ms || 1200)}
+                 onChange={e => send({ cmd: "speed", ms: 3030 - +e.target.value })} />
+          <output>{(() => {
+            const ms = status.speed_ms || 1200;
+            const x = 1200 / ms;
+            return `×${x >= 10 ? Math.round(x) : x.toFixed(1).replace(/\.0$/, "")}`;
+          })()}</output>
         </label>
         <button className="tlbtn mutebtn" onClick={() => { initAudio(); setMuted(m => !m); }}>
           {muted ? "♪" : "♪♪"}
