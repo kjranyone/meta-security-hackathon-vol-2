@@ -36,6 +36,7 @@ export default defineConfig({
     emptyOutDir: false,          // keep world.geojson etc. in web/
     rollupOptions: {
       input: {
+        index: resolve(__dirname, "index.html"),   // リプレイギャラリー(Pagesの入口)
         god: resolve(__dirname, "god.html"),
         viewer: resolve(__dirname, "viewer.html"),
       },
