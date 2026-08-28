@@ -1,0 +1,53 @@
+{
+  "run_name": "rl_all_hormuz",
+  "seed": 42,
+  "ticks": 36,
+  "final_metrics": {
+    "tick": 35,
+    "world_gdp": 122.1852,
+    "mean_stability": 48.89,
+    "wars": 6,
+    "collapsed": 1,
+    "price_energy": 1.2263,
+    "price_food": 1.3126,
+    "price_chips": 1.3621,
+    "mean_inflation": 0.01717,
+    "mean_debt_gdp": 86.1,
+    "defaults": 3,
+    "mean_unemployment": 5.72,
+    "global_co2": 3601.8,
+    "war_casualties_m": 0.0764
+  },
+  "event_counts": {
+    "policy_shift": 6336,
+    "price_spike": 6,
+    "sovereign_default": 3,
+    "credibility_hit": 78,
+    "god_intervention": 1,
+    "tech_emergence": 13,
+    "tech_adopted": 1401,
+    "trade_throttled": 1831,
+    "shortage": 64,
+    "election": 39,
+    "fx_crisis": 18,
+    "collapse": 2,
+    "insurgency": 3,
+    "mobilization": 58,
+    "war_start": 49,
+    "peace_settlement": 39,
+    "cyber_attack": 15,
+    "climate_disaster": 11,
+    "war_end": 4
+  },
+  "wars": 6,
+  "config": {
+    "preset": "earth_all",
+    "gen_seed": null,
+    "gen_nations": 8,
+    "policy": "rl",
+    "rl_nation": "ALL",
+    "rl_weights": "models/generalist_llm_deep_bc.npz",
+    "scenario": "scenarios/earth_hormuz.yaml",
+    "engine": "v4-realtime-clock"
+  }
+}

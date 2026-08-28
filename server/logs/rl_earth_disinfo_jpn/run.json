@@ -1,0 +1,44 @@
+{
+  "run_name": "rl_earth_disinfo_jpn",
+  "seed": 42,
+  "ticks": 36,
+  "final_metrics": {
+    "tick": 35,
+    "world_gdp": 88.1332,
+    "mean_stability": 43.21,
+    "wars": 0,
+    "collapsed": 0,
+    "price_energy": 1.0,
+    "price_food": 1.0,
+    "price_chips": 1.0,
+    "mean_inflation": 0.02293,
+    "mean_debt_gdp": 93.9,
+    "defaults": 0,
+    "mean_unemployment": 8.9,
+    "global_co2": 607.8,
+    "war_casualties_m": 0.0034
+  },
+  "event_counts": {
+    "policy_shift": 576,
+    "shortage": 39,
+    "disinfo": 2,
+    "tech_emergence": 13,
+    "tech_adopted": 128,
+    "cyber_attack": 5,
+    "mobilization": 1,
+    "war_start": 1,
+    "price_spike": 1,
+    "peace_settlement": 1
+  },
+  "wars": 0,
+  "config": {
+    "preset": "earth",
+    "gen_seed": null,
+    "gen_nations": 8,
+    "policy": "rl",
+    "rl_nation": "ALL",
+    "rl_weights": "models/generalist_llm_deep_bc.npz",
+    "scenario": "scenarios/earth_disinfo_jpn.yaml",
+    "engine": "v4-realtime-clock"
+  }
+}
