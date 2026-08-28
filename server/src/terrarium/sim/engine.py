@@ -33,6 +33,11 @@ from ..world.models import (
     RESOURCE_TO_COMMODITY,
 )
 from ..world import clock as TC
+
+# 資源の日本語表現 — 神介入のイベント文言で英字kindを露出させない
+_RESOURCE_JA = {"oil": "石油", "gas": "天然ガス", "grain": "穀物",
+                "fab": "半導体製造", "finance": "金融", "mineral": "希少金属",
+                "orbit": "宇宙インフラ"}
 from ..world.factors import FACTORS_BY_ID
 from ..world.tech import CATALOG, tech_catalog_index
 from .events import EventLog
@@ -388,7 +393,7 @@ class Engine:
                 units.remove(res)
                 self.event_log.emit(
                     self.tick_no, "god_intervention",
-                    f"神が {self.nations[nid].name} の {res.value} 生産能力を消し去った",
+                    f"神が {self.nations[nid].name} の{_RESOURCE_JA.get(res.value, res.value)}生産能力を消し去った",
                     actor="GOD", targets=[nid], data={"nation": nid, "resource": res.value},
                 )
         elif iv.type == "disaster":
@@ -406,8 +411,15 @@ class Engine:
             elif kind == "epidemic":
                 nat.population_m *= 0.98
                 nat.stability -= 8
+            # 種類は日本語で、何が効くかまで一言で言う(英字kindの露出はToastで不明瞭)
+            label, effect = {
+                "drought": ("旱魃", "食料生産−60%が6ヶ月間"),
+                "earthquake": ("大地震", "安定−10・GDP−2%"),
+                "epidemic": ("疫病", "人口−2%・安定−8%"),
+            }.get(kind, (kind, ""))
             self.event_log.emit(
-                self.tick_no, "god_intervention", f"神が {nat.name} に {kind} を降らせた",
+                self.tick_no, "god_intervention",
+                f"神が {nat.name} に{label}をもたらした — {effect}",
                 actor="GOD", targets=[nid], data={"nation": nid, "kind": kind},
             )
         elif iv.type == "disinfo":
@@ -437,7 +449,7 @@ class Engine:
                 self.nation_resources[nid].append(res)
             self.event_log.emit(
                 self.tick_no, "god_intervention",
-                f"神が {self.nations[nid].name} に新たな {res.value} 資源を創り出した（×{qty}）",
+                f"神が {self.nations[nid].name} に新たな{_RESOURCE_JA.get(res.value, res.value)}資源を創り出した（×{qty}）",
                 actor="GOD", targets=[nid], data={"nation": nid, "resource": res.value, "quantity": qty},
             )
         elif iv.type == "grant_tech":

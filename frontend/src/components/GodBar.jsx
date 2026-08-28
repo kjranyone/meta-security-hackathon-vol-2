@@ -2,6 +2,9 @@ export const TECHS = ["drone_swarm", "laser_defense", "cyber_arsenal", "hyperson
   "ai_fab", "biomanuf", "autofactory", "deepsea_mining", "fusion", "space_solar",
   "asteroid_mining", "ai_religion", "techno_nationalism"];
 export const RESOURCES = ["oil", "gas", "grain", "fab", "mineral", "orbit"];
+// 資源の表示名(イベント文言とUI選択肢で同じ呼び方にする)
+export const RESOURCE_JA = { oil: "石油", gas: "天然ガス", grain: "穀物",
+  fab: "半導体製造", mineral: "希少金属", orbit: "宇宙インフラ" };
 
 // 地図下部の神介入HUD。パラメータが必要な操作は onModal(type) でモーダルへ、
 // 即時実行で良い操作は intervene を直接呼ぶ。sel.kind: "nation" | "cp" | "world"

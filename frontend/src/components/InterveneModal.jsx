@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { TECHS, RESOURCES } from "./GodBar";
+import { TECHS, RESOURCES, RESOURCE_JA } from "./GodBar";
 
 const P = (label, hint) => <label className="modalfield">{label}{hint ? <small style={{ color: "var(--dim)", display: "block" }}>{hint}</small> : null}</label>;
 
@@ -31,7 +31,7 @@ const ACTIONS = {
   create_resource: {
     title: "資源の創造", sub: t => `${t} に新たに生み出す資源`,
     fields: [
-      { k: "resource", label: "資源", type: "select", options: RESOURCES },
+      { k: "resource", label: "資源", type: "select", options: RESOURCES, optionLabel: v => RESOURCE_JA[v] || v },
       { k: "quantity", label: "数量", type: "range", min: 1, max: 3, step: 1, def: 2 },
     ],
     build: (v, ctx) => ({ nation: ctx, resource: v.resource, quantity: +v.quantity }),
@@ -39,7 +39,7 @@ const ACTIONS = {
   destroy_resource: {
     title: "資源の消滅", sub: t => `${t} から消し去る資源`,
     fields: [
-      { k: "resource", label: "資源", type: "select", options: RESOURCES },
+      { k: "resource", label: "資源", type: "select", options: RESOURCES, optionLabel: v => RESOURCE_JA[v] || v },
     ],
     build: (v, ctx) => ({ nation: ctx, resource: v.resource }),
   },
