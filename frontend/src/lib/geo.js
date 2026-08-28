@@ -4,7 +4,7 @@ let cache = null;
 
 export async function loadGeojson() {
   if (cache) return cache;
-  // viewerは /web/ 配下なので相対で取れる。神サーバの"/"からは /static/web/ にフォールバック
+  // viewerは /web/ 配下なので相対で取れる。サーバの"/"からは /static/web/ にフォールバック
   let res = await fetch("world.geojson");
   if (!res.ok) res = await fetch("/static/web/world.geojson");
   const data = await res.json();

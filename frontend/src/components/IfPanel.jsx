@@ -6,7 +6,7 @@ const NATION_JA = { JPN: "日本", USA: "米国", CHN: "中国", EUR: "EU", SAU:
   IND: "インド", EGY: "エジプト", TWN: "台湾", KOR: "韓国", IRN: "イラン", TUR: "トルコ",
   IDN: "インドネシア", AUS: "豪州", CAN: "カナダ", BRA: "ブラジル" };
 
-// IF史モード: 過去tickに介入を差し込んで歴史を分岐させる（神サーバ /api/whatif 経由）
+// IF史モード: 過去tickに介入を差し込んで歴史を分岐させる（サーバ /api/whatif 経由）
 export default function IfPanel({ open, onClose, baseDefault, tickDefault, meta, onLoadReplay }) {
   const [base, setBase] = useState(baseDefault || "");
   const [tick, setTick] = useState(tickDefault ?? 0);
@@ -119,7 +119,7 @@ export default function IfPanel({ open, onClose, baseDefault, tickDefault, meta,
         {result?.busy && <span className="ng">分岐実行中…（決定論再実行、数秒）</span>}
         {result?.error && (<>
           <span className="ng">失敗: {result.error}</span><br />
-          <small style={{ color: "var(--dim)" }}>base run 名と神サーバ(8788)経由のアクセスを確認してください</small>
+          <small style={{ color: "var(--dim)" }}>base run 名とサーバ(8788)経由のアクセスを確認してください</small>
         </>)}
         {r && (<>
           <span className="ok">分岐: {result.data.name}</span><br />

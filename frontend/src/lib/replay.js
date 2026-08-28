@@ -14,7 +14,7 @@ export function ingestReplay(text) {
   return { META, TICKS };
 }
 
-// 主要イベントtick → マーカー色（破綻/開戦/崩壊/急騰/神介入/月次GDP急落-1.5%超）
+// 主要イベントtick → マーカー色（破綻/開戦/崩壊/急騰/介入/月次GDP急落-1.5%超）
 export function computeMajor(TICKS) {
   const MAJOR = {};
   let prevGdp = null;

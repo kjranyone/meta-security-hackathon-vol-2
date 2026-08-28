@@ -15,7 +15,7 @@ export function EventRow({ e }) {
   );
 }
 
-// feed: 現在tickまでのイベント（新しい順）。godEvents: 神の介入（先頭表示）
+// feed: 現在tickまでのイベント（新しい順）。godEvents: 介入（先頭表示）
 export default function EventFeed({ events, godEvents = [], counts }) {
   const body = [...(godEvents || []).slice(-8).reverse(), ...(events || []).slice().reverse()];
   return (

@@ -6,7 +6,7 @@ export const RESOURCES = ["oil", "gas", "grain", "fab", "mineral", "orbit"];
 export const RESOURCE_JA = { oil: "石油", gas: "天然ガス", grain: "穀物",
   fab: "半導体製造", mineral: "希少金属", orbit: "宇宙インフラ" };
 
-// 地図下部の神介入HUD。パラメータが必要な操作は onModal(type) でモーダルへ、
+// 地図下部の介入HUD。パラメータが必要な操作は onModal(type) でモーダルへ、
 // 即時実行で良い操作は intervene を直接呼ぶ。sel.kind: "nation" | "cp" | "world"
 export default function GodBar({ sel, meta, intervene, onModal }) {
   const nation = sel.kind === "nation" ? sel.id : null;

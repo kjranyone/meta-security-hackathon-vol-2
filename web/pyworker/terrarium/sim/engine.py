@@ -366,7 +366,7 @@ class Engine:
                 if dur:
                     self._pending_reopen[cp.name] = self.tick_no + int(dur)
                 ev = self.event_log.emit(
-                    self.tick_no, "god_intervention", f"神が海峡 {cp.name} を封鎖した",
+                    self.tick_no, "god_intervention", f"介入: 海峡 {cp.name} を封鎖",
                     actor="GOD", targets=[], data={"chokepoint": cp.name},
                 )
                 self._cp_cause[cp.name] = ev.id
@@ -380,7 +380,7 @@ class Engine:
                 cp.closed, cp.closed_since = False, None
                 self._cp_cause.pop(cp.name, None)
                 self.event_log.emit(
-                    self.tick_no, "god_intervention", f"神が海峡 {cp.name} の封鎖を解いた",
+                    self.tick_no, "god_intervention", f"介入: 海峡 {cp.name} の封鎖を解除",
                     actor="GOD", data={"chokepoint": cp.name},
                 )
         elif iv.type == "destroy_resource":
@@ -393,7 +393,7 @@ class Engine:
                 units.remove(res)
                 self.event_log.emit(
                     self.tick_no, "god_intervention",
-                    f"神が {self.nations[nid].name} の{_RESOURCE_JA.get(res.value, res.value)}生産能力を消し去った",
+                    f"介入: {self.nations[nid].name} の{_RESOURCE_JA.get(res.value, res.value)}生産能力を消去",
                     actor="GOD", targets=[nid], data={"nation": nid, "resource": res.value},
                 )
         elif iv.type == "disaster":
@@ -419,7 +419,7 @@ class Engine:
             }.get(kind, (kind, ""))
             self.event_log.emit(
                 self.tick_no, "god_intervention",
-                f"神が {nat.name} に{label}をもたらした — {effect}",
+                f"介入: {nat.name} に{label} — {effect}",
                 actor="GOD", targets=[nid], data={"nation": nid, "kind": kind},
             )
         elif iv.type == "disinfo":
@@ -449,7 +449,7 @@ class Engine:
                 self.nation_resources[nid].append(res)
             self.event_log.emit(
                 self.tick_no, "god_intervention",
-                f"神が {self.nations[nid].name} に新たな{_RESOURCE_JA.get(res.value, res.value)}資源を創り出した（×{qty}）",
+                f"介入: {self.nations[nid].name} に新たな{_RESOURCE_JA.get(res.value, res.value)}資源（×{qty}）",
                 actor="GOD", targets=[nid], data={"nation": nid, "resource": res.value, "quantity": qty},
             )
         elif iv.type == "grant_tech":
@@ -468,7 +468,7 @@ class Engine:
             self.tech_adopted[tid].clear()
             self.event_log.emit(
                 self.tick_no, "god_intervention",
-                f"神が「{self.tech_index[tid].name}」の研究を全世界で禁じた",
+                f"介入: 「{self.tech_index[tid].name}」の研究を全世界で禁止",
                 actor="GOD", data={"tech": tid},
             )
         elif iv.type == "bailout":
@@ -481,14 +481,14 @@ class Engine:
             nat.stability = min(100.0, nat.stability + 5.0)
             self.event_log.emit(
                 self.tick_no, "god_intervention",
-                f"神が {nat.name} に救済（ベイルアウト）を与えた。債務は削減され信用が部分的に回復",
+                f"介入: {nat.name} に救済（ベイルアウト）— 債務削減・信用が部分的に回復",
                 actor="GOD", targets=[nid], data={"nation": nid},
             )
         elif iv.type == "rate_hike":
             self.god.world_rate_hike = float(p.get("value", 0.02))
             self.event_log.emit(
                 self.tick_no, "god_intervention",
-                f"神が世界金利を +{self.god.world_rate_hike*100:.0f}% 引き上げた。全ての債務国の利払いが急増する",
+                f"介入: 世界金利を +{self.god.world_rate_hike*100:.0f}% 引き上げ — 全債務国の利払いが急増",
                 actor="GOD", data={"value": self.god.world_rate_hike},
             )
         elif iv.type == "set_param":
@@ -497,14 +497,14 @@ class Engine:
                 return
             param, value = p["param"], float(p["value"])
             # UI/WebSocket経由の任意入力が NationState へ setattr されないよう
-            # 神が書き換え可能なフィールドをホワイトリストで制限する
+            # 介入で書き換え可能なフィールドをホワイトリストで制限する
             if param not in ("aggression", "paranoia"):
                 raise ValueError(
                     f"set_param: '{param}' is not settable (allowed: aggression, paranoia)")
             setattr(self.nations[nid], param, value)
             self.event_log.emit(
                 self.tick_no, "god_intervention",
-                f"神が {self.nations[nid].name} の {param} を {value:.2f} に書き換えた",
+                f"介入: {self.nations[nid].name} の {param} を {value:.2f} に書き換え",
                 actor="GOD", targets=[nid], data={"nation": nid, "param": param, "value": value},
             )
         elif iv.type == "global_slider":
@@ -514,7 +514,7 @@ class Engine:
                     f"(allowed: {', '.join(sorted(type(self.god).model_fields))})")
             setattr(self.god, p["param"], float(p["value"]))
             self.event_log.emit(
-                self.tick_no, "god_intervention", f"神が世界パラメータ {p['param']} を {p['value']} にした",
+                self.tick_no, "god_intervention", f"介入: 世界パラメータ {p['param']} を {p['value']} に変更",
                 actor="GOD", data=p,
             )
         elif iv.type == "grant_factor":
@@ -528,7 +528,7 @@ class Engine:
                 self.nations[nid].factor_progress.pop(fid, None)
                 self.event_log.emit(
                     self.tick_no, "god_intervention",
-                    f"神が {self.nations[nid].name} に {fspec.name} を授けた（既成事実化）",
+                    f"介入: {self.nations[nid].name} に {fspec.name} を授与（既成事実化）",
                     actor="GOD", targets=[nid], data={"nation": nid, "factor": fid},
                 )
 

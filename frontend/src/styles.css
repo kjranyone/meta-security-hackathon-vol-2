@@ -4,7 +4,7 @@
   --z-canvas: 0;      /* 地図canvas */
   --z-split: 10;      /* パネル分割線 */
   --z-zoomctl: 20;    /* ズームコントロール */
-  --z-hud: 30;        /* 神介入HUD */
+  --z-hud: 30;        /* 介入HUD */
   --z-mapinfo: 35;    /* 地図上の小物（hover等） */
   --z-ifpanel: 40;    /* IFパネル */
   --z-toast: 70;      /* イベントトースト */

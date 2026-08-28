@@ -12,7 +12,7 @@ const COMMO_FAINT = {
 };
 const COMMO_CLOSED = "rgba(248,81,73,.65)";
 
-// 統一地図レンダラ（神モード・リプレイビューア共通）
+// 統一地図レンダラ（介入モード・リプレイビューア共通）
 // opts: { geo, meta, selectedNation, selectedChokepoint, showRoutes, pulses }
 // pulses: {kind: pair|self|choke|route, ..., color, age01} — イベント発生直後のみ
 // 関係が光る層(常時の関係アークは廃止。選択時のスター表示は明示操作なので残す)
@@ -222,7 +222,7 @@ export function renderMap(ctx, cv, tick, opts) {
   }
 }
 
-// クリック位置から国家/海峡を解決（神UIの選択ロジック）
+// クリック位置から国家/海峡を解決（介入UIの選択ロジック）
 // returns {kind:"cp", id} | {kind:"nation", id} | {kind:null, id:null}
 export function pickAt(mx, my, geo, meta, cvScale = 1) {
   let best = null, bd = 14;
