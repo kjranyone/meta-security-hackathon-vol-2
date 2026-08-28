@@ -59,5 +59,16 @@ class RLPolicy:
         # （世界の履歴の内部表現。世界再構築でリセット=決定論を保つ）
         action = self.net.act(obs, deterministic=True)
         d = action_to_decisions(action)
-        d.rationale = f"RL tactical policy ({self.weights_path})"
+        # イベントフィードに流れる1行。重みのパス(デバッグ情報)ではなく、
+        # その週に政府が決めた内容そのものを言う。モデルの同一性は
+        # 「世界を創る」/状態モーダルの配備モデル表示が担う
+        b = d.budget
+        tot = sum(b.values()) or 1.0
+        alloc = "/".join(f"{ja}{100.0 * b.get(k, 0.0) / tot:.0f}"
+                         for ja, k in (("軍事", "military"), ("福祉", "welfare"),
+                                       ("備蓄", "stockpile"), ("補助", "subsidy")))
+        posture_ja = {"defensive": "防御", "neutral": "中立", "aggressive": "攻勢"}.get(
+            d.military_posture, d.military_posture)
+        opts = "".join(x for x, on in (("・配給ON", d.rationing), ("・宣伝ON", d.propaganda)) if on)
+        d.rationale = f"RL戦術AI: 予算 {alloc}・姿勢 {posture_ja}{opts}"
         return d
