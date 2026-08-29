@@ -11,7 +11,6 @@ import DateBar from "./DateBar";
 import Toasts, { useToasts } from "./Toasts";
 import LegendModal from "./LegendModal";
 import StatusModal from "./StatusModal";
-import HomeButton from "./HomeButton";
 import { loadGeojson } from "../lib/geo";
 import { pickAt } from "../lib/renderMap";
 import { eventsToPulses } from "../lib/pulses";
@@ -221,7 +220,7 @@ export default function InterventionApp({ mode = "server" }) {
         </span>
 
         <span className="spacer" />
-        <HomeButton /> <button onClick={() => setSel(s => (s.kind === "world" ? { kind: null, id: null } : { kind: "world", id: null }))}>世界</button>
+        <button onClick={() => setSel(s => (s.kind === "world" ? { kind: null, id: null } : { kind: "world", id: null }))}>世界</button>
         <button className="helpbtn" onClick={() => setLegendOpen(true)}>?</button>
       </header>
 

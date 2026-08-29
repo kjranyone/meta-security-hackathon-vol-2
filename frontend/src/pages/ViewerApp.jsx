@@ -15,7 +15,6 @@ import { initAudio, beep, MAJOR_TONES } from "../lib/audio";
 import { setClock } from "../lib/calendar";
 import { eventsToPulses } from "../lib/pulses";
 import PageTitle from "../components/PageTitle";
-import HomeButton from "../components/HomeButton";
 
 export default function ViewerApp({ params }) {
   const [geo, setGeo] = useState(null);
@@ -161,7 +160,6 @@ export default function ViewerApp({ params }) {
       <header>
         <PageTitle small="Real-World Viewer" />
         <span className="spacer" />
-        <HomeButton />
         <button onClick={() => setOpenOpen(o => !o)}>リプレイを開く</button>
         <button className={showRoutes ? "on" : ""} onClick={() => setShowRoutes(s2 => !s2)}>航路</button>
         <button onClick={() => { initAudio(); setIfOpen(o => !o); }}>IF史</button>
