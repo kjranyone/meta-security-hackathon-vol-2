@@ -1,5 +1,4 @@
-// 海峡(chokepoint)のホバー情報。日本語名と、その世界の航路定義から
-// 「何がどれだけこの海峡に依存しているか」を集計する。
+// 地図ホバーtooltipの内容(海峡・国家で共通の {head, badge, lines, note} 形状)
 const JA = {
   "Strait of Hormuz": "ホルムズ海峡",
   "Strait of Malacca": "マラッカ海峡",
@@ -12,10 +11,6 @@ const JA = {
 const COMMODITY_JA = { energy: "エネルギー", food: "食料", chips: "半導体",
                        minerals: "鉱物", space: "宇宙" };
 
-export function chokeJa(name) {
-  return JA[name] || name;
-}
-
 export function chokeInfo(name, tick, meta) {
   const routes = (meta?.geo?.routes || []).filter(r => (r.chokepoints || []).includes(name));
   const importers = [...new Set(routes.map(r => r.importer))];
@@ -23,11 +18,31 @@ export function chokeInfo(name, tick, meta) {
   routes.forEach(r => { commodities[r.commodity] = (commodities[r.commodity] || 0) + 1; });
   const commStr = Object.entries(commodities)
     .map(([c, n]) => `${COMMODITY_JA[c] || c}${n > 1 ? `×${n}` : ""}`).join("・") || "なし";
+  const closed = !!(tick?.chokepoints?.[name]);
   return {
-    ja: chokeJa(name),
-    closed: !!(tick?.chokepoints?.[name]),
-    routeCount: routes.length,
-    importers: importers.slice(0, 5).join("・") + (importers.length > 5 ? " ほか" : ""),
-    commodities: commStr,
+    head: JA[name] || name,
+    badge: closed ? "封鎖中" : "開通",
+    badgeClass: closed ? "cp-closed" : "cp-open",
+    lines: [
+      `経由航路 ${routes.length}本（${commStr}）`,
+      `主な輸入国: ${importers.slice(0, 5).join("・") || "—"}${importers.length > 5 ? " ほか" : ""}`,
+    ],
+    note: "封鎖すると経由航路の輸送力が約10日がかりで目減いし、価格・備蓄へ波及します",
+  };
+}
+
+export function nationInfo(nid, tick) {
+  const n = tick?.nations?.[nid];
+  if (!n) return null;
+  return {
+    head: n.name || nid,
+    badge: n.collapsed ? "崩壊" : null,
+    badgeClass: "cp-closed",
+    lines: [
+      `GDP ${n.gdp}T・安定 ${n.stability}・軍事 ${n.military}`,
+      `債務 ${n.debt_gdp}%・インフレ ${((n.inflation || 0) * 100).toFixed(1)}%`,
+      `戦争: ${(n.at_war_with || []).join("・") || "なし"} / 同盟: ${(n.alliances || []).join("・") || "なし"}`,
+    ],
+    note: "クリックで統計表で選択(介入モードでは介入対象になる)",
   };
 }

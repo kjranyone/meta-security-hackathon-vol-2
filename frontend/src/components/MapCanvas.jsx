@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { renderMap } from "../lib/renderMap";
 import { PULSE_TTL } from "../lib/pulses";
-import { chokeInfo } from "../lib/chokepoints";
-import { nationInfo } from "../lib/nationInfo";
+import { chokeInfo, nationInfo } from "../lib/chokepoints";
 import { pickAt } from "../lib/renderMap";
 import { VIEW, fitView, clampVals, unprojectWith } from "../lib/projection";
 
@@ -221,33 +220,17 @@ export default function MapCanvas({ tick, geo, meta, selectedNation, selectedCho
         <button className="fit" onClick={fitBtn}>全体</button>
         <span className="zoompct">{zoomPct}%</span>
       </div>
-      {hover && hover.kind === "nation" && (() => {
-        const info = nationInfo(hover.id, tick);
+      {hover && (() => {
+        const info = hover.kind === "cp"
+          ? chokeInfo(hover.name, tick, meta)
+          : nationInfo(hover.id, tick);
         if (!info) return null;
         return (
           <div className="cphover" style={{ left: Math.min(hover.x + 14, (wrapRef.current?.clientWidth || 400) - 240), top: hover.y + 14 }}>
-            <b>{info.name}</b>
-            {info.collapsed && <span className="cp-closed">崩壊</span>}
-            <small>
-              GDP {info.gdp}T・安定 {info.stability}・軍事 {info.military}<br />
-              債務 {info.debt}%・インフレ {info.infl}%<br />
-              戦争: {info.atWar} / 同盟: {info.allies}
-            </small>
-            <small className="cp-note">クリックで統計表で選択(介入モードでは介入対象になる)</small>
-          </div>
-        );
-      })()}
-      {hover && hover.kind === "cp" && (() => {
-        const info = chokeInfo(hover.name, tick, meta);
-        return (
-          <div className="cphover" style={{ left: Math.min(hover.x + 14, (wrapRef.current?.clientWidth || 400) - 240), top: hover.y + 14 }}>
-            <b>{info.ja}</b>
-            <span className={info.closed ? "cp-closed" : "cp-open"}>{info.closed ? "封鎖中" : "開通"}</span>
-            <small>
-              経由航路 {info.routeCount}本（{info.commodities}）<br />
-              主な輸入国: {info.importers || "—"}
-            </small>
-            <small className="cp-note">封鎖すると経由航路の輸送力が約10日がかりで目減いし、価格・備蓄へ波及します</small>
+            <b>{info.head}</b>
+            {info.badge && <span className={info.badgeClass || "cp-open"}>{info.badge}</span>}
+            {info.lines.map((l, i) => <small key={i}>{l}</small>)}
+            {info.note && <small className="cp-note">{info.note}</small>}
           </div>
         );
       })()}
