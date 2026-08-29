@@ -276,30 +276,7 @@ export default function InterventionApp({ mode = "server" }) {
         <MapCanvas tick={tick} geo={geo} meta={meta} god pulses={pulses}
                    selectedNation={sel.kind === "nation" ? sel.id : null}
                    selectedChokepoint={sel.kind === "cp" ? sel.id : null}
-                   onMapClick={onMapClick}>
-          <CreateWorldDialog open={createOpen} preset={preset} policy={policy} seed={seed}
-                             rlNation={rlNation} modelInfo={status.model} onPreset={setPreset} onPolicy={setPolicy}
-                             policyLocked={browser} noGen={browser}
-                             onSeed={setSeed} onRlNation={setRlNation}
-                             onCreate={resetWorld} onClose={() => setCreateOpen(false)} />
-          <InterveneModal action={ivModal}
-                          target={sel.kind === "nation" ? (meta?.geo?.nations?.[sel.id]?.name || sel.id)
-                                    : sel.kind === "cp" ? sel.id : undefined}
-                          onRun={(type, params) => {
-                              if (type === "set_params") {
-                                intervene("set_param", { nation: params.nation, param: "aggression", value: params.aggression });
-                                intervene("set_param", { nation: params.nation, param: "paranoia", value: params.paranoia });
-                              } else intervene(type, params);
-                            }}
-                          onClose={() => setIvModal(null)} />
-          {legendOpen && <LegendModal onClose={() => setLegendOpen(false)} />}
-          {statusOpen && (
-            <StatusModal onClose={() => setStatusOpen(false)} conn={conn} status={status}
-                         serverLabel={browser ? "ブラウザ内で実行中(Pyodide WASM — ネットワーク不使用)" : undefined}
-                         onNewSim={() => { setStatusOpen(false); setCreateOpen(true); }}
-                         tick={tick} meta={meta} preset={preset} policy={policy} seed={seed} />
-          )}
-        </MapCanvas>
+                   onMapClick={onMapClick} />
         <GodBar sel={sel} meta={meta} intervene={intervene} onModal={setIvModal} />
 
         <VSplit
@@ -352,6 +329,29 @@ export default function InterventionApp({ mode = "server" }) {
           {muted ? "♪" : "♪♪"}
         </button>
       </div>
+
+          <CreateWorldDialog open={createOpen} preset={preset} policy={policy} seed={seed}
+                             rlNation={rlNation} modelInfo={status.model} onPreset={setPreset} onPolicy={setPolicy}
+                             policyLocked={browser} noGen={browser}
+                             onSeed={setSeed} onRlNation={setRlNation}
+                             onCreate={resetWorld} onClose={() => setCreateOpen(false)} />
+          <InterveneModal action={ivModal}
+                          target={sel.kind === "nation" ? (meta?.geo?.nations?.[sel.id]?.name || sel.id)
+                                    : sel.kind === "cp" ? sel.id : undefined}
+                          onRun={(type, params) => {
+                              if (type === "set_params") {
+                                intervene("set_param", { nation: params.nation, param: "aggression", value: params.aggression });
+                                intervene("set_param", { nation: params.nation, param: "paranoia", value: params.paranoia });
+                              } else intervene(type, params);
+                            }}
+                          onClose={() => setIvModal(null)} />
+          {legendOpen && <LegendModal onClose={() => setLegendOpen(false)} />}
+          {statusOpen && (
+            <StatusModal onClose={() => setStatusOpen(false)} conn={conn} status={status}
+                         serverLabel={browser ? "ブラウザ内で実行中(Pyodide WASM — ネットワーク不使用)" : undefined}
+                         onNewSim={() => { setStatusOpen(false); setCreateOpen(true); }}
+                         tick={tick} meta={meta} preset={preset} policy={policy} seed={seed} />
+          )}
     </div>
   );
 }

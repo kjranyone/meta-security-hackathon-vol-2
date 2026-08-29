@@ -185,7 +185,7 @@ label.sl output { width: 44px; text-align: right; }
 
 
 /* ---------------- modal dialogs ---------------- */
-.modal-back { position: absolute; inset: 0; background: rgba(4,8,14,.72); z-index: var(--z-modal);
+.modal-back { position: fixed; inset: 0; background: rgba(4,8,14,.72); z-index: var(--z-modal);
               display: flex; align-items: center; justify-content: center; }
 .modal { background: var(--panel); border: 1px solid var(--god); border-radius: 14px;
          width: min(560px, 92%); max-height: 84%; overflow: auto; padding: 22px 26px;
@@ -309,9 +309,9 @@ label.sl output { width: 44px; text-align: right; }
 
 /* モーダル右上の✕閉じる */
 .modal { position: relative; }
-.modalclose { position: absolute; top: 10px; right: 12px; z-index: 2;
+.modalclose { position: sticky; top: 8px; float: right; z-index: 2;
   background: transparent; border: none; color: var(--dim); font-size: 16px;
-  cursor: pointer; padding: 4px 8px; line-height: 1; }
+  cursor: pointer; padding: 4px 8px; line-height: 1; margin: 2px 2px 0 0; }
 .modalclose:hover { color: var(--text); }
 
 /* 凡例モーダル: カテゴリを罫線で囲み2列に(余白を活用) */

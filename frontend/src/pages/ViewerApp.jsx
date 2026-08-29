@@ -173,18 +173,7 @@ export default function ViewerApp({ params }) {
           <>
             <MapCanvas tick={tick} geo={geo} meta={meta}
                        selectedNation={selected} showRoutes={showRoutes}
-                       pulses={pulses}>
-      {legendOpen && <LegendModal onClose={() => setLegendOpen(false)} />}
-
-      <IfPanel
-        open={ifOpen}
-        onClose={() => setIfOpen(false)}
-        baseDefault={baseName}
-        tickDefault={tick?.tick ?? 0}
-        meta={meta}
-        onLoadReplay={url => loadUrl(url)}
-      />
-            </MapCanvas>
+                       pulses={pulses} />
           </>
         ) : (
           <div className="mapwrap">
@@ -252,6 +241,16 @@ export default function ViewerApp({ params }) {
       />
 
 
+      {legendOpen && <LegendModal onClose={() => setLegendOpen(false)} />}
+
+      <IfPanel
+        open={ifOpen}
+        onClose={() => setIfOpen(false)}
+        baseDefault={baseName}
+        tickDefault={tick?.tick ?? 0}
+        meta={meta}
+        onLoadReplay={url => loadUrl(url)}
+      />
     </div>
   );
 }
