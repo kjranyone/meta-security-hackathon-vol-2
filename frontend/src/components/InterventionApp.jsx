@@ -17,7 +17,7 @@ import { eventsToPulses } from "../lib/pulses";
 import { setClock } from "../lib/calendar";
 import { initAudio, beep, toneForTypes, MAJOR_TONES } from "../lib/audio";
 
-// 介入モードの共通実装。GodApp(サーバ版・WebSocket)とLiveApp(ブラウザ実行・
+// ライブ推論モードの共通実装。GodApp(サーバ版・WebSocket)とLiveApp(ブラウザ実行・
 // Web Worker + Pyodide)はtransport以外すべて同じUI/状態機械を持つため、
 // 差分は mode だけに集約する(DRY)。
 //   mode="server":  ws://host/ws 接続・世界再創造はPOST /api/reset
@@ -156,7 +156,7 @@ export default function InterventionApp({ mode = "server" }) {
     w.onmessage = ev => onMessage(ev.data);
     const base = location.href.split("#")[0].replace(/[^/]*$/, "");
     window.__liveSend = obj => w.postMessage(obj);   // 検証用フック
-    w.postMessage({ cmd: "boot", base, world: "earth", seed: 42, ticks: 24 * 400, autoplay: true });
+    w.postMessage({ cmd: "boot", base, world: "earth", seed: 42, ticks: 24 * 400, autoplay: false });   // 開いた時に勝手に動かさない
     return () => { w.terminate(); busRef.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [browser]);
@@ -174,12 +174,12 @@ export default function InterventionApp({ mode = "server" }) {
     if (browser) {
       // 同じ学習モデル1本でseed/世界だけ差し替える(サーバ不要)
       send({ cmd: "reset", world: preset === "gen" ? "default" : preset,
-             seed: +seed || 42, ticks: 24 * 400, autoplay: true });
+             seed: +seed || 42, ticks: 24 * 400, autoplay: false });   // 作っても停止。▶で開始
     } else {
       const body = {
         preset: preset === "gen" ? "default" : preset, policy,
-        seed: +seed || 42, ticks: 24 * 400,
-      };
+        seed: +seed || 42, ticks: 24 * 400, autoplay: false,
+      };   // 作っても停止。▶で開始
       if (preset === "gen") body.gen_seed = +seed || 42;   // 生成世界の初期値もseed欄で差し替え
       fetch("/api/reset", {
         method: "POST", headers: { "Content-Type": "application/json" },

@@ -1,4 +1,4 @@
-// ライブ介入モードWorker: Pyodide(CPython+WASM)上で本物のterrariumエンジンと
+// ライブ推論モードWorker: Pyodide(CPython+WASM)上で本物のterrariumエンジンと
 // RL推論(numpy, deep_bc 50MB)を走らせる。サーバ版Sessionと同じメッセージ
 // プロトコル(meta/tick/status/god/end)をpostMessageで流す — UI(GodApp流用)は
 // サーバ版と同じJSONで動く。力学の移植はないのでネイティブ実行と同じ決定論。

@@ -43,6 +43,6 @@ export function nationInfo(nid, tick) {
       `債務 ${n.debt_gdp}%・インフレ ${((n.inflation || 0) * 100).toFixed(1)}%`,
       `戦争: ${(n.at_war_with || []).join("・") || "なし"} / 同盟: ${(n.alliances || []).join("・") || "なし"}`,
     ],
-    note: "クリックで統計表で選択(介入モードでは介入対象になる)",
+    note: "クリックで統計表で選択(ライブ推論モードでは介入対象になる)",
   };
 }

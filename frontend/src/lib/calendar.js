@@ -1,6 +1,6 @@
 // シミュレーション内暦。tick0 = 西暦2026年8月1日 00:00。
 // 1tickの実時間はサーバーの時計設定(meta.clock.hours_per_tick)に従う:
-//   介入モード = 1時間/tick(RTS)、実験リプレイ = 720時間/tick(月次圧縮)。
+//   ライブ推論モード = 1時間/tick(RTS)、実験リプレイ = 720時間/tick(月次圧縮)。
 export const SIM_T0 = Date.UTC(2026, 7, 1);
 
 let HPT = 1;

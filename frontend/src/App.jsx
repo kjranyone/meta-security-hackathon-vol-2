@@ -8,8 +8,8 @@ import ViewerApp from "./pages/ViewerApp";
 // サーバ書き換え無しで /#/viewer?replay=... の深リンクが効く。
 //   #/         ギャラリー(リプレイ+ライブへの導線)
 //   #/viewer   リプレイビューア(?replay=&t=)
-//   #/live     介入モード・ブラウザ実行(Pyodide)
-//   #/god      介入モード・サーバ版(要バックエンド8788)
+//   #/live     ライブ推論モード・ブラウザ実行(Pyodide)
+//   #/god      ライブ推論モード・サーバ版(要バックエンド8788)
 export function hashRoute() {
   const h = location.hash.replace(/^#/, "");
   const [path, query] = h.split("?");

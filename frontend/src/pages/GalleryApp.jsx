@@ -64,11 +64,11 @@ export default function GalleryApp() {
         {CARDS_ALL.map(c => <Card key={c.href} {...c} />)}
       </div>
 
-      <h2 className="sec">介入モード <small>ブラウザ内でエンジンと学習モデル1本がそのまま実行される(初回読込に時間がかかります)</small></h2>
+      <h2 className="sec">ライブ推論モード <small>ブラウザ内でエンジンと学習モデル1本がそのまま実行される(初回読込に時間がかかります)</small></h2>
       <div className="grid">
         <a className="card" href="#/live">
           <span className="tag">ブラウザ実行・ライブ</span>
-          <h2>介入モード・ブラウザ実行</h2>
+          <h2>ライブ推論モード・ブラウザ実行</h2>
           <p>サーバ不要。このページ内で<b>本物のPythonエンジンと学習モデル1本(約50MB)が
           WASM(Pyodide)上で実行</b>されます — 力学の移植ではなく同一コードなので、
           ネイティブ実行と<b className="res">同seedで400tick・bit一致を検証済み</b>。
@@ -77,7 +77,7 @@ export default function GalleryApp() {
       </div>
 
       <p className="foot">
-        サーバ版介入モード(<a href="#/god">#/god</a> — PythonバックエンドとWebSocketで接続、
+        サーバ版ライブ推論モード(<a href="#/god">#/god</a> — PythonバックエンドとWebSocketで接続、
         リポジトリをクローンして <code>uv run uvicorn terrarium.server.app:app --port 8788</code>)。
         学習・評価の主張の範囲は
         <a href={`${GH}/README.md`}>README</a> ・
