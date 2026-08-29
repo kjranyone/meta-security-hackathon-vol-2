@@ -1,3 +1,4 @@
+import ModalClose from "./ModalClose";
 // ビジュアル凡例（?ボタンで開く。CSSグリフと色チップのみ）
 const ROUTES = [
   ["エネルギー", "#e3b341"], ["食料", "#7cb342"], ["半導体", "#58a6ff"],
@@ -30,7 +31,8 @@ export default function LegendModal({ onClose }) {
   return (
     <div className="modal-back" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
-        <h2>凡例</h2>
+        <ModalClose onClose={onClose} />
+          <h2>凡例</h2>
         <div className="leggrid">
           <div className="legsec">
             <b>航路</b>
@@ -60,9 +62,6 @@ export default function LegendModal({ onClose }) {
               <div key={name}><span className="dot" style={{ background: c }} />{name}</div>
             ))}
           </div>
-        </div>
-        <div className="modalbtns">
-          <button className="go" onClick={onClose}>閉じる</button>
         </div>
       </div>
     </div>

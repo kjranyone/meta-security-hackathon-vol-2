@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import ModalClose from "./ModalClose";
 import { TECHS, RESOURCES, RESOURCE_JA } from "./GodBar";
 
 const P = (label, hint) => <label className="modalfield">{label}{hint ? <small style={{ color: "var(--dim)", display: "block" }}>{hint}</small> : null}</label>;
@@ -135,7 +136,8 @@ export default function InterveneModal({ action, target, onRun, onClose }) {
       <div className="modal" onClick={e => e.stopPropagation()}>
         {action === "global_sliders" ? (
           <>
-            <h2>世界パラメータ</h2>
+            <ModalClose onClose={onClose} />
+          <h2>世界パラメータ</h2>
             {SLIDERS.map(p => (
               <div key={p}>
                 {P(p)}

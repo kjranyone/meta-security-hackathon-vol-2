@@ -1,4 +1,5 @@
 import { simDate } from "../lib/calendar";
+import ModalClose from "./ModalClose";
 import Credits from "./Credits";
 import { policyLabel } from "../lib/policies";
 
@@ -23,7 +24,8 @@ export default function StatusModal({ onClose, conn, status, tick, meta,
   return (
     <div className="modal-back" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
-        <h2>状態</h2>
+        <ModalClose onClose={onClose} />
+          <h2>状態</h2>
         <div className="statrows">
           {rows.map(([k, v]) => (
             <div className="statrow-line" key={k}><span>{k}</span><b>{String(v)}</b></div>
@@ -44,7 +46,6 @@ export default function StatusModal({ onClose, conn, status, tick, meta,
         )}
         <Credits showPyodide={serverLabel?.includes("Pyodide")} />
         <div className="modalbtns">
-          <button onClick={onClose}>閉じる</button>
           {onNewSim && <button className="go" onClick={onNewSim}>新しいシミュレーション</button>}
         </div>
       </div>

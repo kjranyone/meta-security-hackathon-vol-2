@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import ModalClose from "./ModalClose";
 import { POLICY_LABELS } from "../lib/policies";
 // 「世界を創る」ダイアログ（新規ゲーム画面風・説明文なし）
 // 学習AI選択時は配備モデル(重みファイル)を明示する — 何が頭脳なのか曖昧にしない
@@ -21,7 +22,8 @@ export default function CreateWorldDialog({ open, preset, policy, seed, rlNation
   return (
     <div className="modal-back" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
-        <h2>新しいシミュレーション</h2>
+        <ModalClose onClose={onClose} />
+          <h2>新しいシミュレーション</h2>
         <label className="modalfield">世界
           <select value={preset} onChange={e => onPreset(e.target.value)}>
             <option value="earth_all">earth_all — 全世界176カ国</option>
