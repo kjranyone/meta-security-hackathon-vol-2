@@ -15,6 +15,7 @@ import { initAudio, beep, MAJOR_TONES } from "../lib/audio";
 import { setClock } from "../lib/calendar";
 import { eventsToPulses } from "../lib/pulses";
 import PageTitle from "../components/PageTitle";
+import HomeButton from "../components/HomeButton";
 
 export default function ViewerApp({ params }) {
   const [geo, setGeo] = useState(null);
@@ -149,6 +150,7 @@ export default function ViewerApp({ params }) {
         <span className="spacer" />
         <input type="text" value={urlInput} onChange={e => setUrlInput(e.target.value)}
                placeholder="http://localhost:8787/server/logs/earth_hormuz/replay.jsonl" />
+        <HomeButton />
         <button onClick={() => loadUrl(urlInput)}>読み込み</button>
         <button onClick={() => document.getElementById("file").click()}>ファイルを開く</button>
         <input type="file" id="file" accept=".jsonl" style={{ display: "none" }}

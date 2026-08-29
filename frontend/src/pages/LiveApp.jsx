@@ -12,6 +12,7 @@ import Toasts, { useToasts } from "../components/Toasts";
 import LegendModal from "../components/LegendModal";
 import StatusModal from "../components/StatusModal";
 import { loadGeojson } from "../lib/geo";
+import HomeButton from "../components/HomeButton";
 import { pickAt } from "../lib/renderMap";
 import { eventsToPulses } from "../lib/pulses";
 import { setClock } from "../lib/calendar";
@@ -172,7 +173,7 @@ export default function LiveApp() {
               title="状態と配備モデルを見る(ブラウザ内実行)">●</span>
 
         <span className="spacer" />
-        <button onClick={() => setSel(s => (s.kind === "world" ? { kind: null, id: null } : { kind: "world", id: null }))}>世界</button>
+        <HomeButton /> <button onClick={() => setSel(s => (s.kind === "world" ? { kind: null, id: null } : { kind: "world", id: null }))}>世界</button>
         <button className="helpbtn" onClick={() => setLegendOpen(true)}>?</button>
       </header>
 
