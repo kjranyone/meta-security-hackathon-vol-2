@@ -32,6 +32,7 @@ export default function ViewerApp({ params }) {
   const [urlInput, setUrlInput] = useState("");
   const [ifOpen, setIfOpen] = useState(false);
   const [legendOpen, setLegendOpen] = useState(false);
+  const [openOpen, setOpenOpen] = useState(false);   // リプレイを開く(URL/ファイル)モーダル
   const { toasts, push: pushToast } = useToasts();
   const [clockFrac, setClockFrac] = useState(0.5);
   const [sideW, setSideW] = useState(460);
@@ -160,19 +161,8 @@ export default function ViewerApp({ params }) {
       <header>
         <PageTitle small="Real-World Viewer" />
         <span className="spacer" />
-        <input type="text" value={urlInput} onChange={e => setUrlInput(e.target.value)}
-               placeholder="http://localhost:8787/server/logs/earth_hormuz/replay.jsonl" />
         <HomeButton />
-        <button onClick={() => loadUrl(urlInput)}>読み込み</button>
-        <button onClick={() => document.getElementById("file").click()}>ファイルを開く</button>
-        <input type="file" id="file" accept=".jsonl" style={{ display: "none" }}
-               onChange={e => {
-                 const f = e.target.files[0];
-                 if (!f) return;
-                 const rd = new FileReader();
-                 rd.onload = () => loadReplayText(rd.result);
-                 rd.readAsText(f);
-               }} />
+        <button onClick={() => setOpenOpen(o => !o)}>リプレイを開く</button>
         <button className={showRoutes ? "on" : ""} onClick={() => setShowRoutes(s2 => !s2)}>航路</button>
         <button onClick={() => { initAudio(); setIfOpen(o => !o); }}>IF史</button>
         <button className="helpbtn" onClick={() => setLegendOpen(true)}>?</button>
@@ -221,6 +211,34 @@ export default function ViewerApp({ params }) {
         </div>
       </div>
 
+      {openOpen && (
+        <div className="modal-back" onClick={() => setOpenOpen(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h2>リプレイを開く</h2>
+            <label className="modalfield">replay.jsonl のURL
+              <input type="text" value={urlInput} onChange={e => setUrlInput(e.target.value)}
+                     placeholder="replays/rl_earth_hormuz/replay.jsonl" />
+            </label>
+            <div className="modalbtns" style={{ justifyContent: "space-between" }}>
+              <button onClick={() => { setOpenOpen(false); document.getElementById("file").click(); }}>
+                ファイルを選択…
+              </button>
+              <button className="go" onClick={() => { loadUrl(urlInput); setOpenOpen(false); }}>読み込む</button>
+            </div>
+            <input type="file" id="file" accept=".jsonl" style={{ display: "none" }}
+                   onChange={e => {
+                     const f = e.target.files[0];
+                     if (!f) return;
+                     const rd = new FileReader();
+                     rd.onload = () => loadReplayText(rd.result);
+                     rd.readAsText(f);
+                   }} />
+            <p style={{ fontSize: 12, color: "var(--dim)", marginTop: 10 }}>
+              この画面へ replay.jsonl をドラッグ＆ドロップしても読み込めます。
+            </p>
+          </div>
+        </div>
+      )}
       <TimelineBar
         playing={playing}
         onTogglePlay={() => {
