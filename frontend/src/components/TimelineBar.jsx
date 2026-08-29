@@ -34,6 +34,8 @@ export default function TimelineBar({ playing, onTogglePlay, cur, ticks, major,
   }, [flashCount]);
 
   const last = ticks.length ? ticks[ticks.length - 1].tick : 1;
+  // 未来のネタバレをしない: マーカーは再生ヘッドより過去(既に見たtick)のみ表示。
+  // リプレイをゼロから見る者は未来を知らない — 事件は通り過ぎた時に初めて見える
   const marks = useMemo(() => Object.entries(major || {})
     .map(([t, type]) => {
       const tick = +t;
@@ -47,8 +49,8 @@ export default function TimelineBar({ playing, onTogglePlay, cur, ticks, major,
       const group = GROUP_OF[type] || "経済危機";
       return { tick, idx, group, color: GROUP_COLOR[group], summary };
     })
-    .filter(m => m.idx >= 0)
-    .sort((a, b) => a.tick - b.tick), [major, ticks]);
+    .filter(m => m.idx >= 0 && m.idx <= cur)
+    .sort((a, b) => a.tick - b.tick), [major, ticks, cur]);
 
   const curTick = ticks[cur]?.tick ?? -1;
   return (
@@ -69,7 +71,7 @@ export default function TimelineBar({ playing, onTogglePlay, cur, ticks, major,
           {Object.entries(GROUP_COLOR).map(([g, c]) => (
             <span key={g}><i style={{ background: c }} />{g}</span>
           ))}
-          <span className="hint">●を押すとその時点へ</span>
+          <span className="hint">●は既に起きた事件(押すとその時点へ)</span>
         </div>
       </div>
       <DateBar tick={ticks[cur]?.tick} suffix={` / ${last}`} />
