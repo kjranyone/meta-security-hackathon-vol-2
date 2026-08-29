@@ -29,33 +29,14 @@ const CARDS_ALL = [
     res: true, desc: <><b className="res">戦争2件・崩壊0</b>。半導体依存の国々に価格急騰が波及する様子を世界規模で追えます。</> },
 ];
 
-import { useState } from "react";
-import Credits from "../components/Credits";
+import PageTitle from "../components/PageTitle";
 
 const GH = "https://github.com/kjranyone/meta-security-hackathon-vol-2/blob/main";
 
 export default function GalleryApp() {
-  const [aboutOpen, setAboutOpen] = useState(false);
   return (
     <div className="gallery">
-      {aboutOpen && (
-        <div className="modal-back" onClick={() => setAboutOpen(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <h2>この作品について</h2>
-            <div className="statrows">
-              <div className="statrow-line"><span>構成</span><b>決定論シミュレーション + LLM→RL蒸留 + 介入実験</b></div>
-              <div className="statrow-line"><span>主張の範囲</span><b>世界予測ではなく、事案→機序→数値の可視化</b></div>
-            </div>
-            <Credits />
-            <div className="modalbtns">
-              <button className="go" onClick={() => setAboutOpen(false)}>閉じる</button>
-            </div>
-          </div>
-        </div>
-      )}
-      <h1 onClick={() => setAboutOpen(true)}
-          style={{ cursor: "pointer" }}
-          title="この作品について">Geopolitics Terrarium <small>RL政策リプレイギャラリー</small></h1>
+      <PageTitle small="RL政策リプレイギャラリー" />
       <p className="sub">
         以下の全リプレイは、<b>全国家を強化学習ポリシー(汎用DeepPolicyNet 約50MB・教師LLMから蒸留)</b>で
         運用して生成したものです。ルールベースのHAND-coded政策ではありません — 各国の予算配分・軍事姿勢・

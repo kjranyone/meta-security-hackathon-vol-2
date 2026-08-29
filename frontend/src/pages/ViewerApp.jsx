@@ -14,6 +14,7 @@ import { ingestReplay, computeMajor } from "../lib/replay";
 import { initAudio, beep, MAJOR_TONES } from "../lib/audio";
 import { setClock } from "../lib/calendar";
 import { eventsToPulses } from "../lib/pulses";
+import PageTitle from "../components/PageTitle";
 
 export default function ViewerApp({ params }) {
   const [geo, setGeo] = useState(null);
@@ -144,7 +145,7 @@ export default function ViewerApp({ params }) {
   return (
     <div className="app">
       <header>
-        <h1>Geopolitics Terrarium — Real-World Viewer</h1>
+        <PageTitle small="Real-World Viewer" />
         <span className="spacer" />
         <input type="text" value={urlInput} onChange={e => setUrlInput(e.target.value)}
                placeholder="http://localhost:8787/server/logs/earth_hormuz/replay.jsonl" />
