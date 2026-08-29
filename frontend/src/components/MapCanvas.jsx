@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { renderMap } from "../lib/renderMap";
 import { PULSE_TTL } from "../lib/pulses";
 import { chokeInfo } from "../lib/chokepoints";
+import { nationInfo } from "../lib/nationInfo";
 import { pickAt } from "../lib/renderMap";
 import { VIEW, fitView, clampVals, unprojectWith } from "../lib/projection";
 
@@ -136,9 +137,10 @@ export default function MapCanvas({ tick, geo, meta, selectedNation, selectedCho
     const [mx, my] = pos(ev);
     const pick = pickAt(mx, my, geo, meta);
     const wrap = wrapRef.current.getBoundingClientRect();
-    if (pick.kind === "cp") {
-      setHover(h => (h && h.id === pick.id) ? h : { id: pick.id, name: pick.id,
-        x: ev.clientX - wrap.left, y: ev.clientY - wrap.top });
+    if (pick.kind === "cp" || pick.kind === "nation") {
+      setHover(h => (h && h.id === pick.id && h.kind === pick.kind) ? h
+        : { kind: pick.kind, id: pick.id, name: pick.id,
+            x: ev.clientX - wrap.left, y: ev.clientY - wrap.top });
     } else setHover(null);
   }
 
@@ -219,7 +221,23 @@ export default function MapCanvas({ tick, geo, meta, selectedNation, selectedCho
         <button className="fit" onClick={fitBtn}>全体</button>
         <span className="zoompct">{zoomPct}%</span>
       </div>
-      {hover && (() => {
+      {hover && hover.kind === "nation" && (() => {
+        const info = nationInfo(hover.id, tick);
+        if (!info) return null;
+        return (
+          <div className="cphover" style={{ left: Math.min(hover.x + 14, (wrapRef.current?.clientWidth || 400) - 240), top: hover.y + 14 }}>
+            <b>{info.name}</b>
+            {info.collapsed && <span className="cp-closed">崩壊</span>}
+            <small>
+              GDP {info.gdp}T・安定 {info.stability}・軍事 {info.military}<br />
+              債務 {info.debt}%・インフレ {info.infl}%<br />
+              戦争: {info.atWar} / 同盟: {info.allies}
+            </small>
+            <small className="cp-note">クリックで統計表で選択(介入モードでは介入対象になる)</small>
+          </div>
+        );
+      })()}
+      {hover && hover.kind === "cp" && (() => {
         const info = chokeInfo(hover.name, tick, meta);
         return (
           <div className="cphover" style={{ left: Math.min(hover.x + 14, (wrapRef.current?.clientWidth || 400) - 240), top: hover.y + 14 }}>
