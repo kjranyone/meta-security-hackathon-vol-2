@@ -322,3 +322,11 @@ label.sl output { width: 44px; text-align: right; }
 .legsec b { display: block; font-size: 12px; color: var(--dim);
             text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px; }
 .legsec > div { margin: 4px 0; font-size: 13px; }
+
+/* 縦積みのlabel/本文行(長文が自然に折り返す。welcome/credits用) */
+.kvcol { display: flex; flex-direction: column; gap: 0; margin-top: 8px; text-align: left; }
+.kv { display: flex; flex-direction: column; gap: 2px; padding: 7px 10px;
+      border-bottom: 1px solid var(--border); font-size: 13px; }
+.kv span { color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+.kv b { font-weight: 600; line-height: 1.6; overflow-wrap: anywhere; }
+.statrow-line b { min-width: 0; overflow-wrap: anywhere; }

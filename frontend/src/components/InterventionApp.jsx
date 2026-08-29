@@ -215,11 +215,11 @@ export default function InterventionApp({ mode = "server" }) {
           <div className="modal" onClick={e => e.stopPropagation()}>
             <ModalClose onClose={closeWelcome} />
             <h2>ライブ推論モードへようこそ</h2>
-            <div className="statrows" style={{ textAlign: "left" }}>
-              <div className="statrow-line"><span>この画面</span><b>{browser ? "このブラウザ内(WASM)で" : "サーバ上で"}学習モデル1本が毎週推論し、世界が動き続けます</b></div>
-              <div className="statrow-line"><span>始め方</span><b>下部の「▶ 再生」で開始（速度スライダーで早送り、停止中は「+1時間」で少しずつ）</b></div>
-              <div className="statrow-line"><span>介入</span><b>海峡をクリック→封鎖／国をクリック→救済・災害・性格の書き換えなど</b></div>
-              <div className="statrow-line"><span>調べる</span><b>海峡・国にホバーで状態と依存関係、タイトルクリックで新しいシミュレーション（seed・世界の差し替え）</b></div>
+            <div className="kvcol">
+              <div className="kv"><span>この画面</span><b>{browser ? "このブラウザ内(WASM)で" : "サーバ上で"}学習モデル1本が毎週推論し、世界が動き続けます</b></div>
+              <div className="kv"><span>始め方</span><b>下部の「▶ 再生」で開始（速度スライダーで早送り、停止中は「+1時間」で少しずつ）</b></div>
+              <div className="kv"><span>介入</span><b>海峡をクリック→封鎖／国をクリック→救済・災害・性格の書き換えなど</b></div>
+              <div className="kv"><span>調べる</span><b>海峡・国にホバーで状態と依存関係、タイトルクリックで新しいシミュレーション（seed・世界の差し替え）</b></div>
             </div>
             <div className="modalbtns">
               <button onClick={closeWelcome}>閉じる</button>
