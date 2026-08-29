@@ -11,6 +11,7 @@ import DateBar from "./DateBar";
 import Toasts, { useToasts } from "./Toasts";
 import LegendModal from "./LegendModal";
 import StatusModal from "./StatusModal";
+import ModalClose from "./ModalClose";
 import { loadGeojson } from "../lib/geo";
 import { pickAt } from "../lib/renderMap";
 import { eventsToPulses } from "../lib/pulses";
@@ -50,6 +51,12 @@ export default function InterventionApp({ mode = "server" }) {
   const [rlNation, setRlNation] = useState("");
   const [conn, setConn] = useState(false);
   const [boot, setBoot] = useState(browser ? { stage: "init", msg: "準備中…" } : null);
+  const [welcomeOpen, setWelcomeOpen] = useState(
+    () => { try { return !localStorage.getItem("terrarium_welcomed"); } catch { return true; } });
+  const closeWelcome = () => {
+    try { localStorage.setItem("terrarium_welcomed", "1"); } catch { /* プライベートモード等 */ }
+    setWelcomeOpen(false);
+  };
   const [createOpen, setCreateOpen] = useState(false);
   const [ivModal, setIvModal] = useState(null);   // 開いている介入モーダルのaction
   const [legendOpen, setLegendOpen] = useState(false);
@@ -203,6 +210,24 @@ export default function InterventionApp({ mode = "server" }) {
 
   return (
     <div className="app">
+      {welcomeOpen && !boot && conn && (
+        <div className="modal-back" style={{ zIndex: 45 }}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <ModalClose onClose={closeWelcome} />
+            <h2>ライブ推論モードへようこそ</h2>
+            <div className="statrows" style={{ textAlign: "left" }}>
+              <div className="statrow-line"><span>この画面</span><b>{browser ? "このブラウザ内(WASM)で" : "サーバ上で"}学習モデル1本が毎週推論し、世界が動き続けます</b></div>
+              <div className="statrow-line"><span>始め方</span><b>下部の「▶ 再生」で開始（速度スライダーで早送り、停止中は「+1時間」で少しずつ）</b></div>
+              <div className="statrow-line"><span>介入</span><b>海峡をクリック→封鎖／国をクリック→救済・災害・性格の書き換えなど</b></div>
+              <div className="statrow-line"><span>調べる</span><b>海峡・国にホバーで状態と依存関係、タイトルクリックで新しいシミュレーション（seed・世界の差し替え）</b></div>
+            </div>
+            <div className="modalbtns">
+              <button onClick={closeWelcome}>閉じる</button>
+              <button className="go" onClick={() => { send({ cmd: "play" }); closeWelcome(); }}>▶ 再生して始める</button>
+            </div>
+          </div>
+        </div>
+      )}
       {boot && (
         <div className="modal-back" style={{ zIndex: 50 }}>
           <div className="modal" style={{ textAlign: "center" }}>
