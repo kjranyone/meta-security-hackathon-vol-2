@@ -16,14 +16,15 @@ export function ingestReplay(text) {
 
 // 主要イベントtick → マーカー色（破綻/開戦/崩壊/急騰/介入/月次GDP急落-1.5%超）
 export function computeMajor(TICKS) {
+  // 値はイベント型(タイムラインの分類色はTimelineBarが決める)。crashは集計由来。
   const MAJOR = {};
   let prevGdp = null;
   for (const t of TICKS) {
     for (const e of t.events || []) {
-      if (MAJOR_COLOR[e.type]) { MAJOR[t.tick] = MAJOR_COLOR[e.type]; break; }
+      if (MAJOR_COLOR[e.type]) { MAJOR[t.tick] = e.type; break; }
     }
     if (!MAJOR[t.tick] && prevGdp !== null && t.metrics?.world_gdp < prevGdp * 0.985)
-      MAJOR[t.tick] = MAJOR_COLOR.crash;
+      MAJOR[t.tick] = "crash";
     prevGdp = t.metrics?.world_gdp ?? prevGdp;
   }
   return MAJOR;
