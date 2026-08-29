@@ -313,3 +313,12 @@ label.sl output { width: 44px; text-align: right; }
   background: transparent; border: none; color: var(--dim); font-size: 16px;
   cursor: pointer; padding: 4px 8px; line-height: 1; }
 .modalclose:hover { color: var(--text); }
+
+/* 凡例モーダル: カテゴリを罫線で囲み2列に(余白を活用) */
+.modal.legmodal { width: min(780px, 94%); }
+.leggrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+           gap: 12px; margin-top: 10px; }
+.legsec { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+.legsec b { display: block; font-size: 12px; color: var(--dim);
+            text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px; }
+.legsec > div { margin: 4px 0; font-size: 13px; }

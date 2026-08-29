@@ -1,12 +1,17 @@
 import ModalClose from "./ModalClose";
+import { GROUP_COLOR } from "../lib/eventMeta";
 // ビジュアル凡例（?ボタンで開く。CSSグリフと色チップのみ）
 const ROUTES = [
   ["エネルギー", "#e3b341"], ["食料", "#7cb342"], ["半導体", "#58a6ff"],
   ["地下資源", "#d2a8ff"], ["宇宙", "#3fdeff"],
 ];
 const TRUST = [["高信頼", "#3fb950"], ["中立", "#8b949e"], ["敵対", "#f85149"]];
-const TL = [["債務不履行", "#ff6b35"], ["開戦", "#f85149"], ["価格急騰", "#e3b341"],
-            ["介入", "#a371f7"], ["GDP急落", "#e5534b"], ["核取得", "#ff4d6d"], ["核放棄", "#7ee787"]];
+const TL_DESC = {
+  "武力": "開戦・動員・国家崩壊・核取得",
+  "経済危機": "価格急騰・為替危機・債務不履行・GDP急落",
+  "介入": "プレイヤーによる介入",
+  "制度": "同盟参戦・因子放棄",
+};
 
 function Line({ color, dashed }) {
   return <span style={{
@@ -30,9 +35,9 @@ function Ring({ color, slashed, size = 16 }) {
 export default function LegendModal({ onClose }) {
   return (
     <div className="modal-back" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()}>
+      <div className="modal legmodal" onClick={e => e.stopPropagation()}>
         <ModalClose onClose={onClose} />
-          <h2>凡例</h2>
+        <h2>凡例</h2>
         <div className="leggrid">
           <div className="legsec">
             <b>航路</b>
@@ -40,7 +45,7 @@ export default function LegendModal({ onClose }) {
             <div><Line color="#f85149" dashed />封鎖された航路</div>
           </div>
           <div className="legsec">
-            <b>友好度線</b>
+            <b>友好度線（国選択中）</b>
             {TRUST.map(([name, c]) => <div key={name}><Line color={c} />{name}</div>)}
           </div>
           <div className="legsec">
@@ -57,9 +62,10 @@ export default function LegendModal({ onClose }) {
             <div><span className="glyph glyph-dark" />崩壊（領土暗転）</div>
           </div>
           <div className="legsec">
-            <b>タイムライン</b>
-            {TL.map(([name, c]) => (
-              <div key={name}><span className="dot" style={{ background: c }} />{name}</div>
+            <b>タイムラインの事件マーカー</b>
+            {Object.entries(GROUP_COLOR).map(([g, c]) => (
+              <div key={g}><span className="dot" style={{ background: c }} />{g}
+                <small style={{ color: "var(--dim)", marginLeft: 6 }}>{TL_DESC[g]}</small></div>
             ))}
           </div>
         </div>
