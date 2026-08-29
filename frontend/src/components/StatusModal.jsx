@@ -1,4 +1,5 @@
 import { simDate } from "../lib/calendar";
+import Credits from "./Credits";
 import { policyLabel } from "../lib/policies";
 
 // 現在のセッション状態モーダル（タイトル/接続チップから開く。純粋な状態値のみ）
@@ -41,16 +42,7 @@ export default function StatusModal({ onClose, conn, status, tick, meta,
             </div>
           </>
         )}
-        <h2 style={{ marginTop: 14 }}>クレジット</h2>
-        <div className="statrows">
-          <div className="statrow-line"><span>製作</span><b>Kojiro Tanaka (kjranyone)</b></div>
-          <div className="statrow-line"><span>応募</span><b>第2回 AIエージェント社会シミュレーション・ハッカソン「メタ安全保障」</b></div>
-          <div className="statrow-line"><span>地図データ</span><b>Natural Earth (public domain)</b></div>
-          <div className="statrow-line"><span>学習教師</span><b>z.ai GLM</b></div>
-          {serverLabel?.includes("Pyodide") && (
-            <div className="statrow-line"><span>実行基盤</span><b>Pyodide (CPython + numpy / WASM)</b></div>
-          )}
-        </div>
+        <Credits showPyodide={serverLabel?.includes("Pyodide")} />
         <div className="modalbtns">
           <button onClick={onClose}>閉じる</button>
           {onNewSim && <button className="go" onClick={onNewSim}>新しいシミュレーション</button>}
