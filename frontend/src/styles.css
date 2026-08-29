@@ -294,3 +294,15 @@ label.sl output { width: 44px; text-align: right; }
 /* scrubバーはtlwrap全幅(旧来この指定が無く、バーが129pxの既定幅のまま
    マーカー行と全く連動していなかった) */
 .tlwrap input[type=range] { width: 100%; }
+
+/* 海峡ホバーtooltip */
+.cphover { position: absolute; z-index: 12; pointer-events: none;
+  background: rgba(13, 17, 23, .95); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 10px; max-width: 230px;
+  font-size: 12px; line-height: 1.55; color: var(--text);
+  box-shadow: 0 6px 18px rgba(0,0,0,.5); }
+.cphover b { margin-right: 8px; }
+.cphover small { display: block; color: var(--dim); font-size: 11px; margin-top: 3px; }
+.cphover .cp-note { margin-top: 5px; border-top: 1px solid var(--border); padding-top: 4px; }
+.cphover .cp-open { color: #7ee787; font-size: 11px; }
+.cphover .cp-closed { color: #f85149; font-size: 11px; font-weight: 600; }

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { renderMap } from "../lib/renderMap";
 import { PULSE_TTL } from "../lib/pulses";
+import { chokeInfo } from "../lib/chokepoints";
+import { pickAt } from "../lib/renderMap";
 import { VIEW, fitView, clampVals, unprojectWith } from "../lib/projection";
 
 const MIN_SCALE = 1.2, MAX_SCALE = 60;
@@ -23,6 +25,7 @@ export default function MapCanvas({ tick, geo, meta, selectedNation, selectedCho
   const pulseRef = useRef([]);
   const pulseRaf = useRef(0);
   const [zoomPct, setZoomPct] = useState(100);
+  const [hover, setHover] = useState(null);   // {x,y,name} 海峡ホバーtooltip
 
   function updateZoomPct(cv) {
     const base = Math.min(cv.width / 366, cv.height / 186);
@@ -126,6 +129,19 @@ export default function MapCanvas({ tick, geo, meta, selectedNation, selectedCho
             (ev.clientY - rect.top) * (cv.height / rect.height)];
   }
 
+  // 海峡リングのホバー: 通行/封鎖と依存航路をtooltipで説明
+  function onHoverMove(ev) {
+    const cv = cvRef.current;
+    if (!cv || !meta) return;
+    const [mx, my] = pos(ev);
+    const pick = pickAt(mx, my, geo, meta);
+    const wrap = wrapRef.current.getBoundingClientRect();
+    if (pick.kind === "cp") {
+      setHover(h => (h && h.id === pick.id) ? h : { id: pick.id, name: pick.id,
+        x: ev.clientX - wrap.left, y: ev.clientY - wrap.top });
+    } else setHover(null);
+  }
+
   function onPointerDown(ev) {
     const [mx, my] = pos(ev);
     drag.current = { mx, my, base: null, moved: false };
@@ -191,8 +207,10 @@ export default function MapCanvas({ tick, geo, meta, selectedNation, selectedCho
     <div ref={wrapRef} className="mapwrap">
       <canvas ref={cvRef} className="map"
               onPointerDown={onPointerDown} onPointerMove={onPointerMove}
+              onMouseMove={onHoverMove} onMouseLeave={() => setHover(null)}
               onPointerUp={endDrag} onPointerLeave={() => {
                 drag.current = null;
+                setHover(null);
                 cvRef.current?.classList.remove("dragging");
               }} />
       <div className="zoomctl">
@@ -201,6 +219,20 @@ export default function MapCanvas({ tick, geo, meta, selectedNation, selectedCho
         <button className="fit" onClick={fitBtn}>全体</button>
         <span className="zoompct">{zoomPct}%</span>
       </div>
+      {hover && (() => {
+        const info = chokeInfo(hover.name, tick, meta);
+        return (
+          <div className="cphover" style={{ left: Math.min(hover.x + 14, (wrapRef.current?.clientWidth || 400) - 240), top: hover.y + 14 }}>
+            <b>{info.ja}</b>
+            <span className={info.closed ? "cp-closed" : "cp-open"}>{info.closed ? "封鎖中" : "開通"}</span>
+            <small>
+              経由航路 {info.routeCount}本（{info.commodities}）<br />
+              主な輸入国: {info.importers || "—"}
+            </small>
+            <small className="cp-note">封鎖すると経由航路の輸送力が約10日がかりで目減いし、価格・備蓄へ波及します</small>
+          </div>
+        );
+      })()}
       {children}
     </div>
   );
