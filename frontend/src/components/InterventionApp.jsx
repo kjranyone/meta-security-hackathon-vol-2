@@ -235,9 +235,7 @@ export default function InterventionApp({ mode = "server" }) {
         </div>
       )}
       <header>
-        <h1 onClick={() => setStatusOpen(true)}>
-          Geopolitics Terrarium {browser && <small style={{ fontSize: 13, color: "var(--dim)", fontWeight: 400 }}>ブラウザ実行</small>}
-        </h1>
+        <h1 onClick={() => setStatusOpen(true)}>Geopolitics Terrarium</h1>
         <span id="conn" className={conn ? "ok" : "bad"} onClick={() => setStatusOpen(true)}
               title={browser ? "状態と配備モデルを見る(ブラウザ内実行)" : "状態と配備モデルを見る"}>
           {browser || conn ? "●" : "● 切断"}
