@@ -280,3 +280,17 @@ label.sl output { width: 44px; text-align: right; }
 .tllegend i { display: inline-block; width: 7px; height: 7px; border-radius: 50%;
   margin-right: 4px; vertical-align: middle; }
 .tllegend .hint { opacity: .75; }
+
+/* マーカーとスライダーつまみの位置合わせ: つまみ幅を14pxに固定し、
+   マーカーはつまみ中心と同じ写像(calc(7px + (100%-14px)*frac))で置く */
+.tlwrap input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--accent); }
+.tlwrap input[type=range]::-moz-range-thumb {
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--accent); border: none; }
+
+/* scrubバーはtlwrap全幅(旧来この指定が無く、バーが129pxの既定幅のまま
+   マーカー行と全く連動していなかった) */
+.tlwrap input[type=range] { width: 100%; }

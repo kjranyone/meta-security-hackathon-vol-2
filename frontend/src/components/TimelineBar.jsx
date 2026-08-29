@@ -60,7 +60,8 @@ export default function TimelineBar({ playing, onTogglePlay, cur, ticks, major,
         <div className="tlmarks">
           {marks.map(m => (
             <button key={m.tick} className={`tlmark${flashCount && m.tick === curTick ? " hit" : ""}`}
-                 style={{ left: `${(100 * m.tick) / last}%`, background: m.color, color: m.color }}
+                 style={{ left: `calc(7px + (100% - 14px) * ${m.tick / Math.max(1, last)})`,
+                          background: m.color, color: m.color }}
                  title={`t${m.tick} — ${m.summary || GROUP_OF[major?.[m.tick]] || ""}`}
                  onClick={() => onScrub(m.idx)} />
           ))}
