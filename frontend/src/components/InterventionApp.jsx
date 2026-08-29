@@ -90,7 +90,17 @@ export default function InterventionApp({ mode = "server" }) {
   const onMessage = useCallback(m => {
     if (m.type === "boot") { setBoot(m); return; }            // Workerのみ
     if (m.type === "booted") { setBoot(null); setConn(true); return; }
-    if (m.type === "error") { pushToast("error", m.message); return; }
+    if (m.type === "error") {
+      pushToast("error", m.message);
+      // 起動中の失敗はオーバーレイに表示し、再読み込み以外に抜け道が無い状態を避ける
+      setBoot(b => b ? { ...b, error: m.message } : b);
+      return;
+    }
+    if (m.type === "end") {   // max_ticks到達(サーバ版/ブラウザ版とも送信)
+      setStatus({ running: m.running, tick: m.tick, max_ticks: m.max_ticks,
+                  speed_ms: m.speed_ms, eff_ms: m.eff_ms, model: m.model });
+      return;
+    }
     if (m.type === "runresult") { window.__lastRun = m; return; }   // 検証フック
     if (m.type === "meta") {
       metaRef.current = m;
@@ -196,17 +206,31 @@ export default function InterventionApp({ mode = "server" }) {
       {boot && (
         <div className="modal-back" style={{ zIndex: 50 }}>
           <div className="modal" style={{ textAlign: "center" }}>
-            <h2>ブラウザでシミュレーションを起動中</h2>
-            <p className="modalsub">{boot.msg}</p>
-            {boot.stage === "weights" && (
-              <div style={{ height: 6, background: "var(--bg)", borderRadius: 3, overflow: "hidden", margin: "10px 0" }}>
-                <div style={{ width: `${boot.pct || 0}%`, height: "100%", background: "var(--accent)" }} />
-              </div>
+            <h2>{boot.error ? "起動に失敗しました" : "ブラウザでシミュレーションを起動中"}</h2>
+            {boot.error ? (
+              <>
+                <p className="modalsub" style={{ color: "var(--bad)", wordBreak: "break-all" }}>{boot.error}</p>
+                <p style={{ fontSize: 12, color: "var(--dim)", margin: "8px 0" }}>
+                  ランタイム(CDN)または学習モデルの取得に失敗した可能性があります。ネットワークを確認して再試行してください。
+                </p>
+                <div className="modalbtns" style={{ justifyContent: "center" }}>
+                  <button className="go" onClick={() => location.reload()}>再読み込み</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="modalsub">{boot.msg}</p>
+                {boot.stage === "weights" && (
+                  <div style={{ height: 6, background: "var(--bg)", borderRadius: 3, overflow: "hidden", margin: "10px 0" }}>
+                    <div style={{ width: `${boot.pct || 0}%`, height: "100%", background: "var(--accent)" }} />
+                  </div>
+                )}
+                <p style={{ fontSize: 12, color: "var(--dim)", marginTop: 8 }}>
+                  Python(WASM)ランタイム + 学習モデル(約50MB)を一度だけ読み込みます。
+                  以降はネットワークなしで、このページ内でエンジンと推論が完結します。
+                </p>
+              </>
             )}
-            <p style={{ fontSize: 12, color: "var(--dim)", marginTop: 8 }}>
-              Python(WASM)ランタイム + 学習モデル(約50MB)を一度だけ読み込みます。
-              以降はネットワークなしで、このページ内でエンジンと推論が完結します。
-            </p>
           </div>
         </div>
       )}
