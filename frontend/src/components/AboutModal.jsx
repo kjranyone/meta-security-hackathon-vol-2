@@ -1,7 +1,9 @@
 import Credits from "./Credits";
 
-// 作品情報モーダル(全ページのタイトルクリックで開く共通導線)
+// 作品情報モーダル(全ページのタイトルクリックで開く共通導線)。
+// ギャラリー以外で開いた場合はトップ(#)への導線も併せる
 export default function AboutModal({ onClose }) {
+  const atTop = ["", "#", "#/"].includes(location.hash);
   return (
     <div className="modal-back" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
@@ -12,7 +14,12 @@ export default function AboutModal({ onClose }) {
         </div>
         <Credits />
         <div className="modalbtns">
-          <button className="go" onClick={onClose}>閉じる</button>
+          <button onClick={onClose}>閉じる</button>
+          {!atTop && (
+            <button className="go" onClick={() => { location.hash = "/"; onClose(); }}>
+              ギャラリーに戻る
+            </button>
+          )}
         </div>
       </div>
     </div>
