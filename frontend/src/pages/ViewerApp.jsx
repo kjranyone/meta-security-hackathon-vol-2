@@ -143,6 +143,18 @@ export default function ViewerApp({ params }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tick]);
 
+  // 縦分割ペーンのリサイズ(統計表とチャートで同じ挙動 — DRYに1ヘルパ化)
+  const vdrag = (ref, h, set, reset) => ({
+    onStart: ev => { ref.current = { y: ev.clientY, h }; },
+    onMove: ev => {
+      if (!ref.current) return;
+      const maxH = document.querySelector(".side").getBoundingClientRect().height - 180;
+      set(Math.min(Math.max(ref.current.h + ev.clientY - ref.current.y, 70), Math.max(maxH, 70)));
+    },
+    onEnd: () => { ref.current = null; },
+    onReset: () => set(reset),
+  });
+
   return (
     <div className="app">
       <header>
@@ -199,28 +211,12 @@ export default function ViewerApp({ params }) {
           <div id="statspane" style={{ height: statsH, overflow: "auto", flex: "none", borderBottom: "1px solid var(--border)", padding: "8px 10px" }}>
             <StatsTable tick={tick} selected={selected} onSelect={setSelected} showStocks />
           </div>
-          <HSplit
-            onStart={ev => { statDrag.current = { y: ev.clientY, h: statsH }; }}
-            onMove={ev => {
-              if (!statDrag.current) return;
-              const maxH = document.querySelector(".side").getBoundingClientRect().height - 180;
-              setStatsH(Math.min(Math.max(statDrag.current.h + ev.clientY - statDrag.current.y, 70), Math.max(maxH, 70)));
-            }}
-            onEnd={() => { statDrag.current = null; }}
-            onReset={() => setStatsH(200)} />
+<HSplit {...vdrag(statDrag, statsH, setStatsH, 200)} />
           <div id="chartspane" style={{ height: chartsH, overflow: "auto", flex: "none", borderBottom: "1px solid var(--border)", padding: "8px 10px" }}>
             <h3 style={{ fontSize: 11, color: "var(--dim)", textTransform: "uppercase", marginBottom: 6 }}>Prices &amp; Stability</h3>
             <PriceChart ticks={ticks} />
           </div>
-          <HSplit
-            onStart={ev => { chartDrag.current = { y: ev.clientY, h: chartsH }; }}
-            onMove={ev => {
-              if (!chartDrag.current) return;
-              const maxH = document.querySelector(".side").getBoundingClientRect().height - 180;
-              setChartsH(Math.min(Math.max(chartDrag.current.h + ev.clientY - chartDrag.current.y, 70), Math.max(maxH, 70)));
-            }}
-            onEnd={() => { chartDrag.current = null; }}
-            onReset={() => setChartsH(170)} />
+<HSplit {...vdrag(chartDrag, chartsH, setChartsH, 170)} />
           <EventFeed events={tick?.events || []} />
         </div>
       </div>

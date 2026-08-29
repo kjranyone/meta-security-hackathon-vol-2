@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
+import { GROUP_OF, GROUP_COLOR, TYPE_JA } from "../lib/eventMeta";
 import DateBar from "./DateBar";
 
 // タイムライン上の主要イベントマーカー。
@@ -6,20 +7,6 @@ import DateBar from "./DateBar";
 //   武力(赤): 開戦・動員・崩壊・核取得  経済危機(黄): 価格急騰・為替・債務不履行・GDP急落
 //   介入(紫): プレイヤー介入           制度(緑): 同盟参戦・因子放棄
 // マーカーは押せる: クリックでそのtickへscrub。ホバーで事件の内訳。
-const GROUP_OF = {
-  war_start: "武力", mobilization: "武力", collapse: "武力", factor_acquired: "武力",
-  price_spike: "経済危機", fx_crisis: "経済危機", sovereign_default: "経済危機",
-  crash: "経済危機", collective_sanction: "経済危機",
-  god_intervention: "介入",
-  alliance_activation: "制度", factor_relinquished: "制度",
-};
-const GROUP_COLOR = { 武力: "#f85149", 経済危機: "#e3b341", 介入: "#a371f7", 制度: "#7ee787" };
-const TYPE_JA = {
-  war_start: "開戦", mobilization: "動員", collapse: "国家崩壊", factor_acquired: "因子取得",
-  price_spike: "価格急騰", fx_crisis: "為替危機", sovereign_default: "債務不履行",
-  crash: "GDP急落", collective_sanction: "集団制裁", god_intervention: "介入",
-  alliance_activation: "同盟参戦", factor_relinquished: "因子放棄",
-};
 
 export default function TimelineBar({ playing, onTogglePlay, cur, ticks, major,
                                       onScrub, speed, onSpeed, muted, onMute, flashCount, clockFrac = 0 }) {
