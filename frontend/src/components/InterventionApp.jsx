@@ -46,12 +46,13 @@ export default function InterventionApp({ mode = "server" }) {
 
   const eventLog = useMemo(() => ticks.flatMap(t => t.events || []).slice(-300), [ticks]);
   const openTab = t => { setSideTab(t); if (t === "event") setUnread(0); };
-  const [preset, setPreset] = useState(browser ? "earth" : "earth_all");
+  const [preset, setPreset] = useState("earth_all");   // 既定は全世界176カ国
   const [policy, setPolicy] = useState("rl");
   const [seed, setSeed] = useState(42);
   const [rlNation, setRlNation] = useState("");
   const [conn, setConn] = useState(false);
   const [boot, setBoot] = useState(browser ? { stage: "init", msg: "準備中…" } : null);
+  const [busy, setBusy] = useState(false);   // 週次決定(全政府の推論)でtickが止まっている間
   const [welcomeOpen, setWelcomeOpen] = useState(
     () => { try { return !localStorage.getItem("terrarium_welcomed"); } catch { return true; } });
   const closeWelcome = () => {
@@ -116,7 +117,9 @@ export default function InterventionApp({ mode = "server" }) {
       setPulses([]); pulseResetRef.current++;
       setClock(m.clock?.hours_per_tick ?? 1);
       if (m.status) setStatus(s => ({ ...s, ...m.status }));
+    } else if (m.type === "busy") { setBusy(true);   // 週次推論でtick停止中
     } else if (m.type === "tick") {
+      setBusy(false);
       setTicks(t => [...t, m]);
       if ((m.events || []).length && sideTabRef.current !== "event")
         setUnread(u => Math.min(99, u + m.events.length));
@@ -164,7 +167,7 @@ export default function InterventionApp({ mode = "server" }) {
     w.onmessage = ev => onMessage(ev.data);
     const base = location.href.split("#")[0].replace(/[^/]*$/, "");
     window.__liveSend = obj => w.postMessage(obj);   // 検証用フック
-    w.postMessage({ cmd: "boot", base, world: "earth", seed: 42, ticks: 24 * 400, autoplay: false });   // 開いた時に勝手に動かさない
+    w.postMessage({ cmd: "boot", base, world: "earth_all", seed: 42, ticks: 24 * 400, autoplay: false });   // 開いた時に勝手に動かさない
     return () => { w.terminate(); busRef.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [browser]);
@@ -224,7 +227,7 @@ export default function InterventionApp({ mode = "server" }) {
             <ModalClose onClose={closeWelcome} />
             <h2>ライブ推論モードへようこそ</h2>
             <div className="kvcol">
-              <div className="kv"><span>この画面</span><b>{browser ? "このブラウザ内(WASM)で" : "サーバ上で"}学習モデル1本が毎週推論し、世界が動き続けます</b></div>
+              <div className="kv"><span>この画面</span><b>{browser ? "このブラウザ内(WASM)で" : "サーバ上で"}学習モデル1本が毎週推論し、世界が動き続けます（既定は全世界176カ国。 lightweightな16カ国版は「新しいシミュレーション」から）</b></div>
               <div className="kv"><span>始め方</span><b>下部の「▶ 再生」で開始（速度スライダーで早送り、停止中は「+1時間」で少しずつ）</b></div>
               <div className="kv"><span>介入</span><b>海峡をクリック→封鎖／国をクリック→救済・災害・性格の書き換えなど</b></div>
               <div className="kv"><span>調べる</span><b>海峡・国にホバーで状態と依存関係、タイトルクリックで新しいシミュレーション（seed・世界の差し替え）</b></div>
@@ -320,6 +323,7 @@ export default function InterventionApp({ mode = "server" }) {
         <button className="tlbtn" onClick={() => send({ cmd: "step" })}
                 title="停止中にシミュレーション時間で1時間だけ進める(介入の因果を少しずつ観察)">+1時間</button>
         <DateBar tick={status.tick} suffix={` / ${status.max_ticks} ${status.running ? "▶" : "⏸"}`} />
+        {busy && <span className="busychip" title="全政府(176カ国)の週次推論を実行中 — 数秒〜数十秒tickが止まります">週次推論中…</span>}
         <label className="speedlabel" style={{ flex: 1 }}><span>速度</span>
           <input type="range" min="30" max="3000" value={3030 - (status.speed_ms || 1200)}
                  onChange={e => send({ cmd: "speed", ms: 3030 - +e.target.value })} />

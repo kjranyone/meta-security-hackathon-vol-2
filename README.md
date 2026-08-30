@@ -114,6 +114,9 @@
   3. `node frontend/scripts/parity_check.mjs`（ブラウザ実行が基準値とbit一致か → `BIT-IDENTICAL`）
 - 介入(海峡封鎖→期待価格急騰→72時間後開放)も含めてブラウザ内で完結
 - 初回読込: Pyodide+numpy(CDN)と学習モデル約50MB(同一origin)。以降はHTTPキャッシュ
+- 既定の世界は**earth_all(全世界176カ国)**。16カ国版(earth/earth_jpn)は軽量。
+  週次(168時間ごと)に全政府ぶんの推論が走り、WASMでは数秒〜十数秒tickが止まる —
+  その間は「週次推論中…」の表示と実効速度の低下で如実に示される
 - 差し替えレバーはサーバ版と同じ(seed・世界選択)。思考AI(LLM戦略)はAPI鍵が必要なため
   ローカルサーバ版のみ
 

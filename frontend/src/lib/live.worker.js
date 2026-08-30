@@ -95,6 +95,10 @@ function statusMsg() {
 
 function doStep() {
   if (!session) return;
+  // 週次決定tick(168時間ごと)の直前: 全政府ぶんの推論で長時間ブロックするので
+  // 先にbusyを知らせてUI側で「止まっている理由」を示す
+  // 決定tickの境界は時計の丸めで±1揺れるため両候補で通知(余分な1件は直後のtickで消える)
+  if ((session.t + 1) % 168 === 0 || session.t % 168 === 0) post({ type: "busy" });
   const t0 = performance.now();
   const out = dumps(session.step());
   if (out === "null") {           // max_ticks到達

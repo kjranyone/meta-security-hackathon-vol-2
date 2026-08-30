@@ -335,3 +335,8 @@ label.sl output { width: 44px; text-align: right; }
 .feedtoggle { font-size: 12px; color: var(--dim); cursor: pointer; padding: 6px 8px;
   border: 1px dashed var(--border); border-radius: 8px; margin: 8px 0; user-select: none; }
 .feedtoggle:hover { color: var(--text); border-color: var(--accent); }
+
+/* 週次推論中チップ(全世界の政府決定でtickが止まる間の表示) */
+.busychip { font-size: 11.5px; color: #ffdd57; border: 1px solid #ffdd5766;
+  border-radius: 999px; padding: 2px 10px; white-space: nowrap; animation: busypulse 1.2s infinite; }
+@keyframes busypulse { 50% { opacity: .45; } }
