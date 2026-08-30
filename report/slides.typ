@@ -100,7 +100,8 @@
     #v(4mm)
     #text(size: 8.6pt, fill: sub)[
       複合戦略AI: LLM（戦略層・z.ai GLM） × 強化学習（戦術層・自己対戦） × ルール（世界解決層）#linebreak()\
-      第2回 AIエージェント社会シミュレーション・ハッカソン「メタ安全保障」応募作品
+      第2回 AIエージェント社会シミュレーション・ハッカソン「メタ安全保障」応募作品#linebreak()\
+      #h(2pt) み（ど）　Discord ID: mu_sette
     ]
   ]
 ]
