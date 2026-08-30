@@ -34,14 +34,22 @@ const b = await chromium.launch({ channel: "chrome", headless: true });
 const page = await b.newPage();
 page.on("pageerror", e => console.error("PAGEERROR:", String(e).slice(0, 200)));
 await page.goto(url, { waitUntil: "load", timeout: 60000 });
-await page.waitForFunction(() => window.__liveSend, { timeout: 60000 });
+await page.waitForFunction(() => window.__liveSend, undefined, { timeout: 60000 });
+// 起動オーバーレイ→(世界選択モーダル)。基準値のプロトコルはearth/seed42
+// なので「軽量版16カ国=earth+停止状態で開く」を選んで進める
 await page.waitForFunction(() =>
-  document.querySelector("#conn")?.textContent.includes("●") &&
-  !document.querySelector(".modal-back"), { timeout: 600000 });
+  Array.from(document.querySelectorAll(".modal")).some(m => m.textContent.includes("世界を選ぶ")),
+  undefined, { timeout: 300000 });
+await page.evaluate(() => {
+  const m = Array.from(document.querySelectorAll(".modal")).find(m => m.textContent.includes("世界を選ぶ"));
+  m.querySelectorAll(".radioopt")[1].click();   // 軽量版16カ国 = earth
+  Array.from(m.querySelectorAll("button")).find(b => b.textContent.includes("停止状態で開く")).click();
+});
+await page.waitForFunction(() => !document.querySelector(".modal-back"), undefined, { timeout: 60000 });
 
 await page.evaluate(() => { window.__lastRun = null; window.__liveSend({ cmd: "pause" }); });
 await page.evaluate(() => window.__liveSend({ cmd: "run", ticks: 400 }));
-await page.waitForFunction(() => window.__lastRun, { timeout: 600000 });
+await page.waitForFunction(() => window.__lastRun, undefined, { timeout: 600000 });
 const metrics = await page.evaluate(() => window.__lastRun.metrics);
 await b.close();
 
