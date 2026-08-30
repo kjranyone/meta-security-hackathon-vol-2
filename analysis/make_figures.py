@@ -27,11 +27,16 @@ import matplotlib.pyplot as plt
 REPO = Path(__file__).resolve().parents[1]
 LOGS = REPO / "server" / "logs"
 OUT = Path(__file__).resolve().parent / "out"
-JP = {"family": ["Hiragino Sans", "Noto Sans CJK JP", "Yu Gothic", "sans-serif"]}
+JP = {"family": ["Hiragino Sans", "Noto Sans CJK JP", "YuGothic", "sans-serif"]}
 plt.rcParams.update({"font.size": 10, "axes.facecolor": "#11151c", "figure.facecolor": "#0d1117",
                      "axes.edgecolor": "#30363d", "axes.labelcolor": "#e6edf3",
                      "xtick.color": "#8b949e", "ytick.color": "#8b949e", "text.color": "#e6edf3",
-                     "savefig.facecolor": "#0d1117"})
+                     "savefig.facecolor": "#0d1117",
+                     # 全テキスト(ノードラベル・軸・凡例込み)で日本語を描く: DejaVu SansはCJKグリフを持たない
+                     "font.family": "sans-serif",
+                     "font.sans-serif": ["Hiragino Sans", "Hiragino Kaku Gothic ProN", "YuGothic",
+                                          "AppleGothic", "Noto Sans CJK JP", "DejaVu Sans"],
+                     "axes.unicode_minus": False})
 
 EVENT_COLOR = {"god_intervention": "#a371f7", "trade_throttled": "#e3b341", "price_spike": "#e3b341",
                "shortage": "#db6d28", "sovereign_default": "#ff6b35", "credibility_hit": "#ffa657",
@@ -255,14 +260,21 @@ def rl_curves() -> Path | None:
         return None
     fig, ax = plt.subplots(figsize=(9, 4.6))
     for f in curves:
-        c = json.loads(f.read_text(encoding="utf-8"))
+        d = json.loads(f.read_text(encoding="utf-8"))
+        # curve.jsonは形式が混在: {beta, log:[...]}(fine-tune) / [{episode,...}](従来) /
+        # {corpus, metrics,...}(v12 BC要約 — 系列なし) はスキップ
+        c = d.get("log") if isinstance(d, dict) else d
+        if not isinstance(c, list) or not c or "episode" not in c[0]:
+            continue
         xs = [p["episode"] for p in c]
         if "eval_reward" in c[0]:
             ys = [p["eval_reward"] for p in c]
-        else:  # self-play curves: per-nation dict -> mean
+        elif "eval" in c[0]:  # self-play curves: per-nation dict -> mean
             ys = [sum(p["eval"].values()) / len(p["eval"]) for p in c]
+        else:
+            continue
         base, final = ys[0], ys[-1]
-        ax.plot(xs, ys, marker=".", label=f"{f.stem} ({final - base:+.1f})")
+        ax.plot(xs, ys, marker=".", label=f"{f.stem.removesuffix('.curve')} ({final - base:+.1f})")
     ax.set_xlabel("episode")
     ax.set_ylabel("評価報酬")
     ax.set_title("RL戦術層の学習曲線（凡例: 最終改善幅）")
