@@ -53,8 +53,21 @@ export default function InterventionApp({ mode = "server" }) {
   const [conn, setConn] = useState(false);
   const [boot, setBoot] = useState(browser ? { stage: "init", msg: "準備中…" } : null);
   const [busy, setBusy] = useState(false);   // 週次決定(全政府の推論)でtickが止まっている間
-  const [welcomeOpen, setWelcomeOpen] = useState(
+  const [modeOpen, setModeOpen] = useState(browser);   // ブラウザ版: 開いたら世界を選べる
+  const [worldSel, setWorldSel] = useState("earth_all");
+  const [firstVisit] = useState(
     () => { try { return !localStorage.getItem("terrarium_welcomed"); } catch { return true; } });
+  const [welcomeOpen, setWelcomeOpen] = useState(!browser && (() => {
+    try { return !localStorage.getItem("terrarium_welcomed"); } catch { return true; }
+  })());
+  const startWorld = autoplay => {
+    try { localStorage.setItem("terrarium_welcomed", "1"); } catch { /* プライベートモード等 */ }
+    setPreset(worldSel);
+    setSeed(+seed || 42);
+    send({ cmd: "reset", world: worldSel, seed: +seed || 42, ticks: 24 * 400, autoplay });
+    setModeOpen(false);
+  };
+
   const closeWelcome = () => {
     try { localStorage.setItem("terrarium_welcomed", "1"); } catch { /* プライベートモード等 */ }
     setWelcomeOpen(false);
@@ -221,7 +234,44 @@ export default function InterventionApp({ mode = "server" }) {
 
   return (
     <div className="app">
-      {welcomeOpen && !boot && conn && (
+      {browser && modeOpen && !boot && conn && (
+        <div className="modal-back" style={{ zIndex: 45 }}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <ModalClose onClose={() => startWorld(false)} />
+            <h2>ライブ推論モード — 世界を選ぶ</h2>
+            {firstVisit && (
+              <div className="kvcol">
+                <div className="kv"><span>この画面</span><b>このブラウザ内(WASM)で学習モデル1本が毎週推論し、世界が動き続けます</b></div>
+                <div className="kv"><span>介入</span><b>海峡をクリック→封鎖／国をクリック→救済・災害・性格の書き換えなど</b></div>
+              </div>
+            )}
+            <label className="modalfield">世界
+              <div className="radioopts">
+                <label className="radioopt">
+                  <input type="radio" name="wsel" checked={worldSel === "earth_all"}
+                         onChange={() => setWorldSel("earth_all")} />
+                  <span className="radioopt-body"><b>全世界 176カ国</b>
+                    <small>既定・重厚。週次(168時間ごと)の全政府推論で数秒tickが止まります</small></span>
+                </label>
+                <label className="radioopt">
+                  <input type="radio" name="wsel" checked={worldSel === "earth"}
+                         onChange={() => setWorldSel("earth")} />
+                  <span className="radioopt-body"><b>軽量版 16カ国</b>
+                    <small>快適に観測。世界と介入の仕組みは同じ</small></span>
+                </label>
+              </div>
+            </label>
+            <label className="modalfield">seed
+              <input type="number" value={seed} onChange={e => setSeed(e.target.value)} />
+            </label>
+            <div className="modalbtns">
+              <button onClick={() => startWorld(false)}>停止状態で開く</button>
+              <button className="go" onClick={() => startWorld(true)}>▶ 再生して開く</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {!browser && welcomeOpen && !boot && conn && (
         <div className="modal-back" style={{ zIndex: 45 }}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <ModalClose onClose={closeWelcome} />
