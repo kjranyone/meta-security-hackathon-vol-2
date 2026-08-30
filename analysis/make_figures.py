@@ -23,6 +23,7 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib import patheffects as pe
 
 REPO = Path(__file__).resolve().parents[1]
 LOGS = REPO / "server" / "logs"
@@ -42,7 +43,8 @@ EVENT_COLOR = {"god_intervention": "#a371f7", "trade_throttled": "#e3b341", "pri
                "shortage": "#db6d28", "sovereign_default": "#ff6b35", "credibility_hit": "#ffa657",
                "war_start": "#f85149", "collapse": "#d29922", "sanction": "#d29922",
                "disinfo": "#f778ba", "tech_emergence": "#3fdeff", "tech_adopted": "#2f9c99",
-               "policy_shift": "#8b949e", "threat": "#d29922", "alliance_formed": "#3fb950"}
+               "policy_shift": "#8b949e", "threat": "#d29922", "alliance_formed": "#3fb950",
+               "fx_crisis": "#d6a8ff"}
 
 
 def load_events(run: str) -> list[dict]:
@@ -58,65 +60,107 @@ def load_series(run: str) -> list[dict]:
 
 
 # ---------------------------------------------------------------- cascade graph
+# 時系列×因果リンクのカスケード図: 横軸=tick(原因は常に結果より前にある)、
+# 縦軸=イベント区分レーン。記録された親リンク(parents)を矢印で描き、
+# 親を持たない主要イベント(旧ログの破綴など)も時刻どおりに配置する —
+# 親リンクの欠落だけで連鎖の全体像が消えないための設計。
+CASCADE_LANES = [
+    ("介入", ("god_intervention",)),
+    ("技術", ("tech_emergence", "tech_adopted")),
+    ("経済", ("trade_throttled", "price_spike", "shortage", "fx_crisis")),
+    ("金融", ("sovereign_default", "credibility_hit")),
+    ("軍事", ("mobilization", "war_start", "peace_settlement", "cyber_attack",
+             "alliance_activation", "insurgency")),
+    ("国内", None),  # それ以外(policy_shift / collapse / factor_* など)
+]
+CASCADE_LABEL_TYPES = ("god_intervention", "sovereign_default", "credibility_hit",
+                       "war_start", "collapse", "price_spike", "disinfo", "fx_crisis")
+
+
 def cascade_graph(run: str, max_nodes: int = 120) -> Path | None:
     events = load_events(run)
-    by_id = {e["id"]: e for e in events}
-    roots = [e for e in events if e["type"] in ("god_intervention", "tech_emergence") and not e["parents"]]
-    if not roots:
-        roots = [e for e in events if not e["parents"]]
-    # BFS downstream from roots, capped
-    nodes, edges, depth = {}, [], {}
-    frontier = [(r["id"], 0) for r in roots]
-    while frontier and len(nodes) < max_nodes:
-        eid, d = frontier.pop(0)
-        if eid in nodes:
-            continue
-        e = by_id.get(eid)
-        if e is None:
-            continue
-        nodes[eid] = e
-        depth[eid] = d
-        for child in events:
-            if eid in child["parents"] and child["id"] not in nodes:
-                edges.append((eid, child["id"]))
-                frontier.append((child["id"], d + 1))
-    if len(nodes) < 3:
+    if len(events) < 3:
         return None
-    # layout: depth -> x, spread -> y
-    by_depth = defaultdict(list)
-    for eid, d in depth.items():
-        by_depth[d].append(eid)
+    # 巨大run(世紀実験など数万イベント)は雑音を間引いて描画コストと可読性を保つ
+    NOISE_CAP = 4000
+    key_events = [e for e in events if e["type"] in CASCADE_LABEL_TYPES]
+    noise_events = [e for e in events if e["type"] not in CASCADE_LABEL_TYPES]
+    if len(noise_events) > NOISE_CAP:
+        step = len(noise_events) // NOISE_CAP
+        noise_events = noise_events[::step]
+        events = sorted(key_events + noise_events, key=lambda e: (e.get("tick", 0), str(e["id"])))
+    lane_index = {}
+    for li, (_title, types) in enumerate(CASCADE_LANES):
+        if types:
+            for t in types:
+                lane_index[t] = li
+    nlanes = len(CASCADE_LANES)
+    fallback = nlanes - 1
+    lane_events = defaultdict(list)
+    for e in events:
+        lane_events[lane_index.get(e["type"], fallback)].append(e)
+    # レーン内の位置: tick順に並べ、レーン帯いっぱいに均等配置
     pos = {}
-    for d, ids in by_depth.items():
-        for i, eid in enumerate(ids):
-            pos[eid] = (d, (i - (len(ids) - 1) / 2) * max(1.0, 24 / max(1, len(ids))))
+    for li, evs in lane_events.items():
+        evs.sort(key=lambda e: (e.get("tick", 0), str(e["id"])))
+        m = len(evs)
+        y_center = nlanes - 1 - li
+        for i, e in enumerate(evs):
+            off = (i / max(m - 1, 1) - 0.5) * 0.92 if m > 1 else 0.0
+            pos[e["id"]] = (e.get("tick", 0), y_center + off)
 
-    fig, ax = plt.subplots(figsize=(14, 9))
-    for a, b in edges:
-        if a in pos and b in pos:
-            xa, ya = pos[a]
-            xb, yb = pos[b]
-            ax.annotate("", xy=(xb, yb), xytext=(xa, ya),
-                        arrowprops=dict(arrowstyle="-", color="#30363d", lw=0.6, alpha=0.7))
-    for eid, e in nodes.items():
-        x, y = pos[eid]
-        c = EVENT_COLOR.get(e["type"], "#8b949e")
-        ax.scatter([x], [y], s=42, color=c, zorder=3, edgecolors="#0d1117", linewidths=0.5)
-    for eid, e in nodes.items():
-        x, y = pos[eid]
-        # label only high-signal event types to avoid clutter
-        if e["type"] in ("god_intervention", "sovereign_default", "war_start", "collapse",
-                         "tech_emergence", "disinfo", "alliance_formed"):
-            label = e["text"][:24]
-            ax.annotate(label, (x, y), fontsize=5.5, color="#c9d1d9",
-                        xytext=(3, 3), textcoords="offset points")
-    handles = [plt.Line2D([0], [0], marker="o", color="w", markerfacecolor=c, markersize=7, label=t)
-               for t, c in list(EVENT_COLOR.items())[:10]]
-    ax.legend(handles=handles, loc="upper right", fontsize=7, facecolor="#161b22", labelcolor="#e6edf3")
-    ax.set_title(f"介入のカスケードグラフ — {run}（因果親リンクから再構成）", fontdict=JP)
-    ax.set_xlabel("因果の深さ（神/創発 → 下流）")
-    ax.set_xticks(sorted(by_depth.keys()))
-    ax.margins(0.05)
+    fig, ax = plt.subplots(figsize=(14, 8.5))
+    # 因果の方向を持つ矢印(親 → 子)。レーンをまたぐ曲線で伝播を読ませる
+    arrows = []
+    for e in events:
+        if not e.get("parents"):
+            continue
+        cx, cy = pos[e["id"]]
+        for p in e["parents"]:
+            if p in pos:
+                arrows.append((pos[p], (cx, cy)))
+    if len(arrows) > 800:
+        arrows = arrows[:: len(arrows) // 800 + 1]
+    for (px, py), (cx, cy) in arrows:
+        # 同一tick内の縦方向エッジ(破綴→感染など)はノードに隠れるので弓なりに膨らませる
+        rad = 0.5 if abs(cx - px) < 1.0 else 0.12
+        ax.annotate("", xy=(cx, cy), xytext=(px, py), zorder=2,
+                    arrowprops=dict(arrowstyle="->", color="#58a6ff",
+                                    lw=0.6, alpha=0.45,
+                                    connectionstyle=f"arc3,rad={rad}"))
+    # ノード: タイプ×(主要/雑音)ごとに一括描画(1イベントずつだと数万回呼びで破滅する)
+    for key in (True, False):
+        by_color = defaultdict(lambda: ([], []))
+        for e in events:
+            if (e["type"] in CASCADE_LABEL_TYPES) != key:
+                continue
+            xs, ys = by_color[EVENT_COLOR.get(e["type"], "#6e7681")]
+            xs.append(pos[e["id"]][0])
+            ys.append(pos[e["id"]][1])
+        for color, (xs, ys) in by_color.items():
+            ax.scatter(xs, ys, s=80 if key else 9, color=color, zorder=3,
+                       alpha=1.0 if key else 0.4,
+                       edgecolors="#0d1117", linewidths=0.6 if key else 0.0)
+    # ラベルは主要タイプのみ、ダークハロで可読化(上限つき)
+    labeled = [e for e in events if e["type"] in CASCADE_LABEL_TYPES][:120]
+    for e in labeled:
+        x, y = pos[e["id"]]
+        ax.annotate(e["text"][:24], (x, y), fontsize=7.0, color="#e6edf3",
+                    xytext=(4, 3), textcoords="offset points", zorder=4,
+                    path_effects=[pe.withStroke(linewidth=2.4, foreground="#0d1117")])
+    ax.set_yticks([nlanes - 1 - li for li in range(nlanes)],
+                  [t for t, _ in CASCADE_LANES])
+    ax.set_ylim(-0.55, nlanes - 0.45)
+    ax.set_xlabel("tick（実験の圧縮時計: 1tick=1ヶ月）")
+    ax.set_title(f"介入から連鎖へ — 時系列と因果リンク（{run}）")
+    present = [t for t in CASCADE_LABEL_TYPES if any(e["type"] == t for e in events)]
+    handles = [plt.Line2D([0], [0], marker="o", color="w",
+                          markerfacecolor=EVENT_COLOR.get(t, "#8b949e"),
+                          markersize=7, label=t) for t in present]
+    ax.legend(handles=handles, loc="upper right", fontsize=7,
+              facecolor="#161b22", labelcolor="#e6edf3")
+    ax.grid(color="#21262d", axis="x")
+    ax.margins(x=0.02)
     ax.set_axisbelow(True)
     out = OUT / f"cascade_{run}.png"
     fig.tight_layout()
