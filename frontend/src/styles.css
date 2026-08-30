@@ -340,3 +340,10 @@ label.sl output { width: 44px; text-align: right; }
 .busychip { font-size: 11.5px; color: #ffdd57; border: 1px solid #ffdd5766;
   border-radius: 999px; padding: 2px 10px; white-space: nowrap; animation: busypulse 1.2s infinite; }
 @keyframes busypulse { 50% { opacity: .45; } }
+
+/* modalfield直下のrange/number以外のinput(ラジオ等)は全幅block化しない
+   — 世界選択ラジオが333pxの帯に広がりカード配置が崩れていた */
+.modalfield input[type="radio"], .modalfield input[type="checkbox"] {
+  display: inline-block; width: auto; margin: 3px 0 0; }
+/* スティッキー✕と長いタイトルの重複防止(全モーダル共通) */
+.modal h2 { padding-right: 30px; }

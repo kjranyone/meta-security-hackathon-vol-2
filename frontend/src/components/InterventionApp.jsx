@@ -253,7 +253,7 @@ export default function InterventionApp({ mode = "server" }) {
                 <div className="kv"><span>介入</span><b>海峡をクリック→封鎖／国をクリック→救済・災害・性格の書き換えなど</b></div>
               </div>
             )}
-            <label className="modalfield">世界
+            <div className="modalfield">世界
               <div className="radioopts">
                 <label className="radioopt">
                   <input type="radio" name="wsel" checked={worldSel === "earth_all"}
@@ -268,7 +268,7 @@ export default function InterventionApp({ mode = "server" }) {
                     <small>快適に観測。世界と介入の仕組みは同じ</small></span>
                 </label>
               </div>
-            </label>
+            </div>
             <label className="modalfield">seed
               <input type="number" value={seed} onChange={e => setSeed(e.target.value)} />
             </label>
