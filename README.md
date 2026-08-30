@@ -371,6 +371,7 @@ uv run python -m terrarium.runner.ab \
 **公開ギャラリー（クローン不要で視聴可）**: https://kjranyone.github.io/meta-security-hackathon-vol-2/
 — ホルムズ封鎖・金融危機・台湾有事・日本の同盟網・対日偽情報・三重危機・IF史の7シナリオを
 ブラウザから直接scrubできます（`?t=<tick>` デイープリンクで事件の瞬間から開始）。
+**提出スライドPDFも同URLに公開**: https://kjranyone.github.io/meta-security-hackathon-vol-2/slides.pdf
 **全シナリオとも全国家をRL政策（教師LLM蒸留の汎用DeepPolicyNet 約50MB）で運用して生成**しており、
 ルールベース政策との比較(ホルムズでの戦争1件 vs 0件、IF史での介入時点差による分岐)もギャラリーに明記。
 **176カ国の全国家版(earth_all)も4シナリオ収録** — 同一介入で戦争6件・崩壊1(16カ国版は戦争1件)と、
@@ -1021,7 +1022,9 @@ cd server && uv run python ../analysis/make_figures.py
 | `analysis/out/ab_*.png` | **A/Bダイバージェンス**: baseline vs シナリオのGDP・価格・安定・不足イベント系列 |
 | `analysis/out/sensitivity_matrix.png` + `.csv` | **介入点×指標の感度行列**（最終値の差分）。どの介入点がどの指標に効くか一望 |
 
-提出物は `report/` にあります: **ビジュアルレポート** `slides.html`（10スライド、`slides.pdf` も同梱）、
+提出物は `report/` にあります: **ビジュアルレポート** `slides.typ`（typst組版・12スライド。
+`typst compile --root . report/slides.typ` で `slides.pdf` を再生成し `web/slides.pdf` として
+GitHub Pages でも公開。旧HTML組版 `slides.html`・`slides_html.pdf` も同梱）、
 解析ノートブック `analysis/terrarium_analysis.ipynb`（実行結果埋込済み）、
 デモ動画台本 `report/demo_script.md`。
 
