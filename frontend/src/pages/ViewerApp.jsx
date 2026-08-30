@@ -47,7 +47,7 @@ export default function ViewerApp({ params }) {
 
   const loadReplayText = useCallback((text, initialTick) => {
     const { META, TICKS } = ingestReplay(text);
-    if (!TICKS.length) { alert("replay.jsonl に tick がありません"); return; }
+    if (!TICKS.length) { pushToast("error", "replay.jsonl に tick がありません"); return; }
     setMeta(META); setTicks(TICKS); setCur(0); setSelected(null); setPlaying(false);
     if (initialTick != null) {
       const t0 = Math.max(0, Math.min(TICKS.length - 1, parseInt(initialTick, 10) || 0));
@@ -61,7 +61,7 @@ export default function ViewerApp({ params }) {
     try {
       loadReplayText(await (await fetch(url)).text(), initialTick);
       setUrlInput(url);
-    } catch (e) { alert("読み込み失敗: " + e.message); }
+    } catch (e) { pushToast("error", "読み込み失敗: " + e.message); }
   }, [loadReplayText]);
 
   // ?replay= auto-load

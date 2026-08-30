@@ -162,8 +162,16 @@ export default function InterventionApp({ mode = "server" }) {
       // サーバ版: WebSocketに接続(切断は1.5秒で再接続)
       let ws;
       let closed = false;
+      // https上でws://を張るとSecurityErrorが同期throwしてReactごと落ちる。
+      // スキームを追従させ、それでも例外なら再接続せず切断表示に留める。
+      const scheme = location.protocol === "https:" ? "wss" : "ws";
       const connect = () => {
-        ws = new WebSocket(`ws://${location.host}/ws`);
+        try {
+          ws = new WebSocket(`${scheme}://${location.host}/ws`);
+        } catch (e) {
+          setConn(false);
+          return;   // GitHub Pages等バックエンドが無い環境: 接続不能として表示
+        }
         busRef.current = ws;
         ws.onopen = () => setConn(true);
         ws.onmessage = ev => onMessage(JSON.parse(ev.data));
@@ -410,7 +418,8 @@ export default function InterventionApp({ mode = "server" }) {
           {legendOpen && <LegendModal onClose={() => setLegendOpen(false)} />}
           {statusOpen && (
             <StatusModal onClose={() => setStatusOpen(false)} conn={conn} status={status}
-                         serverLabel={browser ? "ブラウザ内で実行中(Pyodide WASM — ネットワーク不使用)" : undefined}
+                         serverLabel={browser ? "ブラウザ内で実行中(Pyodide WASM — ネットワーク不使用)"
+                         : (conn ? undefined : "未接続 — ローカルで uvicorn(8788) を起動すると接続します")}
                          onNewSim={() => { setStatusOpen(false); setCreateOpen(true); }}
                          tick={tick} meta={meta} preset={preset} policy={policy} seed={seed} />
           )}
