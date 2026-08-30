@@ -1022,7 +1022,8 @@ cd server && uv run python ../analysis/make_figures.py
 | `analysis/out/ab_*.png` | **A/Bダイバージェンス**: baseline vs シナリオのGDP・価格・安定・不足イベント系列 |
 | `analysis/out/sensitivity_matrix.png` + `.csv` | **介入点×指標の感度行列**（最終値の差分）。どの介入点がどの指標に効くか一望 |
 
-提出物は `report/` にあります: **ビジュアルレポート** `slides.typ`（typst組版・12スライド。
+提出物は `report/` にあります: **ビジュアルレポート** `slides.typ`（typst組版・13スライド。
+冒頭に「問題提起」スライド（3つの賭け→ベイズに頼らない因果の表現）を置く。
 `typst compile --root . report/slides.typ` で `slides.pdf` を再生成し `web/slides.pdf` として
 GitHub Pages でも公開。旧HTML組版 `slides.html`・`slides_html.pdf` も同梱）、
 解析ノートブック `analysis/terrarium_analysis.ipynb`（実行結果埋込済み）、

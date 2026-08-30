@@ -11,6 +11,7 @@
 #let blue   = rgb("#58a6ff")
 #let red    = rgb("#e5534b")
 #let green  = rgb("#3fb950")
+#let purple = rgb("#d6a8ff")
 
 #set page(
   paper: "presentation-16-9",
@@ -102,6 +103,54 @@
       第2回 AIエージェント社会シミュレーション・ハッカソン「メタ安全保障」応募作品
     ]
   ]
+]
+
+// =========================================================================
+// 2. 問題提起（ポップ）
+// =========================================================================
+#let popcard(col, num, emoji, claim, body) = rect(
+  fill: panel, stroke: 1.2pt + col, radius: 8pt, inset: 9pt, width: 100%
+)[
+  #align(center)[
+    #text(size: 17pt, fill: col, weight: "bold")[#num]#h(3pt)#text(size: 14pt)[#emoji]
+    #v(1mm)
+    #text(size: 11pt, weight: "bold")[#claim]
+  ]
+  #v(1.5mm)
+  #text(size: 8.8pt)[#body]
+]
+
+#slide[
+  #h2[問題提起: 3つの賭け → 1つの表現]
+  #grid(
+    columns: (1fr, 1fr, 1fr),
+    gutter: 9pt,
+    popcard(blue, [①], [🧠], [LLMは「教師」になれる], [
+      人間の政策直観をLLMが言語化し、RLへ蒸留。1回数十秒の思考が80KB・CPU即時の重みになり、全176カ国に配備される。#dim[(→ 6b. LLM→RL蒸留)]
+    ]),
+    popcard(accent, [②], [🌍], [世界は「実験装置」になる], [
+      現実で考えるべき世界をモデル化すれば、核危機も海峡封鎖も同じ条件で何度でも再現できる。訓練にもA/B測定にも使え、有意なデータが取れるかもしれない。#dim[(→ 4. バタフライ・エフェクト)]
+    ]),
+    popcard(purple, [③], [💡], [因子が増えれば、AIが仮説を出す], [
+      核・核傘・輸出規制・通貨ブロック…因子と介入の語彙を増やすほど、AIは「ここを動かせば世界はこう変わる」という*因果の仮説*を提起できる。連鎖はparentリンクで追跡可能。#dim[(→ 5. 因果カスケード)]
+    ]),
+  )
+  #v(3.5mm)
+  #rect(fill: accent, radius: 8pt, inset: 10pt, width: 100%)[
+    #align(center)[
+      #text(size: 13.5pt, weight: "bold", fill: rgb("#1a0d02"))[「ベイズに頼らない因果の表現」— 安全保障で実験した]#linebreak()
+      #v(1mm)
+      #text(size: 9.2pt, fill: rgb("#241203"))[決定論シミュレーション × A/B反実仮想 × 因果グラフ（parentリンク）]
+    ]
+  ]
+  #v(3.5mm)
+  #grid(
+    columns: (1fr, 1fr, 1fr),
+    gutter: 9pt,
+    [#text(size: 8pt)[#text(fill: blue, weight: "bold")[① 実装: ]教師=glm-5.3（実API呼び出し監査済み）→ hold-out一致率 *89.7%*]],
+    [#text(size: 8pt)[#text(fill: accent, weight: "bold")[② 実装: ]bit等価の決定論 — 176カ国×72ヶ月・安定性は10seed×3抑止構成]],
+    [#text(size: 8pt)[#text(fill: purple, weight: "bold")[③ 実装: ]因子4種・介入12カード・全イベントにparentリンク]],
+  )
 ]
 
 // =========================================================================
