@@ -17,6 +17,7 @@ import { pickAt } from "../lib/renderMap";
 import { eventsToPulses } from "../lib/pulses";
 import { setClock } from "../lib/calendar";
 import { initAudio, beep, toneForTypes, MAJOR_TONES } from "../lib/audio";
+import { GROUP_OF, GROUP_COLOR } from "../lib/eventMeta";
 
 // ライブ推論モードの共通実装。GodApp(サーバ版・WebSocket)とLiveApp(ブラウザ実行・
 // Web Worker + Pyodide)はtransport以外すべて同じUI/状態機械を持つため、
@@ -204,9 +205,16 @@ export default function InterventionApp({ mode = "server" }) {
   }
 
   const tick = ticks[Math.min(cur, ticks.length - 1)] || null;
+  // 分類別の日本語集計(生のsnake_case識別子は審査官に伝わらない)
   const counts = {};
-  for (const t of ticks) for (const e of t.events || []) counts[e.type] = (counts[e.type] || 0) + 1;
-  const countsStr = Object.entries(counts).map(([k, v]) => `${k}:${v}`).join(" ");
+  let minorCount = 0;
+  for (const t of ticks) for (const e of t.events || []) {
+    const g = GROUP_OF[e.type];
+    if (g) counts[g] = (counts[g] || 0) + 1;
+    else minorCount++;
+  }
+  const countsStr = (Object.keys(GROUP_COLOR).filter(g => counts[g]).map(g => `${g}${counts[g]}`).join("・")
+    + (minorCount ? `${counts && Object.keys(counts).length ? "・" : ""}政策など${minorCount}` : "")).trim();
 
   return (
     <div className="app">

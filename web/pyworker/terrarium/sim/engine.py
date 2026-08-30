@@ -38,6 +38,8 @@ from ..world import clock as TC
 _RESOURCE_JA = {"oil": "石油", "gas": "天然ガス", "grain": "穀物",
                 "fab": "半導体製造", "finance": "金融", "mineral": "希少金属",
                 "orbit": "宇宙インフラ"}
+_COMMODITY_JA = {"energy": "エネルギー", "food": "食料", "chips": "半導体",
+                 "minerals": "鉱物", "space": "宇宙"}
 from ..world.factors import FACTORS_BY_ID
 from ..world.tech import CATALOG, tech_catalog_index
 from .events import EventLog
@@ -800,7 +802,7 @@ class Engine:
         imp, exp = self.nations[route.importer], self.nations[route.exporter]
         ev = self.event_log.emit(
             self.tick_no, "trade_throttled",
-            f"{imp.name}←{exp.name} の{route.commodity.value}航路、{','.join(blocked)} 封鎖で輸送力激減",
+            f"{imp.name}←{exp.name} の{_COMMODITY_JA.get(route.commodity.value, route.commodity.value)}航路、{','.join(blocked)} 封鎖で輸送力激減",
             targets=[route.importer, route.exporter],
             parents=[self._cp_cause[n] for n in blocked if n in self._cp_cause],
             data={"routes": route.model_dump(), "capacity": round(capacity, 3)},
@@ -836,7 +838,7 @@ class Engine:
                 self._spike_last[c.value] = now
                 self.event_log.emit(
                     t, "price_spike",
-                    f"{c.value} の国際価格が急騰 ({ref:.2f}→{self.prices[c.value]:.2f})",
+                    f"{_COMMODITY_JA.get(c.value, c.value)}の国際価格が急騰 ({ref:.2f}→{self.prices[c.value]:.2f})",
                     parents=list(self._tick_throttled),
                     data={"commodity": c.value, "from": round(ref, 3), "to": self.prices[c.value]},
                 )
@@ -893,7 +895,7 @@ class Engine:
                     if severity >= 0.3 > self._last_sev.get(key, 0.0):
                         self.event_log.emit(
                             t, "shortage",
-                            f"{nat.name} で {c.value} が深刻な不足。備蓄底をつき社会不安が拡大",
+                            f"{nat.name} で {_COMMODITY_JA.get(c.value, c.value)}が深刻な不足。備蓄底をつき社会不安が拡大",
                             actor=nid, targets=[nid],
                             parents=self._causal_parents(nid),
                             data={"commodity": c.value, "severity": round(severity, 2)},
